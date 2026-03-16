@@ -1,0 +1,10 @@
+{
+  "name": "Shift Complete",
+  "short_name": "Shift",
+  "theme_color": "#0f172a",
+  "background_color": "#f4efe7",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
+  "icons": []
+}

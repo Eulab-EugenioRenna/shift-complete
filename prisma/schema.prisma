@@ -1,0 +1,157 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  administrator
+  service_leader
+  volunteer
+}
+
+enum EventType {
+  single
+  recurring
+}
+
+enum AssignmentStatus {
+  open
+  assigned
+  confirmed
+  declined
+}
+
+enum NotificationChannel {
+  in_app
+  email
+  websocket
+}
+
+model User {
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  passwordHash        String
+  fullName            String
+  role                Role                 @default(volunteer)
+  onboardingCompleted Boolean              @default(false)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  memberships         TeamMembership[]
+  leadingTeams        Team[]               @relation("TeamLeader")
+  assignments         Assignment[]
+  notifications       Notification[]
+  auditLogs           AuditLog[]
+}
+
+model Team {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  description String?
+  leaderId    String?
+  leader      User?            @relation("TeamLeader", fields: [leaderId], references: [id])
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  memberships TeamMembership[]
+  inventory   InventoryItem[]
+  resources   ResourceFile[]
+  slots       EventSlot[]
+}
+
+model TeamMembership {
+  id        String   @id @default(cuid())
+  teamId     String
+  userId     String
+  createdAt  DateTime @default(now())
+  team       Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+}
+
+model Event {
+  id                String        @id @default(cuid())
+  title             String
+  description       String?
+  type              EventType
+  startsAt          DateTime
+  endsAt            DateTime
+  recurrenceRule    String?
+  recurrenceTz      String?
+  historicalSnapshot Json?
+  createdById       String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  slots             EventSlot[]
+}
+
+model EventSlot {
+  id          String        @id @default(cuid())
+  eventId      String
+  teamId       String
+  roleName     String
+  startsAt     DateTime
+  endsAt       DateTime
+  required     Boolean      @default(true)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  team         Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  assignments  Assignment[]
+}
+
+model Assignment {
+  id           String           @id @default(cuid())
+  slotId       String
+  assigneeId   String?
+  status       AssignmentStatus @default(open)
+  autoAssigned Boolean          @default(false)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  slot         EventSlot        @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  assignee     User?            @relation(fields: [assigneeId], references: [id])
+}
+
+model InventoryItem {
+  id               String   @id @default(cuid())
+  teamId           String
+  name             String
+  serialNumber     String?
+  status           String
+  maintenanceDueAt DateTime?
+  team             Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+model ResourceFile {
+  id         String   @id @default(cuid())
+  teamId      String?
+  name        String
+  path        String
+  mimeType    String
+  sizeBytes   Int
+  uploadedAt  DateTime @default(now())
+  team        Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
+}
+
+model Notification {
+  id         String              @id @default(cuid())
+  userId      String
+  channel     NotificationChannel
+  subject     String
+  body        String
+  readAt      DateTime?
+  createdAt   DateTime            @default(now())
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId      String?
+  action      String
+  entityType  String
+  entityId    String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}

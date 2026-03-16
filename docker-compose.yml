@@ -1,0 +1,67 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: shift-complete-postgres
+    environment:
+      POSTGRES_DB: shift_complete
+      POSTGRES_USER: shift
+      POSTGRES_PASSWORD: shift
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shift -d shift_complete"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: shift-complete-redis
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - redis_data:/data
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    container_name: shift-complete-api
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://shift:shift@postgres:5432/shift_complete?schema=public
+      REDIS_URL: redis://redis:6379
+    ports:
+      - '3333:3333'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    container_name: shift-complete-web
+    env_file:
+      - .env
+    environment:
+      API_BASE_URL: http://api:3333/api
+    ports:
+      - '4200:4200'
+    depends_on:
+      api:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  redis_data:

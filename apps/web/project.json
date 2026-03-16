@@ -1,0 +1,29 @@
+{
+  "name": "web",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/web/src",
+  "projectType": "application",
+  "targets": {
+    "serve": {
+      "executor": "@nx/angular:dev-server",
+      "options": {
+        "buildTarget": "web:build"
+      }
+    },
+    "build": {
+      "executor": "@nx/angular:application",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/web",
+        "index": "apps/web/src/index.html",
+        "browser": "apps/web/src/main.ts",
+        "polyfills": ["zone.js"],
+        "tsConfig": "apps/web/tsconfig.app.json",
+        "inlineStyleLanguage": "css",
+        "assets": ["apps/web/src/assets", "apps/web/src/manifest.webmanifest"],
+        "styles": ["apps/web/src/styles.css"],
+        "serviceWorker": "apps/web/ngsw-config.json"
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+node_modules
+.nx
+angular.json
+coverage
+dist
+.tmp
+.env
+.env.local
+.DS_Store

@@ -1,0 +1,45 @@
+@import 'tailwindcss';
+@import 'primeicons/primeicons.css';
+
+:root {
+  color-scheme: light dark;
+  --sc-bg: #f4efe7;
+  --sc-surface: rgba(255, 255, 255, 0.72);
+  --sc-panel: #111827;
+  --sc-primary: #c2410c;
+  --sc-secondary: #0f766e;
+  --sc-accent: #f59e0b;
+  --sc-text: #111827;
+  --sc-muted: #6b7280;
+  --sc-border: rgba(17, 24, 39, 0.08);
+}
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top left, rgba(194, 65, 12, 0.16), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(15, 118, 110, 0.16), transparent 30%),
+    var(--sc-bg);
+  color: var(--sc-text);
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+
+body {
+  min-height: 100vh;
+}
+
+.shell-card {
+  backdrop-filter: blur(20px);
+  background: var(--sc-surface);
+  border: 1px solid var(--sc-border);
+  border-radius: 24px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+}
+
+.metric-tile {
+  border-radius: 20px;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
