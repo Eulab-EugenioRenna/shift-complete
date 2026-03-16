@@ -1,11 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
+    "rootDirs": ["src", "../../libs/shared-types/src"],
     "outDir": "../../dist/apps/api",
     "module": "commonjs",
     "moduleResolution": "node",
     "types": ["node"]
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "../../libs/shared-types/src/**/*.ts"]
 }

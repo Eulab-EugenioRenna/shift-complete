@@ -1,7 +1,7 @@
 FROM node:22-alpine
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm install --legacy-peer-deps
 COPY . .
 RUN npx nx build web
 EXPOSE 4200

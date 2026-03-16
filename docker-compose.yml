@@ -39,8 +39,11 @@ services:
     environment:
       DATABASE_URL: postgresql://shift:shift@postgres:5432/shift_complete?schema=public
       REDIS_URL: redis://redis:6379
+      RUNNING_IN_DOCKER: 'true'
     ports:
       - '3333:3333'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     depends_on:
       postgres:
         condition: service_healthy

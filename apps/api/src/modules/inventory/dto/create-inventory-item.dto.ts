@@ -1,8 +1,9 @@
 import { IsDateString, IsOptional, IsString } from 'class-validator';
 
 export class CreateInventoryItemDto {
+  @IsOptional()
   @IsString()
-  teamId!: string;
+  teamId?: string;
 
   @IsString()
   name!: string;
@@ -11,8 +12,9 @@ export class CreateInventoryItemDto {
   @IsString()
   serialNumber?: string;
 
+  @IsOptional()
   @IsString()
-  status!: string;
+  status?: string;
 
   @IsOptional()
   @IsDateString()

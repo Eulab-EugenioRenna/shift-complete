@@ -3,10 +3,12 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { UsersModule } from '../users/users.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
     UsersModule,
+    NotificationsModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET ?? 'change-me',
       signOptions: { expiresIn: '12h' }

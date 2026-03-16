@@ -1,0 +1,18 @@
+{
+  "name": "ui-kit",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/ui-kit/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/ui-kit",
+        "main": "libs/ui-kit/src/index.ts",
+        "tsConfig": "libs/ui-kit/tsconfig.lib.json",
+        "assets": []
+      }
+    }
+  }
+}

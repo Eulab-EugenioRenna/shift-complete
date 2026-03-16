@@ -18,6 +18,39 @@ enum EventType {
   recurring
 }
 
+enum OnboardingState {
+  REGISTERED
+  PROFILE_COMPLETE
+  FULLY_ONBOARDED
+}
+
+enum TokenType {
+  PASSWORD_RESET
+  EMAIL_VERIFICATION
+}
+
+enum AvailabilityType {
+  AVAILABLE
+  UNAVAILABLE
+}
+
+enum ReplacementStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+enum TeamRequestKind {
+  SIGNUP
+  TEAM_JOIN
+}
+
+enum TeamRequestStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
 enum AssignmentStatus {
   open
   assigned
@@ -29,6 +62,27 @@ enum NotificationChannel {
   in_app
   email
   websocket
+  webhook
+}
+
+enum BackgroundJobKind {
+  resource_upload
+  resource_download
+  notification_dispatch
+  ai_task
+}
+
+enum BackgroundJobStatus {
+  queued
+  running
+  completed
+  failed
+}
+
+enum NotificationDeliveryStatus {
+  queued
+  sent
+  failed
 }
 
 model User {
@@ -37,20 +91,77 @@ model User {
   passwordHash        String
   fullName            String
   role                Role                 @default(volunteer)
-  onboardingCompleted Boolean              @default(false)
+  onboardingState     OnboardingState      @default(REGISTERED)
+  suspendedAt         DateTime?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
+  
+  settings            UserSettings?
+  sessions            Session[]
+  tokens              UserToken[]
+  availabilities      Availability[]
+  replacementRequests Replacement[]        @relation("ReplacementRequester")
+  teamJoinRequests    TeamAccessRequest[]  @relation("TeamRequestTarget")
+  submittedTeamRequests TeamAccessRequest[] @relation("TeamRequestRequester")
+  reviewedTeamRequests TeamAccessRequest[] @relation("TeamRequestReviewer")
+  createdFromRequests TeamAccessRequest[]  @relation("TeamRequestCreatedUser")
+  replacementsAsAssignee Replacement[]     @relation("ReplacementAssignee")
+  
   memberships         TeamMembership[]
   leadingTeams        Team[]               @relation("TeamLeader")
   assignments         Assignment[]
   notifications       Notification[]
   auditLogs           AuditLog[]
+  backgroundJobs      BackgroundJob[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserToken {
+  id        String    @id @default(cuid())
+  userId    String
+  token     String    @unique
+  type      TokenType
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserSettings {
+  id              String  @id @default(cuid())
+  userId          String  @unique
+  language        String  @default("en")
+  theme           String  @default("system")
+  phone           String?
+  address         String?
+  emergencyName   String?
+  emergencyPhone  String?
+  preferredShifts Json?
+  preferredTeamIds Json?
+  preferredDutyIds Json?
+  competencies    Json?
+  serviceNotes    String?
+  dashboardLayout Json?
+  aiAutoSchedule  Boolean @default(false)
+  aiEnabled       Boolean @default(true)
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Team {
   id          String           @id @default(cuid())
   name        String           @unique
   description String?
+  color       String?
+  icon        String?
   leaderId    String?
   leader      User?            @relation("TeamLeader", fields: [leaderId], references: [id])
   createdAt   DateTime         @default(now())
@@ -59,6 +170,10 @@ model Team {
   inventory   InventoryItem[]
   resources   ResourceFile[]
   slots       EventSlot[]
+  duties      Duty[]
+  accessRequests TeamAccessRequest[]
+  availabilities Availability[]
+  backgroundJobs BackgroundJob[]
 }
 
 model TeamMembership {
@@ -77,27 +192,50 @@ model Event {
   title             String
   description       String?
   type              EventType
+  color             String?
+  icon              String?
   startsAt          DateTime
   endsAt            DateTime
   recurrenceRule    String?
   recurrenceTz      String?
+  parentEventId     String?
   historicalSnapshot Json?
   createdById       String?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
+  
+  parentEvent       Event?        @relation("RecurringEventInstances", fields: [parentEventId], references: [id], onDelete: SetNull)
+  instances         Event[]       @relation("RecurringEventInstances")
+  
   slots             EventSlot[]
+}
+
+model Duty {
+  id          String   @id @default(cuid())
+  teamId      String
+  name        String
+  description String?
+  color       String?
+  icon        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  slots       EventSlot[]
 }
 
 model EventSlot {
   id          String        @id @default(cuid())
   eventId      String
   teamId       String
-  roleName     String
+  dutyId       String
   startsAt     DateTime
   endsAt       DateTime
   required     Boolean      @default(true)
+  
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
   team         Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  duty         Duty         @relation(fields: [dutyId], references: [id], onDelete: Restrict)
   assignments  Assignment[]
 }
 
@@ -111,6 +249,7 @@ model Assignment {
   updatedAt    DateTime         @updatedAt
   slot         EventSlot        @relation(fields: [slotId], references: [id], onDelete: Cascade)
   assignee     User?            @relation(fields: [assigneeId], references: [id])
+  replacements Replacement[]
 }
 
 model InventoryItem {
@@ -134,15 +273,88 @@ model ResourceFile {
   team        Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
 }
 
+model AiSetting {
+  id                String   @id @default("global")
+  provider          String   @default("disabled")
+  apiKey            String?
+  ollamaUrl         String?
+  model             String?
+  smtpHost          String?
+  smtpPort          Int      @default(587)
+  smtpSecure        Boolean  @default(false)
+  smtpUser          String?
+  smtpPassword      String?
+  smtpFromEmail     String?
+  smtpFromName      String?
+  smtpReplyTo       String?
+  redisUrl          String?
+  webAppUrl         String?
+  resourceStoragePath String? @default("storage/resources")
+  resourceTempPath  String?   @default("storage/resources/tmp")
+  resourceJobConcurrency Int  @default(3)
+  notificationJobConcurrency Int @default(5)
+  aiJobConcurrency  Int      @default(2)
+  inAppNotificationsEnabled Boolean @default(true)
+  websocketNotificationsEnabled Boolean @default(true)
+  emailNotificationsEnabled Boolean @default(true)
+  webhookEnabled    Boolean  @default(false)
+  webhookUrl        String?
+  webhookSecret     String?
+  agnostic          Boolean  @default(false)
+  automationMode    String   @default("balanced")
+  remindersEnabled  Boolean  @default(true)
+  quietHours        Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
 model Notification {
   id         String              @id @default(cuid())
   userId      String
   channel     NotificationChannel
   subject     String
   body        String
+  link        String?
   readAt      DateTime?
   createdAt   DateTime            @default(now())
   user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries  NotificationDelivery[]
+}
+
+model NotificationDelivery {
+  id             String                     @id @default(cuid())
+  notificationId String
+  channel        NotificationChannel
+  status         NotificationDeliveryStatus @default(queued)
+  target         String?
+  payload        Json?
+  lastError      String?
+  deliveredAt    DateTime?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+
+  notification   Notification               @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+}
+
+model BackgroundJob {
+  id          String              @id @default(cuid())
+  kind        BackgroundJobKind
+  status      BackgroundJobStatus @default(queued)
+  progress    Int                 @default(0)
+  userId      String?
+  teamId      String?
+  entityType  String?
+  entityId    String?
+  payload     Json?
+  result      Json?
+  error       String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  user        User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  team        Team?               @relation(fields: [teamId], references: [id], onDelete: SetNull)
 }
 
 model AuditLog {
@@ -154,4 +366,59 @@ model AuditLog {
   metadata    Json?
   createdAt   DateTime @default(now())
   user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model Availability {
+  id        String           @id @default(cuid())
+  userId    String
+  teamId    String?
+  type      AvailabilityType
+  startsAt  DateTime
+  endsAt    DateTime
+  reason    String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team      Team?            @relation(fields: [teamId], references: [id], onDelete: SetNull)
+}
+
+model Replacement {
+  id                String            @id @default(cuid())
+  assignmentId      String
+  requestedByUserId String
+  replacementAssigneeId String?
+  status            ReplacementStatus @default(PENDING)
+  reason            String?
+  createdAt         DateTime          @default(now())
+  resolvedAt        DateTime?
+  
+  assignment        Assignment        @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  requestedBy       User              @relation("ReplacementRequester", fields: [requestedByUserId], references: [id], onDelete: Cascade)
+  replacementAssignee User?           @relation("ReplacementAssignee", fields: [replacementAssigneeId], references: [id], onDelete: SetNull)
+}
+
+model TeamAccessRequest {
+  id               String          @id @default(cuid())
+  teamId           String
+  kind             TeamRequestKind
+  status           TeamRequestStatus @default(PENDING)
+  fullName         String?
+  email            String?
+  passwordHash     String?
+  targetUserId     String?
+  requestedByUserId String?
+  reviewedByUserId String?
+  createdUserId    String?
+  createdAt        DateTime        @default(now())
+  reviewedAt       DateTime?
+
+  team             Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  targetUser       User?           @relation("TeamRequestTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+  requestedBy      User?           @relation("TeamRequestRequester", fields: [requestedByUserId], references: [id], onDelete: SetNull)
+  reviewedBy       User?           @relation("TeamRequestReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  createdUser      User?           @relation("TeamRequestCreatedUser", fields: [createdUserId], references: [id], onDelete: SetNull)
+
+  @@index([teamId, status])
+  @@index([email, status])
 }

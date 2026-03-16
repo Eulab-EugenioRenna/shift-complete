@@ -1,4 +1,4 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { OnboardingState, PrismaClient, Role } from '@prisma/client';
 import { hashPassword } from '../apps/api/src/common/utils/password.util';
 
 const prisma = new PrismaClient();
@@ -13,14 +13,14 @@ async function main() {
     update: {
       fullName,
       role: Role.administrator,
-      onboardingCompleted: true
+      onboardingState: OnboardingState.FULLY_ONBOARDED
     },
     create: {
       email,
       passwordHash: hashPassword(password),
       fullName,
       role: Role.administrator,
-      onboardingCompleted: true
+      onboardingState: OnboardingState.FULLY_ONBOARDED
     }
   });
 
@@ -96,11 +96,28 @@ async function main() {
     });
   }
 
+  let logisticsDuty = await prisma.duty.findFirst({
+    where: {
+      teamId: logisticsTeam.id,
+      name: 'Capo squadra'
+    }
+  });
+
+  if (!logisticsDuty) {
+    logisticsDuty = await prisma.duty.create({
+      data: {
+        teamId: logisticsTeam.id,
+        name: 'Capo squadra',
+        description: 'Coordinamento operativo del team logistico.'
+      }
+    });
+  }
+
   let logisticsSlot = await prisma.eventSlot.findFirst({
     where: {
       eventId: event.id,
       teamId: logisticsTeam.id,
-      roleName: 'Capo squadra'
+      dutyId: logisticsDuty.id
     }
   });
 
@@ -109,7 +126,7 @@ async function main() {
       data: {
         eventId: event.id,
         teamId: logisticsTeam.id,
-        roleName: 'Capo squadra',
+        dutyId: logisticsDuty.id,
         startsAt: event.startsAt,
         endsAt: event.endsAt
       }

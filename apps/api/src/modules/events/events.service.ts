@@ -2,16 +2,43 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { toJsonValue } from '../../common/utils/json.util';
 import { PrismaService } from '../../database/prisma.service';
-import { AssignVolunteerDto } from './dto/assign-volunteer.dto';
-import { CreateEventDto } from './dto/create-event.dto';
-import { UpdateEventDto } from './dto/update-event.dto';
+import { CreateEventDto, UpdateEventDto, AssignVolunteerDto } from '@shift-complete/shared-types';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class EventsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService
+  ) {}
 
-  list() {
+  list(actorId: string, actorRole: Role) {
+    const where = actorRole === Role.administrator
+      ? undefined
+      : actorRole === Role.service_leader
+        ? {
+            slots: {
+              some: {
+                team: {
+                  leaderId: actorId
+                }
+              }
+            }
+          }
+        : {
+            slots: {
+              some: {
+                assignments: {
+                  some: {
+                    assigneeId: actorId
+                  }
+                }
+              }
+            }
+          };
+
     return this.prisma.event.findMany({
+      where,
       include: {
         slots: {
           include: {
@@ -23,10 +50,25 @@ export class EventsService {
                     fullName: true,
                     email: true
                   }
+                },
+                replacements: {
+                  where: {
+                    status: 'APPROVED'
+                  },
+                  select: {
+                    id: true,
+                    status: true
+                  }
                 }
               }
             },
             team: {
+              select: {
+                id: true,
+                name: true
+              }
+            },
+            duty: {
               select: {
                 id: true,
                 name: true
@@ -47,23 +89,27 @@ export class EventsService {
         type: event.type,
         slots: event.slots.map((slot) => ({
           id: slot.id,
-          roleName: slot.roleName,
+          dutyId: slot.dutyId,
+          roleName: slot.duty?.name,
           teamId: slot.teamId,
-          teamName: slot.team.name,
+          teamName: slot.team?.name,
           startsAt: slot.startsAt,
           endsAt: slot.endsAt,
-          assignments: slot.assignments.map((assignment) => ({
-            id: assignment.id,
-            status: assignment.status,
-            assignee: assignment.assignee
-          }))
+            assignments: slot.assignments.map((assignment) => ({
+              id: assignment.id,
+              assigneeId: assignment.assigneeId,
+              status: assignment.status,
+              assignee: assignment.assignee,
+              replacementApproved: assignment.replacements.length > 0
+            }))
         })),
         assignments: event.slots.flatMap((slot) =>
           slot.assignments.map((assignment) => ({
             id: assignment.id,
+            eventId: event.id,
             slotId: slot.id,
-            roleName: slot.roleName,
-            team: slot.team.name,
+            roleName: slot.duty?.name,
+            team: slot.team?.name,
             status: assignment.status,
             assignee: assignment.assignee?.fullName ?? null
           }))
@@ -85,7 +131,7 @@ export class EventsService {
       data: {
         title: payload.title,
         description: payload.description,
-        type: payload.type,
+        type: payload.type as any, // mapping between string and enum
         startsAt: new Date(payload.startsAt),
         endsAt: new Date(payload.endsAt),
         recurrenceRule: payload.recurrenceRule,
@@ -93,8 +139,16 @@ export class EventsService {
         createdById: actorId,
         slots: {
           create: payload.slots.map((slot) => ({
-            teamId: slot.teamId,
-            roleName: slot.roleName,
+            team: {
+              connect: {
+                id: slot.teamId
+              }
+            },
+            duty: {
+              connect: {
+                id: slot.dutyId
+              }
+            },
             startsAt: new Date(slot.startsAt),
             endsAt: new Date(slot.endsAt),
             required: slot.required ?? true
@@ -123,7 +177,8 @@ export class EventsService {
     const slot = await this.prisma.eventSlot.findUniqueOrThrow({
       where: { id: payload.slotId },
       include: {
-        team: true
+        team: true,
+        assignments: true
       }
     });
 
@@ -131,6 +186,69 @@ export class EventsService {
       const allowedTeamIds = await this.findLeaderTeamIds(actorId);
       if (!allowedTeamIds.includes(slot.teamId)) {
         throw new ForbiddenException('Il leader puo assegnare solo i ruoli dei propri team');
+      }
+    }
+
+    if (payload.assigneeId) {
+      const membership = await this.prisma.teamMembership.findUnique({
+        where: {
+          teamId_userId: {
+            teamId: slot.teamId,
+            userId: payload.assigneeId
+          }
+        }
+      });
+
+      if (!membership) {
+        throw new ForbiddenException('Puoi assegnare solo persone presenti nel team dello slot');
+      }
+
+      const startOfDay = new Date(slot.startsAt);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(slot.startsAt);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const conflictingAssignment = await this.prisma.assignment.findFirst({
+        where: {
+          assigneeId: payload.assigneeId,
+          slot: {
+            startsAt: {
+              gte: startOfDay,
+              lte: endOfDay
+            },
+            teamId: {
+              not: slot.teamId
+            }
+          }
+        },
+        include: {
+          slot: {
+            include: {
+              team: true
+            }
+          }
+        }
+      });
+
+      if (conflictingAssignment) {
+        throw new ForbiddenException(`L'utente ha gia un servizio nel team ${conflictingAssignment.slot.team.name} nello stesso giorno`);
+      }
+
+      const conflictingAvailability = await this.prisma.availability.findFirst({
+        where: {
+          userId: payload.assigneeId,
+          type: 'UNAVAILABLE',
+          startsAt: {
+            lt: slot.endsAt
+          },
+          endsAt: {
+            gt: slot.startsAt
+          }
+        }
+      });
+
+      if (conflictingAvailability) {
+        throw new ForbiddenException('L\'utente non e disponibile nella fascia oraria del servizio');
       }
     }
 
@@ -145,7 +263,7 @@ export class EventsService {
       ? await this.prisma.assignment.update({
           where: { id: existingAssignment.id },
           data: {
-            status: payload.status ?? existingAssignment.status,
+            status: payload.status as any ?? existingAssignment.status,
             autoAssigned: payload.autoAssigned ?? existingAssignment.autoAssigned
           }
         })
@@ -153,7 +271,7 @@ export class EventsService {
       data: {
         slotId: payload.slotId,
         assigneeId: payload.assigneeId,
-        status: payload.status ?? 'assigned',
+        status: payload.status as any ?? 'assigned',
         autoAssigned: Boolean(payload.autoAssigned)
       }
     });
@@ -161,12 +279,22 @@ export class EventsService {
     await this.prisma.auditLog.create({
       data: {
         userId: actorId,
-        action: 'assignment.created',
+        action: existingAssignment ? 'assignment.updated' : 'assignment.created',
         entityType: 'assignment',
         entityId: assignment.id,
         metadata: toJsonValue(payload)
       }
     });
+
+    if (payload.assigneeId) {
+      await this.notificationsService.pushSystemNotification(
+        payload.assigneeId,
+        'Nuova assegnazione turno',
+        `Sei stato assegnato al servizio ${slot.dutyId} del team ${slot.team.name}.`,
+        '/events',
+        { template: 'assignment', teamName: slot.team.name }
+      );
+    }
 
     return assignment;
   }
@@ -179,16 +307,44 @@ export class EventsService {
 
     await this.assertEventAccess(event, actorId, actorRole);
 
+    if (actorRole === Role.service_leader && payload.slots?.length) {
+      const allowedTeamIds = await this.findLeaderTeamIds(actorId);
+      const disallowedSlot = payload.slots.find((slot) => !allowedTeamIds.includes(slot.teamId));
+      if (disallowedSlot) {
+        throw new ForbiddenException('Il leader puo aggiornare eventi solo per i propri team');
+      }
+    }
+
     const updated = await this.prisma.event.update({
       where: { id: eventId },
       data: {
         title: payload.title,
         description: payload.description,
-        type: payload.type,
+        type: payload.type as any,
         startsAt: payload.startsAt ? new Date(payload.startsAt) : undefined,
         endsAt: payload.endsAt ? new Date(payload.endsAt) : undefined,
         recurrenceRule: payload.recurrenceRule,
-        recurrenceTz: payload.recurrenceTz
+        recurrenceTz: payload.recurrenceTz,
+        slots: payload.slots
+          ? {
+              deleteMany: {},
+              create: payload.slots.map((slot) => ({
+                team: {
+                  connect: {
+                    id: slot.teamId
+                  }
+                },
+                duty: {
+                  connect: {
+                    id: slot.dutyId
+                  }
+                },
+                startsAt: new Date(slot.startsAt),
+                endsAt: new Date(slot.endsAt),
+                required: slot.required ?? true
+              }))
+            }
+          : undefined
       }
     });
 
@@ -202,13 +358,36 @@ export class EventsService {
       }
     });
 
+    const assignments = await this.prisma.assignment.findMany({
+      where: { slot: { eventId } },
+      select: { assigneeId: true }
+    });
+    const assigneeIds = Array.from(new Set(assignments.map((item) => item.assigneeId).filter((id): id is string => Boolean(id))));
+    await Promise.all(assigneeIds.map((assigneeId) =>
+      this.notificationsService.pushSystemNotification(
+        assigneeId,
+        'Turno aggiornato',
+        `L'evento ${updated.title} a cui sei assegnato e stato aggiornato. Verifica data, orario o dettagli del servizio.`,
+        '/events',
+        { template: 'assignment', eventTitle: updated.title }
+      )
+    ));
+
     return updated;
   }
 
   async remove(eventId: string, actorId: string, actorRole: Role) {
     const event = await this.prisma.event.findUniqueOrThrow({
       where: { id: eventId },
-      include: { slots: true }
+      include: {
+        slots: {
+          include: {
+            assignments: {
+              select: { assigneeId: true }
+            }
+          }
+        }
+      }
     });
 
     await this.assertEventAccess(event, actorId, actorRole);
@@ -223,6 +402,17 @@ export class EventsService {
         metadata: toJsonValue({ eventId })
       }
     });
+
+    const assigneeIds = Array.from(new Set(event.slots.flatMap((slot) => slot.assignments.map((assignment) => assignment.assigneeId).filter((id): id is string => Boolean(id)))));
+    await Promise.all(assigneeIds.map((assigneeId) =>
+      this.notificationsService.pushSystemNotification(
+        assigneeId,
+        'Turno annullato',
+        `Un evento a cui eri assegnato e stato eliminato o annullato. Controlla il calendario aggiornato.`,
+        '/events',
+        { template: 'assignment' }
+      )
+    ));
 
     return { deleted: true, id: eventId };
   }

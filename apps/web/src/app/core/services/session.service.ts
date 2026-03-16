@@ -21,8 +21,22 @@ export class SessionService {
     this.userSignal.set(user);
   }
 
+  setRefreshToken(refreshToken: string | null): void {
+    if (refreshToken) {
+      localStorage.setItem('shift.refresh', refreshToken);
+      return;
+    }
+
+    localStorage.removeItem('shift.refresh');
+  }
+
+  getRefreshToken(): string | null {
+    return localStorage.getItem('shift.refresh');
+  }
+
   signOut(): void {
     localStorage.removeItem('shift.token');
+    localStorage.removeItem('shift.refresh');
     localStorage.removeItem('shift.session');
     this.userSignal.set(null);
   }

@@ -1,5 +1,9 @@
 {
   "extends": "./tsconfig.base.json",
   "files": [],
-  "references": []
+  "references": [
+    { "path": "./libs/shared-types/tsconfig.lib.json" },
+    { "path": "./libs/ui-kit/tsconfig.lib.json" },
+    { "path": "./apps/web/tsconfig.app.json" }
+  ]
 }

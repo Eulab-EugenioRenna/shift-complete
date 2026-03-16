@@ -1,9 +1,14 @@
 import { Module } from '@nestjs/common';
+import { JobsModule } from '../jobs/jobs.module';
+import { QueueModule } from '../queue/queue.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 import { ResourcesController } from './resources.controller';
 import { ResourcesService } from './resources.service';
+import { ResourcesWorkerService } from './resources-worker.service';
 
 @Module({
+  imports: [JobsModule, QueueModule, RealtimeModule],
   controllers: [ResourcesController],
-  providers: [ResourcesService]
+  providers: [ResourcesService, ResourcesWorkerService]
 })
 export class ResourcesModule {}

@@ -1,0 +1,216 @@
+import { CommonModule } from '@angular/common';
+import { Component, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { DialogModule } from 'primeng/dialog';
+import { ApiErrorService } from '../../core/services/api-error.service';
+import { UiFeedbackService } from '../../core/services/ui-feedback.service';
+import { UiDialogShellComponent } from '@shift-complete/ui-kit';
+import { AppApiService } from '../../shared/services/app-api.service';
+
+@Component({
+  selector: 'app-admin-user-detail-page',
+  standalone: true,
+  imports: [CommonModule, RouterLink, DialogModule, UiDialogShellComponent],
+  template: `
+    <section class="mx-auto flex max-w-6xl flex-col gap-6">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-widest text-rose-600">Superuser</p>
+          <h2 class="mt-1 text-2xl font-semibold tracking-tight text-slate-800">{{ detail()?.user?.fullName || 'Dettaglio utente' }}</h2>
+          <p class="mt-1 text-sm text-slate-500">{{ detail()?.user?.email }}</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button class="rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white" (click)="requestCredentials()">Rigenera credenziali</button>
+          <button class="rounded-md px-4 py-2 text-sm font-medium" [class.bg-red-600]="!detail()?.user?.suspended" [class.text-white]="!detail()?.user?.suspended" [class.border]="detail()?.user?.suspended" [class.border-slate-300]="detail()?.user?.suspended" [class.text-slate-700]="detail()?.user?.suspended" (click)="toggleSuspend()">{{ detail()?.user?.suspended ? 'Riattiva account' : 'Sospendi account' }}</button>
+          <a routerLink="/admin/users" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700">Torna alla lista</a>
+        </div>
+      </div>
+
+      <div class="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]" *ngIf="detail() as userDetail">
+        <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 class="text-base font-semibold text-slate-900">Profilo</h3>
+          <div class="mt-4 grid gap-3 text-sm text-slate-600">
+            <p><span class="font-medium text-slate-900">Ruolo:</span> {{ userDetail.user.role }}</p>
+            <p><span class="font-medium text-slate-900">Account:</span> {{ userDetail.user.suspended ? 'Sospeso' : 'Attivo' }}</p>
+            <p><span class="font-medium text-slate-900">Onboarding:</span> {{ userDetail.user.onboardingCompleted ? 'Completo' : 'In corso' }}</p>
+            <p><span class="font-medium text-slate-900">Phone:</span> {{ userDetail.user.phone || '—' }}</p>
+            <p><span class="font-medium text-slate-900">Address:</span> {{ userDetail.user.address || '—' }}</p>
+          </div>
+        </div>
+
+        <div class="grid gap-6">
+          <div class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div class="border-b border-slate-100 px-5 py-4"><h3 class="text-base font-semibold text-slate-900">Timeline unificata</h3></div>
+            <div class="divide-y divide-slate-100">
+              <div *ngFor="let item of timeline()" class="px-5 py-4">
+                <div class="flex items-start justify-between gap-4">
+                  <div>
+                    <p class="text-sm font-medium text-slate-900">{{ item.title }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ item.type }} · {{ item.at | date:'short' }}</p>
+                    <p class="mt-2 text-sm text-slate-600">{{ item.description }}</p>
+                    <p class="mt-1 text-xs text-slate-400" *ngIf="item.meta">{{ item.meta }}</p>
+                  </div>
+                </div>
+              </div>
+              <div *ngIf="!timeline().length" class="px-5 py-8 text-sm text-slate-400">Nessun evento di timeline disponibile.</div>
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div class="border-b border-slate-100 px-5 py-4"><h3 class="text-base font-semibold text-slate-900">Notifiche e delivery</h3></div>
+            <div class="divide-y divide-slate-100">
+              <div *ngFor="let item of userDetail.deliveries" class="px-5 py-4">
+                <p class="text-sm font-medium text-slate-900">{{ item.channel }} · {{ item.status }}</p>
+                <p class="mt-1 text-xs text-slate-500">{{ item.notification?.subject }} · {{ item.createdAt | date:'short' }}</p>
+                <p class="mt-1 text-xs text-red-500" *ngIf="item.lastError">{{ item.lastError }}</p>
+              </div>
+              <div *ngIf="!userDetail.deliveries.length" class="px-5 py-8 text-sm text-slate-400">Nessuna delivery disponibile.</div>
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div class="border-b border-slate-100 px-5 py-4"><h3 class="text-base font-semibold text-slate-900">Audit timeline</h3></div>
+            <div class="divide-y divide-slate-100">
+              <div *ngFor="let item of userDetail.audits" class="px-5 py-4">
+                <p class="text-sm font-medium text-slate-900">{{ item.action }}</p>
+                <p class="mt-1 text-xs text-slate-500">{{ item.createdAt | date:'short' }} · {{ item.entityType }} · {{ item.entityId }}</p>
+              </div>
+              <div *ngIf="!userDetail.audits.length" class="px-5 py-8 text-sm text-slate-400">Nessun audit disponibile.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p-dialog [visible]="confirmVisible()" (visibleChange)="confirmVisible.set($event)" [modal]="true" [appendTo]="'body'" [baseZIndex]="1200" [blockScroll]="true" [dismissableMask]="true" [closeOnEscape]="true" [focusOnShow]="false" [style]="{ width: '34rem', maxWidth: '94vw' }" [contentStyle]="{ background: 'transparent', padding: '0', overflow: 'visible' }" [draggable]="false" [resizable]="false">
+        <ui-dialog-shell title="Conferma azione" eyebrow="User detail" subtitle="Questa operazione aggiorna immediatamente lo stato dell'account." [icon]="confirmConfig()?.icon || 'pi pi-user-edit'" [tone]="confirmConfig()?.tone || 'warn'" [hasFooter]="true">
+          <div *ngIf="confirmConfig() as config" class="grid gap-4">
+            <p class="text-sm font-semibold text-slate-900">{{ config.title }}</p>
+            <p class="text-sm text-slate-600">{{ config.message }}</p>
+          </div>
+          <div dialog-footer class="flex items-center justify-end gap-3">
+            <button class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700" (click)="closeConfirm()">Annulla</button>
+            <button class="rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white" (click)="confirmAction()">Conferma</button>
+          </div>
+        </ui-dialog-shell>
+      </p-dialog>
+
+      <p-dialog [visible]="credentialsVisible()" (visibleChange)="credentialsVisible.set($event)" [modal]="true" [appendTo]="'body'" [baseZIndex]="1200" [blockScroll]="true" [dismissableMask]="true" [closeOnEscape]="true" [focusOnShow]="false" [style]="{ width: '36rem', maxWidth: '94vw' }" [contentStyle]="{ background: 'transparent', padding: '0', overflow: 'visible' }" [draggable]="false" [resizable]="false">
+        <ui-dialog-shell title="Credenziali generate" eyebrow="User detail" subtitle="Questa password temporanea viene mostrata una sola volta in questo flusso." icon="pi pi-key" tone="success" [hasFooter]="true">
+          <div *ngIf="generatedCredentials() as credentials" class="grid gap-4">
+            <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-700">Utente</p>
+              <p class="mt-2 text-sm font-medium text-slate-900">{{ credentials.email }}</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Password temporanea</p>
+              <p class="mt-2 font-mono text-lg text-slate-900">{{ credentials.password }}</p>
+            </div>
+          </div>
+          <div dialog-footer class="flex items-center justify-end gap-3">
+            <button class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700" (click)="copyGeneratedPassword()">Copia password</button>
+            <button class="rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white" (click)="closeCredentialsModal()">Chiudi</button>
+          </div>
+        </ui-dialog-shell>
+      </p-dialog>
+    </section>
+  `
+})
+export class AdminUserDetailPageComponent {
+  private readonly route = inject(ActivatedRoute);
+  private readonly api = inject(AppApiService);
+  private readonly apiError = inject(ApiErrorService);
+  private readonly feedback = inject(UiFeedbackService);
+
+  protected readonly detail = signal<any | null>(null);
+  protected readonly timeline = computed(() => this.detail()?.timeline ?? []);
+  protected readonly confirmConfig = signal<{ title: string; message: string; run: () => void; tone: 'warn' | 'danger' | 'success'; icon: string } | null>(null);
+  protected readonly generatedCredentials = signal<{ email: string; password: string } | null>(null);
+  protected readonly confirmVisible = signal(false);
+  protected readonly credentialsVisible = signal(false);
+  private readonly userId = this.route.snapshot.paramMap.get('userId');
+
+  constructor() {
+    if (!this.userId) {
+      return;
+    }
+    this.loadDetail();
+  }
+
+  protected requestCredentials() {
+    this.confirmConfig.set({
+      title: 'Rigenerare credenziali?',
+      message: 'VerrA generata una nuova password temporanea e le sessioni attive verranno revocate.',
+      tone: 'warn',
+      icon: 'pi pi-key',
+      run: () => this.api.sendUserCredentials(this.userId as string).subscribe({
+        next: (result) => {
+          this.closeConfirm();
+          this.feedback.success('Credenziali inviate', `Password temporanea: ${result.generatedPassword}`);
+          this.openCredentialsModal(this.detail()?.user?.email ?? 'utente', result.generatedPassword);
+          this.loadDetail();
+        },
+        error: (error) => {
+          this.closeConfirm();
+          this.feedback.error('Invio credenziali fallito', this.apiError.message(error, 'Impossibile rigenerare le credenziali.'));
+        }
+      })
+    });
+    this.confirmVisible.set(true);
+  }
+
+  protected toggleSuspend() {
+    const suspended = Boolean(this.detail()?.user?.suspended);
+    this.confirmConfig.set({
+      title: suspended ? 'Riattivare account?' : 'Sospendere account?',
+      message: suspended ? 'L’utente potra nuovamente autenticarsi.' : 'L’utente perdera accesso immediato e le sessioni verranno invalidate.',
+      tone: suspended ? 'success' : 'danger',
+      icon: suspended ? 'pi pi-refresh' : 'pi pi-ban',
+      run: () => (suspended ? this.api.resumeManagedUser(this.userId as string) : this.api.suspendManagedUser(this.userId as string)).subscribe({
+        next: () => {
+          this.closeConfirm();
+          this.feedback.success(suspended ? 'Account riattivato' : 'Account sospeso');
+          this.loadDetail();
+        },
+        error: (error) => {
+          this.closeConfirm();
+          this.feedback.error('Operazione account fallita', this.apiError.message(error, 'Impossibile aggiornare lo stato account.'));
+        }
+      })
+    });
+    this.confirmVisible.set(true);
+  }
+
+  protected confirmAction() {
+    this.confirmConfig()?.run();
+  }
+
+  protected closeConfirm() {
+    this.confirmVisible.set(false);
+    this.confirmConfig.set(null);
+  }
+
+  protected copyGeneratedPassword() {
+    const password = this.generatedCredentials()?.password;
+    if (!password) return;
+    void navigator.clipboard.writeText(password);
+    this.feedback.success('Password copiata');
+  }
+
+  protected closeCredentialsModal() {
+    this.credentialsVisible.set(false);
+    this.generatedCredentials.set(null);
+  }
+
+  private loadDetail() {
+    this.api.managedUserDetail(this.userId as string).subscribe({
+      next: (detail) => this.detail.set(detail),
+      error: (error) => this.feedback.error('Dettaglio utente non disponibile', this.apiError.message(error, 'Impossibile recuperare il dettaglio utente.'))
+    });
+  }
+
+  private openCredentialsModal(email: string, password: string) {
+    this.generatedCredentials.set({ email, password });
+    this.confirmVisible.set(false);
+    queueMicrotask(() => this.credentialsVisible.set(true));
+  }
+}
