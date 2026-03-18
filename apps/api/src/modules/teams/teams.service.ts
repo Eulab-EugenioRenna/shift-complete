@@ -45,6 +45,18 @@ export class TeamsService {
                 email: true,
                 role: true
               }
+            },
+            duties: {
+              select: {
+                duty: {
+                  select: {
+                    id: true,
+                    name: true,
+                    color: true,
+                    icon: true
+                  }
+                }
+              }
             }
           }
         },
@@ -70,18 +82,35 @@ export class TeamsService {
         description: team.description,
         leader: team.leader,
         memberCount: team.memberships.length,
-        members: team.memberships.map((membership) => membership.user),
+        members: team.memberships.map((membership) => ({
+          ...membership.user,
+          dutyIds: membership.duties.map((item) => item.duty.id),
+          duties: membership.duties.map((item) => item.duty)
+        })),
         duties: team.duties
       }))
     );
   }
 
-  async create(payload: CreateTeamDto, actorId: string) {
+  async create(payload: CreateTeamDto, actorId: string, actorRole: Role) {
+    const leaderId = actorRole === Role.service_leader ? actorId : payload.leaderId;
+
+    if (actorRole === Role.service_leader && payload.leaderId && payload.leaderId !== actorId) {
+      throw new ForbiddenException('Il leader puo creare team solo assegnando se stesso come leader');
+    }
+
     const team = await this.prisma.team.create({
       data: {
         name: payload.name,
         description: payload.description,
-        leaderId: payload.leaderId
+        leaderId,
+        memberships: leaderId
+          ? {
+              create: {
+                userId: leaderId
+              }
+            }
+          : undefined
       }
     });
 
@@ -91,7 +120,7 @@ export class TeamsService {
         action: 'team.created',
         entityType: 'team',
         entityId: team.id,
-        metadata: toJsonValue(payload)
+        metadata: toJsonValue({ ...payload, leaderId })
       }
     });
 
@@ -178,6 +207,67 @@ export class TeamsService {
     );
 
     return { deleted: true, teamId, userId };
+  }
+
+  async assignMemberDuties(teamId: string, userId: string, dutyIds: string[], actorId: string, actorRole: Role) {
+    await this.assertManageMemberAccess(teamId, actorId, actorRole);
+
+    const membership = await this.prisma.teamMembership.findUnique({
+      where: {
+        teamId_userId: {
+          teamId,
+          userId
+        }
+      },
+      include: {
+        duties: {
+          select: {
+            dutyId: true
+          }
+        }
+      }
+    });
+
+    if (!membership) {
+      throw new NotFoundException('Membro non trovato nel team');
+    }
+
+    const validDuties = await this.prisma.duty.findMany({
+      where: {
+        teamId,
+        id: {
+          in: dutyIds
+        }
+      },
+      select: {
+        id: true
+      }
+    });
+
+    if (validDuties.length !== dutyIds.length) {
+      throw new ForbiddenException('Una o piu mansioni non appartengono al team selezionato');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.teamMembershipDuty.deleteMany({ where: { membershipId: membership.id } });
+      if (dutyIds.length) {
+        await tx.teamMembershipDuty.createMany({
+          data: dutyIds.map((dutyId) => ({ membershipId: membership.id, dutyId }))
+        });
+      }
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actorId,
+        action: 'team.member.duties.updated',
+        entityType: 'teamMembership',
+        entityId: membership.id,
+        metadata: toJsonValue({ teamId, userId, dutyIds })
+      }
+    });
+
+    return { updated: true, teamId, userId, dutyIds };
   }
 
   async createJoinRequest(teamId: string, userId: string, actorId: string, actorRole: Role) {

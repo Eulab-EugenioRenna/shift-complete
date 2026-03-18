@@ -58,6 +58,13 @@ export interface TeamListItem {
     fullName: string;
     email: string;
     role: Role;
+    dutyIds?: string[];
+    duties?: Array<{
+      id: string;
+      name: string;
+      color?: string | null;
+      icon?: string | null;
+    }>;
   }>;
   duties?: Array<{
     id: string;

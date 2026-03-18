@@ -1,0 +1,217 @@
+<section class="grid gap-6 text-slate-800 dark:text-slate-100 xl:grid-cols-[1.4fr_0.6fr]">
+  <div class="flex flex-col gap-6">
+  <header class="flex flex-col gap-2">
+    <p class="text-sm font-semibold uppercase tracking-widest text-orange-500">Storico sostituzioni</p>
+    <h2 class="text-2xl font-semibold tracking-tight text-slate-800 dark:text-slate-100">Timeline completa delle sostituzioni approvate, rifiutate e in attesa.</h2>
+    <div>
+      <button type="button" class="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800" (click)="openSpotlight()">
+        <i class="pi pi-search text-xs"></i>
+        Cerca sostituzioni
+      </button>
+    </div>
+  </header>
+
+  <app-team-scope-chips [teams]="teams()"></app-team-scope-chips>
+
+  <ui-card title="Filtri" subtitle="Ricerca rapida per stato e volontario" surfaceClass="p-5 min-h-[16rem] max-h-[20rem]" bodyClass="overflow-y-auto pr-1">
+    <div class="mb-4 flex justify-end" *ngIf="hasActiveReplacementState()">
+      <button type="button" class="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:text-slate-100" (click)="clearReplacementView()">
+        Pulisci tutto
+      </button>
+    </div>
+    <div class="grid gap-4 md:grid-cols-2">
+      <div class="grid gap-2">
+        <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Stato</label>
+        <select class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [ngModel]="filters.status()" (ngModelChange)="filters.status.set(castString($event))">
+          <option value="">Tutti</option>
+          <option value="PENDING">Pending</option>
+          <option value="APPROVED">Approved</option>
+          <option value="DECLINED">Declined</option>
+        </select>
+      </div>
+      <div class="grid gap-2">
+        <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Volontario</label>
+        <input class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [ngModel]="filters.person()" (ngModelChange)="filters.person.set(castString($event))" placeholder="Richiedente o sostituto" />
+      </div>
+    </div>
+  </ui-card>
+
+  <ui-card title="Registro sostituzioni" subtitle="Vista trasversale per team e volontari" surfaceClass="p-5 min-h-[36rem] max-h-[42rem]" bodyClass="overflow-y-auto pr-1">
+    <div class="mb-4 flex flex-wrap items-center gap-2" *ngIf="canManageReplacements()">
+      <button type="button" class="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 disabled:opacity-50" (click)="openBulkDialog('APPROVED')" [disabled]="!selectedPendingReplacements().length">Approva selezionate</button>
+      <button type="button" class="rounded-md border border-blue-300 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 disabled:opacity-50" (click)="approveAllWithSuggested()" [disabled]="!canApproveAllWithSuggested()">Approva tutte con suggerito</button>
+      <button type="button" class="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 disabled:opacity-50" (click)="openBulkDialog('DECLINED')" [disabled]="!selectedPendingReplacements().length">Rifiuta selezionate</button>
+      <span class="text-xs text-slate-500 dark:text-slate-400" *ngIf="selectedReplacementIds().length">{{ selectedReplacementIds().length }} selezionate</span>
+      <button type="button" class="ml-auto rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:text-slate-100" (click)="clearReplacementView()" *ngIf="hasActiveReplacementState()">
+        Pulisci tutto
+      </button>
+    </div>
+    <div class="mb-4 grid gap-2 md:grid-cols-[1fr_auto]" *ngIf="canManageReplacements() && canUseBulkAssignee()">
+      <ui-select label="Sostituto bulk" [options]="bulkReplacementOptions()" [value]="bulkReplacementAssigneeId()" (valueChange)="bulkReplacementAssigneeId.set(castString($event) || null)"></ui-select>
+      <div class="flex items-end text-xs text-slate-500 dark:text-slate-400">Disponibile solo se tutte le replacement selezionate appartengono allo stesso team e slot.</div>
+    </div>
+    <div class="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-200" *ngIf="bulkWarnings().length">
+      <p class="font-semibold uppercase tracking-[0.22em]">Compatibilita bulk</p>
+      <div class="mt-2 grid gap-1">
+        <span *ngFor="let warning of bulkWarnings()">{{ warning }}</span>
+      </div>
+    </div>
+    <ui-table-shell>
+      <table class="min-w-full text-sm">
+        <thead class="bg-slate-50 text-left text-slate-500">
+          <tr>
+            <th class="px-4 py-3" *ngIf="canManageReplacements()"><input type="checkbox" [checked]="allPendingSelected()" (change)="toggleAllPending($any($event.target).checked)" /></th>
+            <th class="px-4 py-3">Evento</th>
+            <th class="px-4 py-3">Richiedente</th>
+            <th class="px-4 py-3">Sostituto</th>
+            <th class="px-4 py-3">Stato</th>
+            <th class="px-4 py-3">Azioni</th>
+          </tr>
+        </thead>
+        <tbody>
+           <tr *ngFor="let replacement of sortedReplacements()" class="border-t border-slate-100" [class.bg-amber-50]="replacement.id === highlightedReplacementId()">
+            <td class="px-4 py-3" *ngIf="canManageReplacements()"><input type="checkbox" [checked]="selectedReplacementIds().includes(replacement.id)" [disabled]="replacement.status !== 'PENDING'" (change)="toggleReplacementSelection(replacement.id, $any($event.target).checked)" /></td>
+            <td class="px-4 py-3">
+              <div class="grid gap-1">
+                <span class="font-medium text-slate-800">{{ replacement.assignment?.slot?.event?.title || '-' }}</span>
+                <span class="text-xs text-slate-500">{{ replacement.assignment?.slot?.team?.name || '-' }}</span>
+              </div>
+            </td>
+            <td class="px-4 py-3">{{ replacement.requestedBy?.fullName || '-' }}</td>
+             <td class="px-4 py-3">
+              <div class="grid gap-2">
+                <span>{{ replacement.replacementAssignee?.fullName || 'Da assegnare' }}</span>
+                <ui-label tone="info" *ngIf="replacement.suggestedReplacement">Suggerito: {{ replacement.suggestedReplacement?.fullName }} · score {{ replacement.suggestedReplacement?.score }}</ui-label>
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-3" *ngIf="replacement.suggestedCandidates?.length">
+                  <div class="flex items-center justify-between gap-2">
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Classifica candidati</p>
+                    <button type="button" class="text-xs font-medium text-[#4979e6]" (click)="openAssistant(replacement)">
+                      Assistant
+                    </button>
+                    <button type="button" class="text-xs font-medium text-[#4979e6]" (click)="toggleExpandedReplacement(replacement.id)">
+                      {{ expandedReplacementId() === replacement.id ? 'Comprimi' : 'Espandi' }}
+                    </button>
+                  </div>
+                  <div class="mt-2 grid gap-2" *ngIf="expandedReplacementId() === replacement.id">
+                    <div class="rounded-xl bg-white px-3 py-2 text-xs text-slate-600" *ngFor="let candidate of replacement.suggestedCandidates | slice:0:3">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="font-medium text-slate-800">{{ candidate.fullName }}</span>
+                        <ui-label tone="info">score {{ candidate.score }}</ui-label>
+                      </div>
+                      <div class="mt-1 flex flex-wrap gap-1.5">
+                        <ui-label *ngFor="let reason of candidate.reasons" tone="neutral">{{ reason }}</ui-label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <ui-select *ngIf="canManageReplacements() && replacement.status === 'PENDING'" [options]="replacementOptions(replacement)" [value]="replacementSelection[replacement.id]" (valueChange)="replacementSelection[replacement.id] = castString($event)"></ui-select>
+              </div>
+            </td>
+            <td class="px-4 py-3"><ui-label [tone]="replacement.status === 'APPROVED' ? 'success' : (replacement.status === 'DECLINED' ? 'warn' : 'info')">{{ replacement.status }}</ui-label></td>
+            <td class="px-4 py-3">
+              <div class="flex flex-col items-start gap-2">
+                <div class="rounded-2xl border border-[#d9e6ff] bg-[#f7faff] p-3 text-xs text-slate-600" *ngIf="replacement.suggestedReplacement as suggested">
+                  <p class="font-semibold uppercase tracking-[0.22em] text-[#4979e6]">Replacement assistant</p>
+                  <p class="mt-2">Suggerisco <span class="font-medium text-slate-900">{{ suggested.fullName }}</span> con score {{ suggested.score }}.</p>
+                  <div class="mt-2 flex flex-wrap gap-1.5">
+                    <ui-label *ngFor="let reason of suggested.reasons" tone="neutral">{{ reason }}</ui-label>
+                  </div>
+                </div>
+                <ng-container *ngIf="canManageReplacements(); else replacementReadonly">
+                  <button type="button" class="text-sm text-emerald-700" (click)="resolveReplacement(replacement.id, 'APPROVED')" [disabled]="replacement.status !== 'PENDING'">Approva</button>
+                  <button type="button" class="text-sm text-[#4979e6]" (click)="approveWithSuggestedReplacement(replacement)" [disabled]="!canUseSuggestedReplacement(replacement) || replacement.status !== 'PENDING'">Approva con suggerito</button>
+                  <button type="button" class="text-sm text-red-600" (click)="resolveReplacement(replacement.id, 'DECLINED')" [disabled]="replacement.status !== 'PENDING'">Rifiuta</button>
+                  <ui-label *ngIf="actionFeedback()[replacement.id] === 'APPROVED'" tone="success">Approvata ora</ui-label>
+                  <ui-label *ngIf="actionFeedback()[replacement.id] === 'DECLINED'" tone="warn">Rifiutata ora</ui-label>
+                </ng-container>
+                <ng-template #replacementReadonly>
+                  <ui-label tone="neutral">Solo consultazione</ui-label>
+                </ng-template>
+                <div class="grid gap-1 text-xs text-slate-500">
+                  <span>Richiesta: {{ replacement.createdAt | date:'short' }}</span>
+                  <span *ngIf="replacement.resolvedAt">Risolta: {{ replacement.resolvedAt | date:'short' }}</span>
+                  <span *ngIf="replacement.reason">Motivo: {{ replacement.reason }}</span>
+                </div>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="!filteredReplacements().length">
+            <td [attr.colspan]="canManageReplacements() ? 6 : 5" class="px-4 py-6 text-center text-sm text-slate-400">Nessuna sostituzione compatibile con i filtri.</td>
+          </tr>
+        </tbody>
+      </table>
+    </ui-table-shell>
+  </ui-card>
+
+  <p-dialog [(visible)]="bulkDialogVisible" [modal]="true" [appendTo]="'body'" [baseZIndex]="1200" [blockScroll]="true" [dismissableMask]="true" [closeOnEscape]="true" [focusOnShow]="false" [showHeader]="false" [closable]="false" [style]="{ width: '32rem', maxWidth: '94vw', maxHeight: '90vh' }" [contentStyle]="{ background: 'transparent', padding: '0', overflow: 'hidden' }" [draggable]="false" [resizable]="false">
+    <ui-dialog-shell title="Conferma azione massiva" eyebrow="Bulk actions" subtitle="Applica la stessa decisione alle richieste selezionate." icon="pi pi-check-square" tone="warn" [hasFooter]="true" (closeRequested)="bulkDialogVisible = false">
+      <div class="grid gap-4">
+        <p class="text-sm text-slate-600">
+          Stai per {{ bulkActionStatus() === 'APPROVED' ? 'approvare' : 'rifiutare' }} {{ selectedReplacementIds().length }} richieste selezionate.
+        </p>
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500" *ngIf="bulkReplacementAssigneeId()">
+          Il sostituto bulk verra applicato alle richieste selezionate dello stesso team.
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-4">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Riepilogo replacement coinvolte</p>
+          <div class="mt-3 grid gap-2 text-sm text-slate-600">
+            <div class="rounded-xl bg-slate-50 px-3 py-2" *ngFor="let replacement of selectedPendingReplacements()">
+              {{ replacement.assignment?.slot?.event?.title || 'Evento' }} · {{ replacement.assignment?.slot?.team?.name || 'Team' }} · {{ replacement.requestedBy?.fullName || '-' }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div dialog-footer class="flex justify-end gap-2">
+        <button type="button" class="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-600" (click)="bulkDialogVisible = false">Annulla</button>
+        <button type="button" class="rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white" (click)="confirmBulkResolve()">Conferma</button>
+      </div>
+    </ui-dialog-shell>
+  </p-dialog>
+  </div>
+
+  <ui-sidebar-panel title="Replacement assistant" eyebrow="Decision support">
+    <div *ngIf="assistantReplacement() as replacement; else noAssistant" class="grid gap-4">
+      <div>
+        <p class="text-sm font-medium text-slate-900">{{ replacement.assignment?.slot?.event?.title || 'Sostituzione' }}</p>
+        <p class="text-xs text-slate-500">{{ replacement.assignment?.slot?.team?.name || '-' }} · {{ replacement.assignment?.slot?.duty?.name || '-' }}</p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <ui-label [tone]="replacementTone(replacement.status)">{{ assistantStatusLabel(replacement) }}</ui-label>
+          <ui-label tone="neutral">{{ assistantCoverageLabel(replacement) }}</ui-label>
+        </div>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Prossima azione consigliata</p>
+        <p class="mt-2 text-sm text-slate-700">{{ assistantRecommendation(replacement) }}</p>
+      </div>
+      <div class="rounded-2xl border border-[#d9e6ff] bg-[#f7faff] p-4" *ngIf="replacement.suggestedReplacement as suggested">
+        <div class="flex items-center justify-between gap-2">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#4979e6]">Miglior candidato</p>
+          <ui-label [tone]="assistantScoreTone(suggested.score)">score {{ suggested.score }}</ui-label>
+        </div>
+        <p class="mt-2 text-sm text-slate-700"><span class="font-medium text-slate-900">{{ suggested.fullName }}</span></p>
+        <div class="mt-3 flex flex-wrap gap-1.5">
+          <ui-label *ngFor="let reason of suggested.reasons" tone="neutral">{{ reason }}</ui-label>
+        </div>
+      </div>
+      <div class="grid gap-2" *ngIf="replacement.suggestedCandidates?.length">
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Top candidati</p>
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-3" *ngFor="let candidate of replacement.suggestedCandidates">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-medium text-slate-800">{{ candidate.fullName }}</span>
+            <ui-label [tone]="assistantScoreTone(candidate.score)">score {{ candidate.score }}</ui-label>
+          </div>
+          <div class="mt-2 flex flex-wrap gap-1.5">
+            <ui-label *ngFor="let reason of candidate.reasons" tone="neutral">{{ reason }}</ui-label>
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-2" *ngIf="assistantReplacement()?.status === 'PENDING' && canManageReplacements()">
+        <button type="button" class="rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white" (click)="approveWithSuggestedReplacement(replacement)" [disabled]="!canUseSuggestedReplacement(replacement)">Approva con suggerito</button>
+        <button type="button" class="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-600" (click)="assistantReplacement.set(null)">Chiudi</button>
+      </div>
+    </div>
+    <ng-template #noAssistant>
+      <p class="text-sm text-slate-500">Seleziona una replacement per vedere stato, priorita operativa, ranking candidati e azione consigliata.</p>
+    </ng-template>
+  </ui-sidebar-panel>
+</section>

@@ -15,6 +15,27 @@ export class SessionService {
     return this.userSignal();
   }
 
+  getCurrentRole(): UserProfile['role'] | null {
+    return this.userSignal()?.role ?? null;
+  }
+
+  hasAnyRole(...roles: UserProfile['role'][]): boolean {
+    const role = this.getCurrentRole();
+    return Boolean(role && roles.includes(role));
+  }
+
+  isAdministrator(): boolean {
+    return this.getCurrentRole() === 'administrator';
+  }
+
+  isServiceLeader(): boolean {
+    return this.getCurrentRole() === 'service_leader';
+  }
+
+  isVolunteer(): boolean {
+    return this.getCurrentRole() === 'volunteer';
+  }
+
   setSession(user: UserProfile, accessToken: string): void {
     localStorage.setItem('shift.token', accessToken);
     localStorage.setItem('shift.session', JSON.stringify(user));

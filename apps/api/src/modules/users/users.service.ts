@@ -34,6 +34,11 @@ export class UsersService {
             teamId: true
           }
         },
+        leadingTeams: {
+          select: {
+            id: true
+          }
+        },
         settings: {
           select: {
             phone: true,
@@ -56,7 +61,7 @@ export class UsersService {
         ...user,
         onboardingCompleted: user.onboardingState === OnboardingState.FULLY_ONBOARDED,
         suspended: Boolean(user.suspendedAt),
-        activeTeamIds: user.memberships.map((membership) => membership.teamId),
+        activeTeamIds: Array.from(new Set([...user.memberships.map((membership) => membership.teamId), ...user.leadingTeams.map((team) => team.id)])),
         phone: user.settings?.phone ?? null,
         address: user.settings?.address ?? null,
         emergencyName: user.settings?.emergencyName ?? null,
@@ -86,6 +91,11 @@ export class UsersService {
             teamId: true
           }
         },
+        leadingTeams: {
+          select: {
+            id: true
+          }
+        },
         settings: {
           select: {
             phone: true,
@@ -104,7 +114,7 @@ export class UsersService {
       ...user,
       onboardingCompleted: user.onboardingState === OnboardingState.FULLY_ONBOARDED,
       suspended: Boolean(user.suspendedAt),
-      activeTeamIds: user.memberships.map((membership) => membership.teamId),
+      activeTeamIds: Array.from(new Set([...user.memberships.map((membership) => membership.teamId), ...user.leadingTeams.map((team) => team.id)])),
       phone: user.settings?.phone ?? null,
       address: user.settings?.address ?? null,
       emergencyName: user.settings?.emergencyName ?? null,

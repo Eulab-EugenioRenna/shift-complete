@@ -23,74 +23,7 @@ export type EditableUserProfileForm = {
   selector: 'app-user-profile-editor',
   standalone: true,
   imports: [CommonModule, FormsModule, UiAutocompleteComponent],
-  template: `
-    <div class="grid gap-4 md:grid-cols-2">
-      <ng-container *ngIf="showIdentityFields">
-        <div class="grid gap-2">
-          <label class="text-sm font-medium text-slate-700">Nome completo</label>
-          <input class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none" [(ngModel)]="profileForm.fullName" placeholder="Nome e cognome" />
-        </div>
-        <div class="grid gap-2">
-          <label class="text-sm font-medium text-slate-700">Email</label>
-          <input class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none" [(ngModel)]="profileForm.email" placeholder="nome@dominio.it" />
-        </div>
-      </ng-container>
-      <div class="grid gap-2">
-        <label class="text-sm font-medium text-slate-700">Telefono</label>
-        <input class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none" [(ngModel)]="profileForm.phone" placeholder="+39 ..." />
-      </div>
-      <div class="grid gap-2">
-        <label class="text-sm font-medium text-slate-700">Indirizzo</label>
-        <input class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none" [(ngModel)]="profileForm.address" placeholder="Via e citta" />
-      </div>
-      <div class="grid gap-2">
-        <label class="text-sm font-medium text-slate-700">Contatto emergenza</label>
-        <input class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none" [(ngModel)]="profileForm.emergencyName" placeholder="Nome e cognome" />
-      </div>
-      <div class="grid gap-2">
-        <label class="text-sm font-medium text-slate-700">Telefono emergenza</label>
-        <input class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none" [(ngModel)]="profileForm.emergencyPhone" placeholder="+39 ..." />
-      </div>
-      <ui-autocomplete label="Preferenze turni" [options]="shiftPreferenceOptions" [value]="selectedShiftPreference()" (valueChange)="selectedShiftPreference.set(asRecord($event))"></ui-autocomplete>
-      <ui-autocomplete label="Competenze" [options]="competencyOptions" [value]="selectedCompetency()" (valueChange)="selectedCompetency.set(asRecord($event))"></ui-autocomplete>
-      <ui-autocomplete *ngIf="teamPreferenceOptions.length" label="Team preferiti" [options]="teamPreferenceOptions" [value]="selectedPreferredTeam()" (valueChange)="selectedPreferredTeam.set(asRecord($event))"></ui-autocomplete>
-      <ui-autocomplete *ngIf="dutyPreferenceOptions.length" label="Mansioni preferite" [options]="dutyPreferenceOptions" [value]="selectedPreferredDuty()" (valueChange)="selectedPreferredDuty.set(asRecord($event))"></ui-autocomplete>
-      <div class="flex gap-2 md:col-span-2">
-        <button type="button" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600" (click)="addShiftPreference()">Aggiungi preferenza</button>
-        <button type="button" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600" (click)="addCompetency()">Aggiungi competenza</button>
-        <button *ngIf="teamPreferenceOptions.length" type="button" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600" (click)="addPreferredTeam()">Aggiungi team</button>
-        <button *ngIf="dutyPreferenceOptions.length" type="button" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600" (click)="addPreferredDuty()">Aggiungi mansione</button>
-      </div>
-      <div class="md:col-span-2">
-        <p class="mb-2 text-xs text-slate-400">Clicca una chip per rimuoverla.</p>
-        <div class="flex flex-wrap gap-2">
-        <button type="button" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50" *ngFor="let item of profileForm.preferredShifts" (click)="removeShiftPreference(item)" title="Rimuovi preferenza turno">
-          <span>{{ item }}</span>
-          <i class="pi pi-times text-[10px]"></i>
-        </button>
-        <button type="button" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50" *ngFor="let item of profileForm.competencies" (click)="removeCompetency(item)" title="Rimuovi competenza">
-          <span>{{ item }}</span>
-          <i class="pi pi-times text-[10px]"></i>
-        </button>
-        <button type="button" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50" *ngFor="let item of selectedTeamLabels()" (click)="removePreferredTeamByLabel(item)" title="Rimuovi team preferito">
-          <span>Team: {{ item }}</span>
-          <i class="pi pi-times text-[10px]"></i>
-        </button>
-        <button type="button" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50" *ngFor="let item of selectedDutyLabels()" (click)="removePreferredDutyByLabel(item)" title="Rimuovi mansione preferita">
-          <span>Mansione: {{ item }}</span>
-          <i class="pi pi-times text-[10px]"></i>
-        </button>
-        </div>
-      </div>
-      <div class="grid gap-2 md:col-span-2">
-        <label class="text-sm font-medium text-slate-700">Note servizio</label>
-        <textarea class="min-h-28 rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none" [(ngModel)]="profileForm.serviceNotes" placeholder="Preferenze, note operative, certificazioni"></textarea>
-      </div>
-    </div>
-    <div class="mt-4 flex justify-end" *ngIf="showSubmit">
-      <button type="button" class="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white disabled:opacity-60" (click)="save.emit()" [disabled]="saving">{{ saving ? 'Salvataggio...' : submitLabel }}</button>
-    </div>
-  `,
+  templateUrl: './user-profile-editor.component.html',
 })
 export class UserProfileEditorComponent implements OnChanges {
   @Input({ required: true }) profileForm!: EditableUserProfileForm;

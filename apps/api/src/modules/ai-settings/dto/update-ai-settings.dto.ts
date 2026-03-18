@@ -1,4 +1,15 @@
-import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+
+class ResourceTeamQuotaRuleDto {
+  @IsString()
+  teamId!: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  storageLimitBytes?: number;
+}
 
 export class UpdateAiSettingsDto {
   @IsString()
@@ -74,11 +85,52 @@ export class UpdateAiSettingsDto {
 
   @IsOptional()
   @IsString()
-  resourceStoragePath?: string;
+  @IsIn(['local', 's3'])
+  resourceStorageDriver?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  totalStorageLimitBytes?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  defaultTeamStorageLimitBytes?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ResourceTeamQuotaRuleDto)
+  resourceTeamQuotaRules?: ResourceTeamQuotaRuleDto[];
 
   @IsOptional()
   @IsString()
-  resourceTempPath?: string;
+  resourceS3Endpoint?: string;
+
+  @IsOptional()
+  @IsString()
+  resourceS3Region?: string;
+
+  @IsOptional()
+  @IsString()
+  resourceS3Bucket?: string;
+
+  @IsOptional()
+  @IsString()
+  resourceS3AccessKey?: string;
+
+  @IsOptional()
+  @IsString()
+  resourceS3SecretKey?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  resourceS3ForcePathStyle?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  resourceS3UseSsl?: boolean;
 
   @IsOptional()
   @IsInt()

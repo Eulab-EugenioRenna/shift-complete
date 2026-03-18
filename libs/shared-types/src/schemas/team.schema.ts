@@ -16,3 +16,8 @@ export const AddTeamMemberSchema = z.object({
   userId: z.string().cuid().or(z.string().uuid()),
 });
 export type AddTeamMemberDto = z.infer<typeof AddTeamMemberSchema>;
+
+export const AssignMemberDutiesSchema = z.object({
+  dutyIds: z.array(z.string().cuid().or(z.string().uuid())),
+});
+export type AssignMemberDutiesDto = z.infer<typeof AssignMemberDutiesSchema>;

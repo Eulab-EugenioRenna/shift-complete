@@ -1,0 +1,251 @@
+    <section class="flex flex-col gap-6 text-slate-800 dark:text-slate-100">
+      <header class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between py-2">
+        <div>
+          <h2 class="text-2xl font-semibold tracking-tight text-slate-800 dark:text-slate-100">My dashboard</h2>
+          <p class="mt-1 text-sm text-slate-500 dark:text-slate-300" *ngIf="profile() as user">Active session: {{ user.fullName }} • {{ user.role }}</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <p-tag [severity]="live.connected() ? 'success' : 'contrast'" [value]="live.connected() ? 'Realtime online' : 'Realtime offline'"></p-tag>
+          <button class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800" (click)="loadData()">
+            <i class="pi pi-refresh mr-1 text-xs"></i> Aggiorna
+          </button>
+        </div>
+      </header>
+
+      <app-team-scope-chips [teams]="teams()"></app-team-scope-chips>
+
+      <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <button type="button" *ngFor="let metric of metrics()" class="flex min-h-[10rem] flex-col rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm transition duration-200 hover:shadow-md dark:border-slate-700 dark:bg-slate-900/85" (click)="openMetric(metric.label)">
+          <h3 class="flex items-center gap-2 text-sm font-semibold font-medium text-slate-700 dark:text-slate-200">
+            <i class="pi pi-chart-pie text-[#4979e6]"></i> {{ metric.label }}
+          </h3>
+          <div class="mt-3 flex-1">
+            <p class="text-3xl font-light tracking-tight text-slate-800 dark:text-slate-100">{{ metric.value }}</p>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ metric.detail }}</p>
+            <div class="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+              <div class="h-full bg-[#4979e6] rounded-full" [style.width.%]="metric.progress"></div>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      <div class="grid gap-6 xl:grid-cols-[1.4fr_0.6fr]">
+        <div class="flex max-h-[36rem] min-h-[36rem] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
+          <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-slate-700">
+             <h3 class="flex items-center gap-2 text-lg font-semibold text-slate-800 dark:text-slate-100">
+                <i class="pi pi-calendar text-[#4979e6]"></i> Agenda
+              </h3>
+             <a routerLink="/events" class="pi pi-external-link cursor-pointer text-sm text-slate-400 transition hover:text-[#4979e6] dark:text-slate-500"></a>
+           </div>
+          <div class="flex-1 overflow-y-auto p-0">
+            <button type="button" class="group flex w-full flex-col gap-1 border-b border-slate-100 p-5 text-left transition last:border-0 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/70" *ngFor="let item of agenda()" (click)="openEvent(item.id)">
+              <div class="flex items-start justify-between">
+                <div>
+                    <p class="font-medium tracking-tight text-slate-800 dark:text-slate-100">{{ item.title }}</p>
+                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ item.startsAt | date:'fullDate' }} alle {{ item.startsAt | date:'shortTime' }}</p>
+                </div>
+                 <span class="opacity-0 group-hover:opacity-100 text-[#4979e6] hover:bg-blue-50 px-2 py-1 rounded transition text-sm font-medium flex items-center gap-1 cursor-pointer">
+                    Apri
+                 </span>
+              </div>
+              <div class="mt-3 flex items-center gap-2">
+                <p-tag [severity]="(item.assignments?.length || 0) > 0 ? 'success' : 'warn'" [value]="(item.assignments?.length || 0) > 0 ? 'Coperto' : 'Assenza'"></p-tag>
+                <span class="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ item.type }}</span>
+                <span class="ml-auto text-xs font-medium text-slate-500 dark:text-slate-400">{{ item.slots?.length || 0 }} slots operativi</span>
+              </div>
+            </button>
+            <div class="p-8 text-center text-sm text-slate-500 dark:text-slate-400" *ngIf="!agenda().length">
+              Nessun evento in programma nei prossimi 7 giorni.
+            </div>
+          </div>
+          <div class="flex justify-center border-t border-slate-100 bg-slate-50 px-5 py-3 dark:border-slate-700 dark:bg-slate-950/50">
+             <a routerLink="/events" class="text-sm text-[#4979e6] font-medium hover:underline flex items-center gap-1"><i class="pi pi-calendar mr-1 text-xs"></i> Apri workspace eventi</a>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-6">
+          <div class="flex max-h-[22rem] min-h-[22rem] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
+            <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-slate-700">
+               <h3 class="flex items-center gap-2 text-lg font-semibold text-slate-800 dark:text-slate-100">
+                 <i class="pi pi-chart-bar text-[#4979e6]"></i> KPI e mix eventi
+               </h3>
+            </div>
+            <div class="grid flex-1 gap-4 overflow-y-auto px-5 py-5">
+              <div>
+                 <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">Distribuzione eventi</p>
+                <div class="mt-3 grid gap-3">
+                  <div *ngFor="let item of eventTypeBreakdown()" class="grid gap-1">
+                    <div class="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
+                      <span>{{ item.label }}</span>
+                       <span class="font-medium text-slate-900 dark:text-slate-100">{{ item.value }}</span>
+                    </div>
+                     <div class="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                      <div class="h-full rounded-full" [class]="item.tone" [style.width.%]="item.width"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                 <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">Inventario</p>
+                <div class="mt-3 grid gap-2">
+                   <div *ngFor="let item of inventoryHighlights()" class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800/70">
+                     <span class="text-slate-600 dark:text-slate-300">{{ item.label }}</span>
+                     <span class="font-medium text-slate-900 dark:text-slate-100">{{ item.value }}</span>
+                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+          <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+             <h3 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
+               <i class="pi pi-list text-[#4979e6]"></i> Segnali e backlog
+             </h3>
+               <a routerLink="/events" [queryParams]="{ status: 'open' }" class="pi pi-external-link text-slate-400 cursor-pointer hover:text-[#4979e6] transition text-sm"></a>
+          </div>
+          <div class="p-0">
+            <div class="flex items-start justify-between gap-4 border-b border-slate-100 p-4 hover:bg-slate-50 hover:ring-1 hover:ring-blue-100 transition last:border-0 rounded-md focus-within:ring-1 focus-within:ring-blue-200" *ngFor="let assignment of openWorkItems()">
+              <div class="flex items-center gap-3">
+                <div class="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-orange-600 border border-orange-200">
+                  <i class="pi pi-exclamation-triangle text-xs"></i>
+                </div>
+                <div>
+                  <p class="text-sm font-medium text-slate-800">Slot scoperto: {{ assignment.team || 'Team non assegnato' }}</p>
+                  <p class="text-xs text-slate-500 mt-0.5">Ruolo richiesto: {{ assignment.roleName || 'Mansione generica' }}</p>
+                </div>
+              </div>
+               <button type="button" class="text-xs font-medium text-[#4979e6] hover:underline cursor-pointer px-2 py-1" (click)="openAssignment(assignment)">Risolvi</button>
+            </div>
+            
+            <div class="flex items-start justify-between gap-4 border-b border-slate-100 p-4 hover:bg-slate-50 hover:ring-1 hover:ring-blue-100 transition last:border-0 rounded-md focus-within:ring-1 focus-within:ring-blue-200" *ngFor="let notification of notifications()">
+              <div class="flex items-center gap-3 w-full">
+                <div class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-[#4979e6] border border-blue-200 shrink-0">
+                  <i class="pi pi-bell text-xs"></i>
+                </div>
+                  <button type="button" class="flex-1 text-left rounded-md px-1 py-1 focus:outline-none focus:ring-2 focus:ring-blue-200" (click)="openNotification(notification)">
+                    <p class="text-sm font-medium text-slate-800">{{ notification.subject }}</p>
+                    <p class="text-xs text-slate-500 mt-0.5">{{ notification.body }}</p>
+                  </button>
+                   <button class="text-slate-400 hover:text-slate-600 transition p-1" (click)="markNotificationRead(notification.id)"><i class="pi pi-times text-xs"></i></button>
+                </div>
+              </div>
+            
+            <div class="p-8 text-center text-sm text-slate-500" *ngIf="!notifications().length && !openWorkItems().length">
+              <i class="pi pi-check-circle text-2xl text-emerald-400 mb-2"></i>
+              <p>Nessuna notifica o azione richiesta nel backlog.</p>
+            </div>
+          </div>
+          <div class="border-t border-slate-100 bg-slate-50 px-5 py-3 flex justify-center">
+               <a routerLink="/teams" [queryParams]="{ tab: 'requests' }" class="text-sm text-[#4979e6] font-medium hover:underline flex items-center gap-1"><i class="pi pi-list mr-1 text-xs"></i> Gestisci le richieste attive</a>
+          </div>
+          </div>
+
+          <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+               <h3 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                 <i class="pi pi-users text-emerald-600"></i> Team e utenti
+               </h3>
+            </div>
+            <div class="grid gap-4 px-5 py-5 lg:grid-cols-2">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Team sotto pressione</p>
+                <div class="mt-3 grid gap-2">
+                  <button type="button" *ngFor="let item of teamInsights()" class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-left text-sm hover:bg-white" (click)="openAssignment({ team: item.name })">
+                    <span>
+                      <span class="block font-medium text-slate-900">{{ item.name }}</span>
+                      <span class="block text-xs text-slate-500">{{ item.open }} slot aperti · {{ item.assigned }} coperti</span>
+                    </span>
+                    <i class="pi pi-arrow-right text-slate-300"></i>
+                  </button>
+                  <div *ngIf="!teamInsights().length" class="text-sm text-slate-400">Nessun dato team disponibile.</div>
+                </div>
+              </div>
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Volontari piu attivi</p>
+                <div class="mt-3 grid gap-2">
+                  <div *ngFor="let item of userInsights()" class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm">
+                    <span class="font-medium text-slate-900">{{ item.name }}</span>
+                    <span class="text-xs text-slate-500">{{ item.assignments }} turni</span>
+                  </div>
+                  <div *ngIf="!userInsights().length" class="text-sm text-slate-400">Nessuna assegnazione utenti disponibile.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+               <h3 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                 <i class="pi pi-inbox text-orange-500"></i> Richieste
+               </h3>
+            </div>
+            <div class="grid gap-3 px-5 py-5">
+              <button type="button" class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left hover:bg-white" (click)="openMetric('Sostituzioni aperte')">
+                <span>
+                  <span class="block text-sm font-medium text-slate-900">Sostituzioni aperte</span>
+                  <span class="block text-xs text-slate-500">Richieste ancora da risolvere</span>
+                </span>
+                <span class="text-lg font-semibold text-slate-900">{{ requestSummary().pendingReplacements }}</span>
+              </button>
+              <button type="button" class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left hover:bg-white" (click)="openNotification({ id: '', userId: '', channel: 'in_app', subject: 'team', body: 'team', createdAt: '' })">
+                <span>
+                  <span class="block text-sm font-medium text-slate-900">Richieste team</span>
+                  <span class="block text-xs text-slate-500">Notifiche legate a team e onboarding</span>
+                </span>
+                <span class="text-lg font-semibold text-slate-900">{{ requestSummary().teamRequests }}</span>
+              </button>
+              <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left">
+                <span>
+                  <span class="block text-sm font-medium text-slate-900">Notifiche non lette</span>
+                  <span class="block text-xs text-slate-500">Backlog operativo complessivo</span>
+                </span>
+                <span class="text-lg font-semibold text-slate-900">{{ requestSummary().unreadNotifications }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+               <h3 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                 <i class="pi pi-arrow-right-arrow-left text-orange-500"></i> Replacement monitor
+               </h3>
+               <a routerLink="/replacements" class="pi pi-external-link text-slate-400 cursor-pointer hover:text-[#4979e6] transition text-sm"></a>
+            </div>
+            <div class="p-0">
+              <button type="button" class="flex w-full items-start justify-between gap-4 border-b border-slate-100 p-4 hover:bg-slate-50 transition last:border-0 text-left" *ngFor="let replacement of replacementFeed()" (click)="openReplacement(replacement.id)">
+                <div class="flex items-start gap-3">
+                  <div class="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full border border-orange-200 bg-orange-50 text-orange-600">
+                    <i class="pi pi-refresh text-xs"></i>
+                  </div>
+                  <div>
+                    <p class="text-sm font-medium text-slate-800">{{ replacement.assignment?.slot?.event?.title || 'Sostituzione' }}</p>
+                    <p class="mt-0.5 text-xs text-slate-500">{{ replacement.requestedBy?.fullName || '-' }} → {{ replacement.replacementAssignee?.fullName || 'da assegnare' }}</p>
+                  </div>
+                </div>
+                <p-tag [severity]="replacement.status === 'APPROVED' ? 'success' : (replacement.status === 'DECLINED' ? 'danger' : 'warn')" [value]="replacement.status"></p-tag>
+              </button>
+              <div class="p-8 text-center text-sm text-slate-500" *ngIf="!replacementFeed().length">Nessuna sostituzione recente.</div>
+            </div>
+          </div>
+           
+          <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between px-5 py-4">
+               <h3 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                 <i class="pi pi-wave-pulse text-green-500"></i> Realtime feed
+               </h3>
+            </div>
+            <div class="px-5 pb-5">
+              <button type="button" class="flex w-full items-start gap-3 py-2 text-left rounded-md hover:bg-slate-50 transition" *ngFor="let item of live.feed() | slice:0:3" (click)="openLiveItem(item)">
+                <div class="mt-1 h-2 w-2 rounded-full bg-green-500 shrink-0"></div>
+                <div>
+                  <p class="text-sm font-medium text-slate-700">{{ item.type }}</p>
+                  <p class="text-xs text-slate-500">{{ item.payload?.notification?.subject || item.payload?.kind || 'Aggiornamento operativo' }}</p>
+                </div>
+              </button>
+              <div class="py-2 text-sm text-slate-500" *ngIf="!live.feed().length">Feed silenzioso.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>

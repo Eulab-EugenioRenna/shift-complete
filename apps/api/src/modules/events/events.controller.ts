@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UsePipes } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UsePipes } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -6,7 +6,7 @@ import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { EventsService } from './events.service';
 import { 
   CreateEventSchema, CreateEventDto, 
-  UpdateEventSchema, UpdateEventDto, 
+  ExtendedUpdateEventSchema, ExtendedUpdateEventDto,
   AssignVolunteerSchema, AssignVolunteerDto 
 } from '@shift-complete/shared-types';
 
@@ -35,14 +35,19 @@ export class EventsController {
 
   @Roles(Role.administrator, Role.service_leader)
   @Patch(':eventId')
-  @UsePipes(new ZodValidationPipe(UpdateEventSchema))
-  update(@Param('eventId') eventId: string, @Body() body: UpdateEventDto, @CurrentUser() user: { sub: string; role: Role }) {
+  @UsePipes(new ZodValidationPipe(ExtendedUpdateEventSchema))
+  update(@Param('eventId') eventId: string, @Body() body: ExtendedUpdateEventDto, @CurrentUser() user: { sub: string; role: Role }) {
     return this.eventsService.update(eventId, body as any, user.sub, user.role);
   }
 
   @Roles(Role.administrator, Role.service_leader)
   @Delete(':eventId')
-  remove(@Param('eventId') eventId: string, @CurrentUser() user: { sub: string; role: Role }) {
-    return this.eventsService.remove(eventId, user.sub, user.role);
+  remove(
+    @Param('eventId') eventId: string,
+    @CurrentUser() user: { sub: string; role: Role },
+    @Query('mode') mode?: 'single' | 'series',
+    @Query('occurrenceStart') occurrenceStart?: string
+  ) {
+    return this.eventsService.remove(eventId, user.sub, user.role, mode, occurrenceStart);
   }
 }

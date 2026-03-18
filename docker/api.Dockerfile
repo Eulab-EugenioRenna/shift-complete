@@ -3,6 +3,6 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install --legacy-peer-deps
 COPY . .
-RUN npm run prisma:generate && npx nx build api
+RUN npm run prisma:generate
 EXPOSE 3333
-CMD ["sh", "-c", "npx prisma db push && npm run prisma:seed && node dist/apps/api/main.js"]
+CMD ["sh", "-c", "npx prisma db push && npm run prisma:seed && npx nx serve api --host=0.0.0.0"]

@@ -9,6 +9,6 @@ export type CreateReplacementDto = z.infer<typeof CreateReplacementSchema>;
 
 export const ResolveReplacementSchema = z.object({
   status: ReplacementStatusEnum,
-  replacementAssigneeId: z.string().cuid().or(z.string().uuid()).optional(),
+  replacementAssigneeId: z.string().cuid().or(z.string().uuid()).optional().nullable(),
 });
 export type ResolveReplacementDto = z.infer<typeof ResolveReplacementSchema>;

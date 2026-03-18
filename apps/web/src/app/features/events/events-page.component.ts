@@ -2,13 +2,16 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { map, of, switchMap, tap } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ReplacementItem } from '@shift-complete/shared-types';
 import { ApiErrorService } from '../../core/services/api-error.service';
+import { GlobalTeamScopeService } from '../../core/services/global-team-scope.service';
 import { SessionService } from '../../core/services/session.service';
+import { TeamScopeChipsComponent } from '../../shared/components/team-scope-chips.component';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import { toIsoDateTime } from '../../core/utils/date-picker.util';
 import { AppApiService } from '../../shared/services/app-api.service';
@@ -25,10 +28,30 @@ import {
 
 type CalendarEvent = {
   id: string;
+  seriesId?: string;
+  parentEventId?: string | null;
   title: string;
+  description?: string | null;
+  color?: string | null;
+  icon?: string | null;
   startsAt: string;
   endsAt: string;
   type: string;
+  recurrenceRule?: string | null;
+  recurrenceTz?: string | null;
+  occurrenceStart?: string;
+  isOccurrence?: boolean;
+  isVirtualOccurrence?: boolean;
+  canManageAssignments?: boolean;
+  seriesTemplate?: {
+    title: string;
+    description?: string | null;
+    startsAt: string;
+    endsAt: string;
+    recurrenceRule?: string | null;
+    recurrenceTz?: string | null;
+    slots?: Array<{ teamId: string; dutyId: string; startsAt: string; endsAt: string; required?: boolean }>;
+  } | null;
   slots?: Array<{
     id: string;
     dutyId?: string;
@@ -51,6 +74,8 @@ type EventSlotForm = {
   endsAt: Date | null;
   required: boolean;
 };
+
+type EventEditScope = 'single' | 'series';
 
 type TeamOption = {
   id: string;
@@ -87,428 +112,9 @@ type TeamOption = {
     UiToggleComponent,
     UiTableShellComponent,
     UiLabelComponent,
+    TeamScopeChipsComponent,
   ],
-  template: `
-    <section class="grid gap-6">
-      <header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p class="text-sm uppercase tracking-[0.3em] text-teal-700">Eventi</p>
-          <h2 class="text-3xl font-semibold tracking-tight text-slate-900">CRUD eventi, assegnazioni e copertura reale dei turni.</h2>
-          <p class="mt-2 max-w-3xl text-sm text-slate-500">Gestisci creazione, modifica, assegnazioni e replacement in una workspace operativa dedicata agli eventi.</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <button pButton type="button" label="Nuovo evento" icon="pi pi-plus" (click)="openEventDialog()"></button>
-          <button pButton type="button" label="Auto assegna" icon="pi pi-sparkles" severity="contrast" [outlined]="true" (click)="autoAssign()"></button>
-          <button pButton type="button" label="Board assegnazioni" icon="pi pi-directions-alt" severity="secondary" [outlined]="true" (click)="openAssignmentBoard()"></button>
-        </div>
-      </header>
-
-      <div class="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-        <div class="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
-          <div class="border-b border-slate-100 px-5 py-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h3 class="text-base font-semibold text-slate-800">Registro eventi</h3>
-              <p class="mt-0.5 text-sm text-slate-500">Tutti gli eventi ordinati per data con accesso diretto a modifica, eliminazione e board operativa.</p>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">{{ sortedEvents().length }} eventi</span>
-            </div>
-          </div>
-
-          <div class="divide-y divide-slate-100">
-            <div *ngFor="let event of sortedEvents()"
-              class="group flex cursor-pointer items-start gap-4 px-5 py-4 transition hover:bg-slate-50"
-              [class.bg-slate-50]="selectedEvent()?.id === event.id"
-              (click)="selectEvent(event)">
-              <div class="flex min-w-12 flex-col items-center justify-center rounded-xl bg-[#4979e6] px-2 py-2 text-center text-white">
-                <span class="text-lg font-light leading-none">{{ event.startsAt | date:'d' }}</span>
-                <span class="mt-0.5 text-[9px] font-semibold uppercase tracking-widest">{{ event.startsAt | date:'MMM' }}</span>
-              </div>
-              <div class="flex-1">
-                <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <p class="text-sm font-semibold text-slate-800 transition group-hover:text-[#4979e6]">{{ event.title }}</p>
-                    <p class="mt-0.5 text-xs text-slate-500">{{ event.startsAt | date:'short' }} - {{ event.endsAt | date:'short' }}</p>
-                  </div>
-                  <div class="flex flex-wrap gap-1.5">
-                    <ui-label tone="neutral">{{ event.type }}</ui-label>
-                    <ui-label [tone]="(event.assignments?.length || 0) > 0 ? 'success' : 'warn'">{{ (event.assignments?.length || 0) > 0 ? 'coperto' : 'da coprire' }}</ui-label>
-                    <ui-label tone="info">{{ event.slots?.length || 0 }} slot</ui-label>
-                  </div>
-                </div>
-              </div>
-              <i class="pi pi-chevron-right mt-1 text-slate-300 transition group-hover:text-[#4979e6]"></i>
-            </div>
-            <div *ngIf="!events().length" class="px-5 py-12 text-center text-sm text-slate-400">
-              <i class="pi pi-calendar mb-2 block text-3xl opacity-40"></i>
-              Nessun evento disponibile.
-            </div>
-          </div>
-        </div>
-
-        <div class="grid gap-4">
-          <ui-sidebar-panel title="Dettaglio evento" eyebrow="Workspace eventi">
-            <div *ngIf="selectedEvent() as event; else noEvent" class="grid gap-4">
-              <div class="flex items-start justify-between gap-3">
-                <div>
-                  <p class="text-lg font-semibold text-slate-900">{{ event.title }}</p>
-                  <p class="mt-1 text-xs text-slate-500">{{ event.startsAt | date:'fullDate' }} · {{ event.startsAt | date:'shortTime' }} - {{ event.endsAt | date:'shortTime' }}</p>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                  <button type="button" class="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50" (click)="openEditEvent(event)">Modifica</button>
-                  <button type="button" class="rounded-md border border-red-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50" (click)="deleteEvent(event.id)">Elimina</button>
-                </div>
-              </div>
-              <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                <p class="font-medium text-slate-900">Finestra operativa</p>
-                <p class="mt-1">{{ event.startsAt | date:'short' }} - {{ event.endsAt | date:'short' }}</p>
-                <div class="mt-3 flex flex-wrap gap-2">
-                  <ui-label tone="neutral">{{ event.type }}</ui-label>
-                  <ui-label [tone]="(event.assignments?.length || 0) > 0 ? 'success' : 'warn'">{{ (event.assignments?.length || 0) > 0 ? 'copertura avviata' : 'nessuna assegnazione' }}</ui-label>
-                </div>
-              </div>
-              <ui-table-shell title="Slot evento">
-                <table class="min-w-full text-sm">
-                  <thead class="bg-slate-50 text-left text-slate-500">
-                    <tr>
-                      <th class="px-4 py-3">Mansione</th>
-                      <th class="px-4 py-3">Team</th>
-                      <th class="px-4 py-3">Assegnazioni</th>
-                      <th class="px-4 py-3">Stato</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr *ngFor="let slot of event.slots || []" class="border-t border-slate-100" [class.bg-amber-50]="isTargetSlot(slot)" [class.ring-1]="isTargetSlot(slot)" [class.ring-amber-300]="isTargetSlot(slot)">
-                      <td class="px-4 py-3">{{ slot.roleName || 'Mansione' }}</td>
-                      <td class="px-4 py-3">{{ slot.teamName || 'Team' }}</td>
-                      <td class="px-4 py-3">
-                        <div class="grid gap-2" *ngIf="slot.assignments?.length; else noSlotAssignments">
-                          <div *ngFor="let assignment of slot.assignments" class="rounded-2xl border border-slate-200 bg-white px-3 py-3">
-                            <div class="flex items-start justify-between gap-3">
-                              <div>
-                                <p class="font-medium text-slate-900">{{ assignment.assignee?.fullName || 'Assegnazione aperta' }}</p>
-                                <p class="text-xs text-slate-500">{{ assignment.status }}</p>
-                              </div>
-                              <div class="flex flex-wrap gap-2" *ngIf="replacementForAssignment(assignment.id) as replacement">
-                                <ui-label [tone]="replacementTone(replacement.status)">{{ replacement.status }}</ui-label>
-                                <ui-label tone="neutral" *ngIf="replacement.reason">{{ replacement.reason }}</ui-label>
-                                <button type="button" class="text-xs font-medium text-[#4979e6]" (click)="openReplacementAssistant(replacement)">Assistant</button>
-                              </div>
-                            </div>
-                            <div class="mt-3 rounded-2xl border border-slate-100 bg-slate-50 p-3" *ngIf="replacementForAssignment(assignment.id) as replacement">
-                              <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Timeline sostituzione</p>
-                              <div class="mt-2 grid gap-2 text-xs text-slate-600">
-                                <div class="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2">
-                                  <span>Assegnazione originaria</span>
-                                  <span class="font-medium text-slate-800">{{ replacement.requestedBy?.fullName || assignment.assignee?.fullName || 'Volontario' }}</span>
-                                </div>
-                                <div class="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2" *ngIf="replacement.replacementAssignee?.fullName">
-                                  <span>Sostituto confermato</span>
-                                  <span class="font-medium text-emerald-700">{{ replacement.replacementAssignee?.fullName }}</span>
-                                </div>
-                              </div>
-                            </div>
-                            <div class="mt-2 grid gap-2" *ngIf="canRequestReplacement(assignment)">
-                              <input class="rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none" [(ngModel)]="replacementReason" placeholder="Motivo sostituzione" />
-                              <button type="button" class="text-xs font-medium text-orange-700" (click)="requestReplacement(assignment.id)" [disabled]="hasPendingReplacement(assignment.id)">
-                                {{ hasPendingReplacement(assignment.id) ? 'Richiesta inviata' : 'Richiedi sostituzione' }}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                        <ng-template #noSlotAssignments>
-                          <span class="text-sm text-slate-400">Nessuna assegnazione</span>
-                        </ng-template>
-                      </td>
-                      <td class="px-4 py-3">
-                        <ui-label [tone]="slot.assignments?.length ? 'success' : 'warn'">{{ slot.assignments?.length ? 'coperto' : 'vacante' }}</ui-label>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </ui-table-shell>
-              <div class="rounded-2xl border border-slate-200 p-4 text-sm text-slate-600">
-                <p class="font-medium text-slate-900">Realtime</p>
-                <p class="mt-1">{{ live.connected() ? 'Connesso al gateway websocket' : 'In attesa connessione websocket' }}</p>
-              </div>
-            </div>
-            <ng-template #noEvent>
-              <p class="text-sm text-slate-500">Seleziona un evento dalla lista oppure creane uno nuovo.</p>
-            </ng-template>
-          </ui-sidebar-panel>
-
-          <ui-sidebar-panel title="Replacement assistant" eyebrow="Workspace eventi">
-            <div *ngIf="assistantReplacement() as replacement; else noReplacementAssistant" class="grid gap-4">
-              <div>
-                <p class="text-sm font-medium text-slate-900">{{ replacement.assignment?.slot?.event?.title || 'Sostituzione' }}</p>
-                <p class="text-xs text-slate-500">{{ replacement.assignment?.slot?.team?.name || '-' }} · {{ replacement.assignment?.slot?.duty?.name || '-' }}</p>
-                <div class="mt-3 flex flex-wrap gap-2">
-                  <ui-label [tone]="replacementTone(replacement.status)">{{ assistantStatusLabel(replacement) }}</ui-label>
-                  <ui-label tone="neutral">{{ assistantCoverageLabel(replacement) }}</ui-label>
-                </div>
-              </div>
-              <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Prossima azione consigliata</p>
-                <p class="mt-2 text-sm text-slate-700">{{ assistantRecommendation(replacement) }}</p>
-              </div>
-              <div class="rounded-2xl border border-[#d9e6ff] bg-[#f7faff] p-4" *ngIf="replacement.suggestedReplacement as suggested">
-                <div class="flex items-center justify-between gap-2">
-                  <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#4979e6]">Miglior candidato</p>
-                  <ui-label [tone]="assistantScoreTone(suggested.score)">score {{ suggested.score }}</ui-label>
-                </div>
-                <p class="mt-2 text-sm text-slate-700"><span class="font-medium text-slate-900">{{ suggested.fullName }}</span></p>
-                <div class="mt-3 flex flex-wrap gap-1.5">
-                  <ui-label *ngFor="let reason of suggested.reasons" tone="neutral">{{ reason }}</ui-label>
-                </div>
-              </div>
-              <div class="grid gap-2" *ngIf="replacement.suggestedCandidates?.length">
-                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Top candidati</p>
-                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-3" *ngFor="let candidate of replacement.suggestedCandidates | slice:0:3">
-                  <div class="flex items-center justify-between gap-2">
-                    <span class="font-medium text-slate-800">{{ candidate.fullName }}</span>
-                    <ui-label [tone]="assistantScoreTone(candidate.score)">score {{ candidate.score }}</ui-label>
-                  </div>
-                  <div class="mt-2 flex flex-wrap gap-1.5">
-                    <ui-label *ngFor="let reason of candidate.reasons" tone="neutral">{{ reason }}</ui-label>
-                  </div>
-                </div>
-              </div>
-              <div class="flex gap-2" *ngIf="replacement.status === 'PENDING'">
-                <button type="button" class="rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white" (click)="approveReplacementWithSuggestion(replacement)" [disabled]="!replacement.suggestedReplacement?.id || locallyReservedSuggestionIds().includes(replacement.suggestedReplacement.id)">Approva con suggerito</button>
-                <button type="button" class="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-600" (click)="assistantReplacement.set(null)">Chiudi</button>
-              </div>
-            </div>
-            <ng-template #noReplacementAssistant>
-              <p class="text-sm text-slate-500">Apri una replacement dalla timeline o dalla board per vedere stato, priorita operativa, ranking candidati e azione consigliata.</p>
-            </ng-template>
-          </ui-sidebar-panel>
-        </div>
-      </div>
-
-      <p-dialog [(visible)]="eventDialogVisible" [modal]="true" [appendTo]="'body'" [baseZIndex]="1200" [blockScroll]="true" [dismissableMask]="true" [closeOnEscape]="true" [focusOnShow]="false" [style]="{ width: '48rem', maxWidth: '96vw' }" [contentStyle]="{ background: 'transparent', padding: '0', overflow: 'visible' }" [draggable]="false" [resizable]="false">
-        <ui-dialog-shell [title]="editingEventId() ? 'Modifica evento' : 'Nuovo evento'" eyebrow="Workspace eventi" subtitle="Definisci slot, team e ricorrenza del servizio." icon="pi pi-calendar-plus" tone="info" [hasFooter]="true">
-          <div class="grid gap-4">
-            <div class="grid gap-2">
-              <label class="text-sm font-medium text-slate-700">Titolo evento</label>
-              <input class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none" [(ngModel)]="eventForm.title" placeholder="Titolo evento" />
-            </div>
-            <div class="grid gap-4 md:grid-cols-2">
-              <div class="grid gap-2">
-                <label class="text-sm font-medium text-slate-700">Inizio</label>
-                <ui-date-picker label="Inizio" [(value)]="eventForm.startsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1400" inputStyleClass="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none"></ui-date-picker>
-              </div>
-              <div class="grid gap-2">
-                <label class="text-sm font-medium text-slate-700">Fine</label>
-                <ui-date-picker label="Fine" [(value)]="eventForm.endsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1400" inputStyleClass="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none"></ui-date-picker>
-              </div>
-            </div>
-            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <ui-toggle label="Evento ricorrente settimanale" [value]="eventForm.isRecurring" (valueChange)="eventForm.isRecurring = $event"></ui-toggle>
-            </div>
-            <div class="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div class="flex items-center justify-between gap-3">
-                <div>
-                  <p class="text-sm font-medium text-slate-900">Slot evento</p>
-                  <p class="text-xs text-slate-500">Aggiungi piu team e piu mansioni nello stesso evento.</p>
-                </div>
-                <button type="button" class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50" (click)="addEventSlot()">Aggiungi slot</button>
-              </div>
-              <div class="grid gap-3" *ngFor="let slot of eventForm.slots; let slotIndex = index">
-                <div class="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div class="mb-3 flex items-center justify-between gap-3">
-                    <p class="text-sm font-medium text-slate-900">Slot {{ slotIndex + 1 }}</p>
-                    <button type="button" class="text-xs text-red-600 hover:text-red-700" (click)="removeEventSlot(slotIndex)" [disabled]="eventForm.slots.length === 1">Rimuovi</button>
-                  </div>
-                    <div class="grid gap-4 md:grid-cols-2">
-                      <ui-select label="Team" [options]="teamOptions()" [value]="slot.teamId" (valueChange)="updateSlotTeam(slotIndex, castNullable($event) ?? '')"></ui-select>
-                      <ui-select label="Mansione" [options]="slotDutyOptions(slot.teamId)" [value]="slot.dutyId" (valueChange)="updateSlotDuty(slotIndex, castNullable($event) ?? '')"></ui-select>
-                      <div class="grid gap-2">
-                        <label class="text-sm font-medium text-slate-700">Inizio slot</label>
-                      <ui-date-picker label="Inizio slot" [(value)]="slot.startsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1400" inputStyleClass="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none"></ui-date-picker>
-                    </div>
-                    <div class="grid gap-2">
-                        <label class="text-sm font-medium text-slate-700">Fine slot</label>
-                        <ui-date-picker label="Fine slot" [(value)]="slot.endsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1400" inputStyleClass="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none"></ui-date-picker>
-                      </div>
-                    </div>
-                    <div class="mt-4 rounded-2xl border border-slate-100 bg-slate-50 p-3">
-                      <ui-toggle label="Slot richiesto" [value]="slot.required" (valueChange)="slot.required = $event"></ui-toggle>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          <div dialog-footer class="flex justify-end gap-2">
-            <button pButton type="button" label="Annulla" [text]="true" (click)="eventDialogVisible = false"></button>
-            <button pButton type="button" [label]="editingEventId() ? 'Salva modifiche' : 'Crea evento'" (click)="saveEvent()" [disabled]="!isEventFormValid()"></button>
-          </div>
-        </ui-dialog-shell>
-      </p-dialog>
-
-      <p-dialog [(visible)]="previewVisible" [modal]="true" [appendTo]="'body'" [baseZIndex]="1200" [blockScroll]="true" [dismissableMask]="true" [closeOnEscape]="true" [focusOnShow]="false" [style]="{ width: '72rem', maxWidth: '96vw' }" [contentStyle]="{ background: 'transparent', padding: '0', overflow: 'visible' }" [draggable]="false" [resizable]="false">
-        <ui-dialog-shell title="Auto assegnazione turni" eyebrow="Scheduling engine" subtitle="Analizza disponibilita, conflitti e motivazioni prima di applicare il planning." icon="pi pi-sparkles" tone="success">
-          <ui-table-shell>
-            <p-table [value]="previewSuggestions()" [tableStyle]="{ 'min-width': '50rem' }">
-              <ng-template pTemplate="header">
-                <tr><th>Team</th><th>Ruolo</th><th>Inizio</th><th>Copertura</th><th>Volontario</th><th>Strategia</th><th>Perche</th></tr>
-              </ng-template>
-              <ng-template pTemplate="body" let-item>
-                <tr>
-                  <td>{{ item.teamName }}</td>
-                  <td>{{ item.roleName }}</td>
-                  <td>{{ item.startsAt | date:'short' }}</td>
-                  <td><p-tag [severity]="item.coverageStatus === 'covered' ? 'success' : (item.coverageStatus === 'suggested' ? 'info' : 'warn')" [value]="item.coverageStatus"></p-tag></td>
-                  <td>{{ item.assigneeName || '-' }}</td>
-                  <td>{{ item.strategy }}</td>
-                  <td>
-                    <div class="flex flex-wrap gap-1.5" *ngIf="item.reasons?.length; else noReasons">
-                      <ui-label *ngFor="let reason of item.reasons" [tone]="reasonTone(reason)">{{ reason }}</ui-label>
-                    </div>
-                    <ng-template #noReasons>-</ng-template>
-                  </td>
-                </tr>
-              </ng-template>
-            </p-table>
-          </ui-table-shell>
-          <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4" *ngIf="previewSuggestions().length">
-            <p class="text-sm font-medium text-slate-900">Perche e stato scelto</p>
-            <div class="mt-3 grid gap-3">
-              <div class="rounded-2xl border border-slate-200 bg-white p-3" *ngFor="let suggestion of previewSuggestions() | slice:0:3">
-                <div class="flex items-center justify-between gap-3">
-                  <p class="font-medium text-slate-900">{{ suggestion.roleName }} · {{ suggestion.teamName }}</p>
-                  <ui-label tone="info">{{ suggestion.assigneeName || 'Nessun candidato' }}</ui-label>
-                </div>
-                <div class="mt-2 flex flex-wrap gap-2">
-                  <ui-label *ngFor="let reason of suggestion.reasons || []" [tone]="reasonTone(reason)">{{ reason }}</ui-label>
-                </div>
-                <div class="mt-3 grid gap-2" *ngIf="suggestion.candidates?.length">
-                  <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Classifica candidati</p>
-                  <div class="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-600" *ngFor="let candidate of suggestion.candidates">
-                    <div class="flex items-center justify-between gap-2">
-                      <span class="font-medium text-slate-800">{{ candidate.fullName }}</span>
-                      <ui-label tone="info">score {{ candidate.score }}</ui-label>
-                    </div>
-                    <div class="mt-2 flex flex-wrap gap-1.5">
-                      <ui-label *ngFor="let reason of candidate.reasons" [tone]="reasonTone(reason)">{{ reason }}</ui-label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </ui-dialog-shell>
-      </p-dialog>
-
-      <p-dialog [(visible)]="assignmentBoardVisible" [modal]="true" [appendTo]="'body'" [baseZIndex]="1200" [blockScroll]="true" [dismissableMask]="true" [closeOnEscape]="true" [focusOnShow]="false" [style]="{ width: '78rem', maxWidth: '98vw' }" [contentStyle]="{ background: 'transparent', padding: '0', overflow: 'visible' }" [draggable]="false" [resizable]="false">
-        <ui-dialog-shell title="Board assegnazioni" eyebrow="Workspace eventi" subtitle="Gestisci assegnazioni, replacement e copertura del servizio in un'unica board." icon="pi pi-directions-alt" tone="info">
-          <div class="grid gap-4" *ngIf="selectedEvent() as event; else noAssignmentEvent">
-            <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-              <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <p class="text-sm font-semibold text-slate-900">{{ event.title }}</p>
-                  <p class="mt-1 text-xs text-slate-500">Trascina una persona del team nello slot corretto oppure gestisci replacement e conferme direttamente dalla board.</p>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                  <ui-label tone="neutral">{{ selectedEventSlots().length }} slot</ui-label>
-                  <ui-label tone="info">{{ event.assignments?.length || 0 }} assegnazioni</ui-label>
-                </div>
-              </div>
-            </div>
-
-            <div class="grid gap-4 xl:grid-cols-2">
-              <div *ngFor="let slot of selectedEventSlots()" class="relative flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition" [class.ring-2]="isTargetSlot(slot) || dragHoverSlotId() === slot.id" [class.ring-amber-300]="isTargetSlot(slot) || dragHoverSlotId() === slot.id" [class.border-[#4979e6]]="dragHoverSlotId() === slot.id" [class.bg-[#f8fbff]]="dragHoverSlotId() === slot.id" (dragover)="allowDrop($event, slot.id)" (dragenter)="setDragHoverSlot(slot.id)" (dragleave)="clearDragHoverSlot(slot.id)" (drop)="dropVolunteer(slot.id)">
-                <div *ngIf="dragHoverSlotId() === slot.id" class="pointer-events-none absolute inset-3 rounded-2xl border-2 border-dashed border-[#4979e6] bg-[#eef4ff]/80"></div>
-                <div class="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
-                  <div>
-                    <p class="font-medium text-slate-900">{{ slot.roleName }}</p>
-                    <p class="text-sm text-slate-500">{{ slot.teamName }}</p>
-                  </div>
-                  <ui-label [tone]="slot.assignments?.length ? 'success' : 'warn'">{{ slot.assignments?.length ? 'coperto' : 'vacante' }}</ui-label>
-                </div>
-
-                <div class="mt-4 grid flex-1 gap-4 lg:grid-cols-2">
-                  <div class="grid content-start gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                    <div class="flex items-center justify-between gap-2">
-                      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Persone del team</p>
-                      <span class="text-xs text-slate-400">{{ membersForTeam(slot.teamId).length }}</span>
-                    </div>
-                    <div *ngFor="let member of membersForTeam(slot.teamId)" draggable="true" (dragstart)="startDragging(member.id)" (dragend)="finishDragging()" class="cursor-grab rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm shadow-sm transition hover:border-slate-300 hover:shadow" [class.border-[#4979e6]]="draggedVolunteerId() === member.id" [class.bg-[#f8fbff]]="draggedVolunteerId() === member.id" [class.shadow-lg]="draggedVolunteerId() === member.id" [class.scale-[1.01]]="draggedVolunteerId() === member.id">
-                      <div class="flex items-start justify-between gap-2">
-                        <div class="min-w-0">
-                          <p class="truncate font-medium text-slate-900">{{ member.fullName }}</p>
-                          <p class="truncate text-xs text-slate-500">{{ member.email }}</p>
-                        </div>
-                        <ui-label tone="neutral">{{ member.role }}</ui-label>
-                      </div>
-                    </div>
-                    <div *ngIf="!membersForTeam(slot.teamId).length" class="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-4 text-sm text-slate-400">
-                      Nessuna persona presente in questo team.
-                    </div>
-                  </div>
-
-                  <div class="grid content-start gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                    <div class="flex items-center justify-between gap-2">
-                      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Assegnazioni slot</p>
-                      <span class="text-xs text-slate-400">{{ slot.assignments?.length || 0 }}</span>
-                    </div>
-                    <div class="rounded-xl border border-dashed px-3 py-3 text-sm transition" [class.border-[#4979e6]]="dragHoverSlotId() === slot.id" [class.bg-[#eef4ff]]="dragHoverSlotId() === slot.id" [class.text-[#3156b3]]="dragHoverSlotId() === slot.id" [class.border-orange-200]="dragHoverSlotId() !== slot.id" [class.bg-orange-50]="dragHoverSlotId() !== slot.id" [class.text-orange-700]="dragHoverSlotId() !== slot.id" *ngIf="!slot.assignments?.length">{{ dragHoverSlotId() === slot.id ? 'Rilascia qui per assegnare il volontario.' : 'Trascina qui un volontario per assegnarlo.' }}</div>
-                    <div class="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm" *ngFor="let assignment of slot.assignments">
-                      <div class="flex items-start justify-between gap-2">
-                        <div class="min-w-0">
-                          <p class="truncate font-medium text-slate-900">{{ assignment.assignee?.fullName || 'Assegnazione senza volontario' }}</p>
-                          <p class="mt-1 text-xs text-slate-500">{{ assignment.assignee?.email || 'Nessuna mail disponibile' }}</p>
-                        </div>
-                        <div class="flex flex-wrap justify-end gap-2">
-                          <ui-label *ngIf="assignment.replacementApproved" tone="success">replacement</ui-label>
-                          <ui-label *ngIf="replacementForAssignment(assignment.id) as replacement" [tone]="replacementTone(replacement.status)">{{ replacement.status }}</ui-label>
-                          <button type="button" class="text-xs font-medium text-[#4979e6]" *ngIf="replacementForAssignment(assignment.id) as replacement" (click)="openReplacementAssistant(replacement)">Assistant</button>
-                        </div>
-                      </div>
-                      <div class="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3" *ngIf="replacementForAssignment(assignment.id) as replacement">
-                        <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Timeline</p>
-                        <div class="mt-2 grid gap-2 text-xs text-slate-600">
-                          <div class="flex items-center justify-between gap-3">
-                            <span>Originario</span>
-                            <span class="font-medium text-slate-800">{{ replacement.requestedBy?.fullName || assignment.assignee?.fullName || '-' }}</span>
-                          </div>
-                          <div class="flex items-center justify-between gap-3" *ngIf="replacement.replacementAssignee?.fullName">
-                            <span>Sostituto</span>
-                            <span class="font-medium text-emerald-700">{{ replacement.replacementAssignee?.fullName }}</span>
-                          </div>
-                          <div class="flex items-center justify-between gap-3" *ngIf="replacement.suggestedReplacement?.fullName">
-                            <span>Suggerito</span>
-                            <span class="font-medium text-[#4979e6]">{{ replacement.suggestedReplacement?.fullName }} · {{ replacement.suggestedReplacement?.score }}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="mt-3 grid gap-2" *ngIf="canRequestReplacement(assignment)">
-                        <input class="rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none" [(ngModel)]="replacementReason" placeholder="Motivo sostituzione" />
-                        <button type="button" class="text-left text-xs font-medium text-orange-700" (click)="requestReplacement(assignment.id)" [disabled]="hasPendingReplacement(assignment.id)">
-                          {{ hasPendingReplacement(assignment.id) ? 'Richiesta inviata' : 'Richiedi sostituzione' }}
-                        </button>
-                      </div>
-                      <div class="mt-3 grid gap-2" *ngIf="replacementForAssignment(assignment.id)?.status === 'APPROVED'">
-                        <ui-select label="Sostituto" [options]="memberOptionsForTeam(slot.teamId)" [value]="replacementAssigneeId()" (valueChange)="replacementAssigneeId.set(castNullable($event))"></ui-select>
-                        <button type="button" class="text-left text-xs font-medium text-emerald-700" (click)="resolveApprovedReplacement(replacementForAssignment(assignment.id)!.id)">Conferma sostituto</button>
-                      </div>
-                      <div class="mt-3" *ngIf="replacementForAssignment(assignment.id)?.suggestedReplacement?.id && replacementForAssignment(assignment.id)?.status === 'PENDING'">
-                        <button type="button" class="text-left text-xs font-medium text-[#4979e6]" (click)="approveReplacementWithSuggestion(replacementForAssignment(assignment.id)!)" [disabled]="locallyReservedSuggestionIds().includes(replacementForAssignment(assignment.id)!.suggestedReplacement!.id)">Approva con suggerito</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <ng-template #noAssignmentEvent>
-            <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center text-sm text-slate-500">
-              Seleziona prima un evento per aprire la board assegnazioni.
-            </div>
-          </ng-template>
-        </ui-dialog-shell>
-      </p-dialog>
-    </section>
-  `,
+  templateUrl: './events-page.component.html',
 })
 export class EventsPageComponent {
   private readonly api = inject(AppApiService);
@@ -517,13 +123,18 @@ export class EventsPageComponent {
   private readonly feedback = inject(UiFeedbackService);
   private readonly route = inject(ActivatedRoute);
   private readonly session = inject(SessionService);
+  protected readonly teamScope = inject(GlobalTeamScopeService);
 
   protected readonly events = signal<CalendarEvent[]>([]);
   protected readonly teams = signal<TeamOption[]>([]);
   protected readonly replacements = signal<ReplacementItem[]>([]);
   protected readonly previewSuggestions = signal<any[]>([]);
   protected readonly selectedEvent = signal<CalendarEvent | null>(null);
+  protected readonly selectedUserFilter = signal<string>('');
+  protected readonly occurrenceView = signal<'all' | 'series' | 'occurrences'>('all');
   protected readonly editingEventId = signal<string | null>(null);
+  protected readonly editingEventScope = signal<EventEditScope>('single');
+  protected readonly editingOccurrenceStart = signal<string | null>(null);
   protected readonly assistantReplacement = signal<ReplacementItem | null>(null);
   protected readonly loading = signal(false);
   protected readonly savingEvent = signal(false);
@@ -532,13 +143,50 @@ export class EventsPageComponent {
   protected previewVisible = false;
   protected assignmentBoardVisible = false;
   protected eventDialogVisible = false;
-  protected eventForm = { title: '', startsAt: null as Date | null, endsAt: null as Date | null, isRecurring: false, slots: [] as EventSlotForm[] };
+  protected eventForm = { title: '', startsAt: null as Date | null, endsAt: null as Date | null, isRecurring: false, recurrenceFrequency: 'WEEKLY' as 'WEEKLY' | 'MONTHLY' | 'YEARLY', slots: [] as EventSlotForm[] };
   protected replacementReason = '';
   protected readonly replacementAssigneeId = signal<string | null>(null);
   protected readonly draggedVolunteerId = signal<string | null>(null);
   protected readonly dragHoverSlotId = signal<string | null>(null);
   protected readonly teamOptions = computed(() => this.teams().map((team) => ({ label: team.name, value: team.id })));
+  protected readonly selectableUsers = computed(() =>
+    Array.from(
+      new Map(
+        this.teams()
+          .flatMap((team) => team.members ?? [])
+          .map((member) => [member.id, { label: member.fullName, value: member.id }])
+      ).values()
+    )
+  );
+  protected readonly filteredEvents = computed(() => {
+    const userId = this.selectedUserFilter();
+
+    return this.events().filter((event) => {
+      const scopedTeamId = this.teamScope.teamId();
+      const teamMatch = !scopedTeamId || (event.slots ?? []).some((slot) => slot.teamId === scopedTeamId);
+      const userMatch = !userId || (event.slots ?? []).some((slot) => (slot.assignments ?? []).some((assignment) => assignment.assigneeId === userId));
+      const occurrenceMatch = this.occurrenceView() === 'all'
+        ? true
+        : this.occurrenceView() === 'series'
+          ? !event.isOccurrence
+          : Boolean(event.isOccurrence);
+      return teamMatch && userMatch && occurrenceMatch;
+    });
+  });
   protected readonly selectedEventSlots = computed(() => this.selectedEvent()?.slots ?? []);
+  protected readonly canManageEvents = computed(() => this.session.hasAnyRole('administrator', 'service_leader'));
+  protected readonly canManageReplacements = computed(() => this.session.hasAnyRole('administrator', 'service_leader'));
+  protected readonly canManageSelectedAssignments = computed(() => Boolean(this.selectedEvent()?.canManageAssignments));
+  protected readonly recurrenceOptions = [
+    { label: 'Settimanale', value: 'WEEKLY' },
+    { label: 'Mensile', value: 'MONTHLY' },
+    { label: 'Annuale', value: 'YEARLY' },
+  ];
+  protected readonly occurrenceViewOptions = [
+    { label: 'Tutto', value: 'all' },
+    { label: 'Serie', value: 'series' },
+    { label: 'Occorrenze', value: 'occurrences' },
+  ];
   protected reasonTone(reason: string): 'success' | 'warn' | 'neutral' {
     return reason.includes(':+') ? 'success' : reason.includes(':-') ? 'warn' : 'neutral';
   }
@@ -590,7 +238,7 @@ export class EventsPageComponent {
   }
 
   protected readonly sortedEvents = computed(() =>
-    [...this.events()].sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())
+    [...this.filteredEvents()].sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime())
   );
 
   protected membersForTeam(teamId: string): Array<{ id: string; fullName: string; email: string; role: string }> {
@@ -610,6 +258,25 @@ export class EventsPageComponent {
 
   protected castNullable(value: unknown): string | null {
     return value ? String(value) : null;
+  }
+
+  protected setOccurrenceView(value: unknown): void {
+    const normalized = this.castNullable(value);
+    if (normalized === 'series' || normalized === 'occurrences') {
+      this.occurrenceView.set(normalized);
+      return;
+    }
+    this.occurrenceView.set('all');
+  }
+
+  protected updateRecurrenceFrequency(value: unknown): void {
+    const normalized = this.castNullable(value);
+    if (normalized === 'MONTHLY' || normalized === 'YEARLY') {
+      this.eventForm.recurrenceFrequency = normalized;
+      return;
+    }
+
+    this.eventForm.recurrenceFrequency = 'WEEKLY';
   }
 
   constructor() {
@@ -642,6 +309,9 @@ export class EventsPageComponent {
   }
 
   openEventDialog(): void {
+    if (!this.canManageEvents()) {
+      return;
+    }
     const now = new Date();
     const end = new Date(now.getTime() + 2 * 60 * 60 * 1000);
     this.eventForm = {
@@ -649,24 +319,35 @@ export class EventsPageComponent {
       startsAt: now,
       endsAt: end,
       isRecurring: false,
+      recurrenceFrequency: 'WEEKLY',
       slots: [this.createEmptySlot(now, end)],
     };
     this.editingEventId.set(null);
+    this.editingEventScope.set('single');
+    this.editingOccurrenceStart.set(null);
     this.eventDialogVisible = true;
   }
 
-  protected openEditEvent(event: CalendarEvent): void {
-    this.editingEventId.set(event.id);
+  protected openEditEvent(event: CalendarEvent, scope: EventEditScope = 'single'): void {
+    if (!this.canManageEvents()) {
+      return;
+    }
+    const source = scope === 'series' && event.seriesTemplate ? event.seriesTemplate : event;
+    const sourceSlots = scope === 'series' && event.seriesTemplate?.slots ? event.seriesTemplate.slots : (event.slots ?? []);
+    this.editingEventId.set(scope === 'series' && event.seriesId ? event.seriesId : event.id);
+    this.editingEventScope.set(scope);
+    this.editingOccurrenceStart.set(scope === 'single' ? event.occurrenceStart ?? event.startsAt : null);
     this.eventForm = {
-      title: event.title,
-      startsAt: new Date(event.startsAt),
-      endsAt: new Date(event.endsAt),
-      isRecurring: event.type === 'recurring',
-      slots: (event.slots ?? []).map((slot) => ({
+      title: source.title,
+      startsAt: new Date(source.startsAt),
+      endsAt: new Date(source.endsAt),
+      isRecurring: scope === 'series' ? true : event.type === 'recurring',
+      recurrenceFrequency: this.frequencyFromRule(scope === 'series' ? source.recurrenceRule : event.recurrenceRule),
+      slots: sourceSlots.map((slot: any) => ({
         teamId: slot.teamId,
         dutyId: slot.dutyId ?? '',
-        startsAt: new Date(slot.startsAt ?? event.startsAt),
-        endsAt: new Date(slot.endsAt ?? event.endsAt),
+        startsAt: new Date(slot.startsAt ?? source.startsAt),
+        endsAt: new Date(slot.endsAt ?? source.endsAt),
         required: true,
       })),
     };
@@ -677,6 +358,9 @@ export class EventsPageComponent {
   }
 
   saveEvent(): void {
+    if (!this.canManageEvents()) {
+      return;
+    }
     if (!this.isEventFormValid()) {
       this.feedback.error('Evento non valido', 'Completa titolo, intervallo, team e mansione.');
       return;
@@ -689,7 +373,7 @@ export class EventsPageComponent {
       type: (this.eventForm.isRecurring ? 'recurring' : 'single') as 'recurring' | 'single',
       startsAt: toIsoDateTime(this.eventForm.startsAt),
       endsAt: toIsoDateTime(this.eventForm.endsAt),
-      recurrenceRule: this.eventForm.isRecurring ? 'FREQ=WEEKLY' : undefined,
+      recurrenceRule: this.eventForm.isRecurring ? `FREQ=${this.eventForm.recurrenceFrequency}` : undefined,
       recurrenceTz: this.eventForm.isRecurring ? 'Europe/Rome' : undefined,
       slots: this.eventForm.slots.map((slot) => ({
         teamId: slot.teamId!,
@@ -701,13 +385,18 @@ export class EventsPageComponent {
     };
 
     const request = editingEventId
-      ? this.api.updateEvent(editingEventId, payload)
+      ? this.api.updateEvent(editingEventId, {
+          ...payload,
+          editMode: this.editingEventScope() as 'single' | 'series',
+          occurrenceStart: this.editingEventScope() === 'single' ? (this.editingOccurrenceStart() ?? undefined) : undefined,
+        })
       : this.api.createEvent(payload);
 
     request.subscribe({
       next: () => {
         this.eventDialogVisible = false;
         this.editingEventId.set(null);
+        this.editingOccurrenceStart.set(null);
         this.savingEvent.set(false);
         this.loadData();
         this.feedback.success(editingEventId ? 'Evento aggiornato' : 'Evento creato', editingEventId ? 'Le modifiche evento sono state sincronizzate.' : 'Evento, slot e copertura iniziale sono stati sincronizzati.');
@@ -720,6 +409,9 @@ export class EventsPageComponent {
   }
 
   renameEvent(eventId: string, title: string): void {
+    if (!this.canManageEvents()) {
+      return;
+    }
     if (!title.trim()) {
       return;
     }
@@ -732,8 +424,15 @@ export class EventsPageComponent {
     });
   }
 
-  deleteEvent(eventId: string): void {
-    this.api.deleteEvent(eventId).subscribe({
+  deleteEvent(event: CalendarEvent, scope: EventEditScope = 'single'): void {
+    if (!this.canManageEvents()) {
+      return;
+    }
+    const targetId = scope === 'series' && event.seriesId ? event.seriesId : event.id;
+    this.api.deleteEvent(targetId, {
+      mode: scope,
+      occurrenceStart: scope === 'single' ? (event.occurrenceStart ?? event.startsAt) : undefined,
+    }).subscribe({
       next: () => {
         this.loadData();
         this.feedback.success('Evento eliminato');
@@ -747,10 +446,20 @@ export class EventsPageComponent {
   }
 
   openAssignmentBoard(): void {
-    if (!this.selectedEvent() && this.events().length) {
-      this.selectedEvent.set(this.events()[0]);
+    if (!this.canManageEvents()) {
+      return;
     }
-    this.assignmentBoardVisible = true;
+    const selected = this.selectedEvent() ?? this.events()[0] ?? null;
+    if (!selected) {
+      return;
+    }
+    this.materializeEventIfNeeded(selected).subscribe({
+      next: (event) => {
+        this.selectedEvent.set(event);
+        this.assignmentBoardVisible = true;
+      },
+      error: (error) => this.feedback.error('Materializzazione non riuscita', this.apiError.message(error, 'Impossibile preparare l\'occorrenza selezionata.'))
+    });
   }
 
   startDragging(volunteerId: string): void {
@@ -783,40 +492,81 @@ export class EventsPageComponent {
   }
 
   dropVolunteer(slotId: string): void {
+    if (!this.canManageEvents()) {
+      this.finishDragging();
+      return;
+    }
     if (!this.draggedVolunteerId()) {
       return;
     }
 
+    const selected = this.selectedEvent();
+    if (!selected) {
+      this.finishDragging();
+      return;
+    }
+    const previousSlot = this.selectedEventSlots().find((item) => item.id === slotId);
     const assigneeId = this.draggedVolunteerId()!;
-    const slot = this.selectedEventSlots().find((item) => item.id === slotId);
-    const assignee = slot ? this.membersForTeam(slot.teamId).find((member) => member.id === assigneeId) ?? null : null;
 
-    this.dragHoverSlotId.set(slotId);
-    this.api.assignVolunteer({ slotId, assigneeId, status: 'assigned' }).subscribe({
-      next: (assignment) => {
-        this.finishDragging();
-        if (slot && assignee) {
-          this.patchAssignedVolunteer(slotId, {
-            id: assignment.id,
-            assigneeId,
-            status: assignment.status,
-            replacementApproved: false,
-            assignee: {
-              id: assignee.id,
-              fullName: assignee.fullName,
-            },
-          }, assignee.fullName);
+    this.materializeEventIfNeeded(selected).subscribe({
+      next: (event) => {
+        this.selectedEvent.set(event);
+        const slot = (event.slots ?? []).find((item) => item.id === slotId)
+          ?? (event.slots ?? []).find((item) => item.teamId === previousSlot?.teamId && item.dutyId === previousSlot?.dutyId);
+        const assignee = slot ? this.membersForTeam(slot.teamId).find((member) => member.id === assigneeId) ?? null : null;
+        if (!slot) {
+          this.finishDragging();
+          this.feedback.error('Slot non disponibile', 'Impossibile trovare lo slot materializzato per questa occorrenza.');
+          return;
         }
-        this.feedback.success('Volontario assegnato');
+
+        this.dragHoverSlotId.set(slot.id);
+        this.api.assignVolunteer({ slotId: slot.id, assigneeId, status: 'assigned' }).subscribe({
+          next: (assignment) => {
+            this.finishDragging();
+            if (assignee) {
+              this.patchAssignedVolunteer(slot.id, {
+                id: assignment.id,
+                assigneeId,
+                status: assignment.status,
+                replacementApproved: false,
+                assignee: {
+                  id: assignee.id,
+                  fullName: assignee.fullName,
+                },
+              }, assignee.fullName);
+            }
+            this.feedback.success('Volontario assegnato');
+          },
+          error: (error) => {
+            this.finishDragging();
+            this.feedback.error('Assegnazione non riuscita', this.apiError.message(error, 'Impossibile assegnare il volontario allo slot.'));
+          }
+        });
       },
       error: (error) => {
         this.finishDragging();
-        this.feedback.error('Assegnazione non riuscita', this.apiError.message(error, 'Impossibile assegnare il volontario allo slot.'));
+        this.feedback.error('Materializzazione non riuscita', this.apiError.message(error, 'Impossibile preparare l\'occorrenza selezionata.'));
       }
     });
   }
 
+  protected frequencyFromRule(rule?: string | null): 'WEEKLY' | 'MONTHLY' | 'YEARLY' {
+    if (rule?.includes('FREQ=MONTHLY')) {
+      return 'MONTHLY';
+    }
+
+    if (rule?.includes('FREQ=YEARLY') || rule?.includes('FREQ=ANNUALLY')) {
+      return 'YEARLY';
+    }
+
+    return 'WEEKLY';
+  }
+
   autoAssign(): void {
+    if (!this.canManageEvents()) {
+      return;
+    }
     const selectedTeamId = this.selectedEvent()?.slots?.[0]?.teamId ?? this.eventForm.slots[0]?.teamId ?? undefined;
     this.scheduling.set(true);
     const now = new Date();
@@ -855,38 +605,66 @@ export class EventsPageComponent {
   }
 
   protected assignReplacement(slotId: string): void {
+    if (!this.canManageReplacements()) {
+      return;
+    }
     const assigneeId = this.replacementAssigneeId();
     if (!assigneeId) {
+      this.feedback.error('Selezione mancante', 'Seleziona un sostituto prima di procedere.');
       return;
     }
 
-    const slot = this.selectedEventSlots().find((item) => item.id === slotId);
-    const assignee = slot ? this.membersForTeam(slot.teamId).find((member) => member.id === assigneeId) ?? null : null;
+    const selected = this.selectedEvent();
+    if (!selected) {
+      return;
+    }
+    const previousSlot = this.selectedEventSlots().find((item) => item.id === slotId);
 
-    this.api.assignVolunteer({ slotId, assigneeId, status: 'assigned' }).subscribe({
-      next: (assignment) => {
-        this.replacementAssigneeId.set(null);
-        if (slot && assignee) {
-          this.patchAssignedVolunteer(slotId, {
-            id: assignment.id,
-            assigneeId,
-            status: assignment.status,
-            replacementApproved: false,
-            assignee: {
-              id: assignee.id,
-              fullName: assignee.fullName,
-            },
-          }, assignee.fullName);
+    this.materializeEventIfNeeded(selected).subscribe({
+      next: (event) => {
+        this.selectedEvent.set(event);
+        const slot = (event.slots ?? []).find((item) => item.id === slotId)
+          ?? (event.slots ?? []).find((item) => item.teamId === previousSlot?.teamId && item.dutyId === previousSlot?.dutyId);
+        const assignee = slot ? this.membersForTeam(slot.teamId).find((member) => member.id === assigneeId) ?? null : null;
+        if (!slot) {
+          this.feedback.error('Slot non disponibile', 'Impossibile trovare lo slot materializzato per il sostituto.');
+          return;
         }
-        this.feedback.success('Sostituto assegnato allo slot');
+
+        this.api.assignVolunteer({ slotId: slot.id, assigneeId, status: 'assigned' }).subscribe({
+          next: (assignment) => {
+            this.replacementAssigneeId.set(null);
+            if (assignee) {
+              this.patchAssignedVolunteer(slot.id, {
+                id: assignment.id,
+                assigneeId,
+                status: assignment.status,
+                replacementApproved: false,
+                assignee: {
+                  id: assignee.id,
+                  fullName: assignee.fullName,
+                },
+              }, assignee.fullName);
+            }
+            this.feedback.success('Sostituto assegnato allo slot');
+          },
+          error: (error) => this.feedback.error('Assegnazione non riuscita', this.apiError.message(error, 'Impossibile assegnare il sostituto.'))
+        });
       },
-      error: (error) => this.feedback.error('Assegnazione non riuscita', this.apiError.message(error, 'Impossibile assegnare il sostituto.'))
+      error: (error) => this.feedback.error('Materializzazione non riuscita', this.apiError.message(error, 'Impossibile preparare l\'occorrenza selezionata.'))
     });
   }
 
   protected resolveApprovedReplacement(replacementId: string): void {
+    if (!this.canManageReplacements()) {
+      return;
+    }
     const assigneeId = this.replacementAssigneeId();
-    this.api.resolveReplacement(replacementId, { status: 'APPROVED', replacementAssigneeId: assigneeId || undefined }).subscribe({
+    if (!assigneeId) {
+      this.feedback.error('Selezione mancante', 'Seleziona un sostituto prima di approvare la richiesta.');
+      return;
+    }
+    this.api.resolveReplacement(replacementId, { status: 'APPROVED', replacementAssigneeId: assigneeId || null }).subscribe({
       next: () => {
         const replacement = this.replacements().find((item) => item.id === replacementId) ?? null;
         const replacementAssignee = assigneeId ? this.findMemberById(assigneeId) : null;
@@ -905,6 +683,9 @@ export class EventsPageComponent {
   }
 
   protected approveReplacementWithSuggestion(replacement: ReplacementItem): void {
+    if (!this.canManageReplacements()) {
+      return;
+    }
     if (!replacement.suggestedReplacement?.id) {
       return;
     }
@@ -1235,5 +1016,23 @@ export class EventsPageComponent {
     return this.teams()
       .flatMap((team) => team.members ?? [])
       .find((member) => member.id === memberId) ?? null;
+  }
+
+  private materializeEventIfNeeded(event: CalendarEvent) {
+    if (!event.isVirtualOccurrence || !event.seriesId || !event.occurrenceStart) {
+      return of(event);
+    }
+
+    return this.api.updateEvent(event.seriesId, {
+      editMode: 'single',
+      occurrenceStart: event.occurrenceStart,
+    }).pipe(
+      switchMap(() => this.api.events()),
+      tap((events) => {
+        this.events.set(events);
+        this.applyRouteContext(events);
+      }),
+      map((events) => events.find((item: CalendarEvent) => item.seriesId === event.seriesId && item.occurrenceStart === event.occurrenceStart && !item.isVirtualOccurrence) ?? event)
+    );
   }
 }

@@ -1,3 +1,4 @@
+import { HttpEventType } from '@angular/common/http';
 import { Injectable, effect, signal } from '@angular/core';
 import { AppApiService } from '../../shared/services/app-api.service';
 import { LiveNotificationsService } from './live-notifications.service';
@@ -22,6 +23,9 @@ export interface ResourceTransferItem {
 @Injectable({ providedIn: 'root' })
 export class ResourceTransferQueueService {
   private readonly queueSignal = signal<ResourceTransferItem[]>([]);
+  private submissionInFlight = false;
+  private readonly pendingSubmissions: Array<() => void> = [];
+  private lastProcessedRealtimeUpdate?: { type: string; payload: any };
 
   readonly items = this.queueSignal.asReadonly();
 
@@ -34,10 +38,13 @@ export class ResourceTransferQueueService {
     setInterval(() => this.syncFromBackend(), 10000);
 
     effect(() => {
-      const updates = this.live.feed().filter((item) => item.type === 'resource.transfer.updated');
-      for (const update of updates) {
-        this.applyRealtimeUpdate(update.payload as { jobId: string; status: string; progress: number; resourceId?: string; teamId?: string | null; result?: { downloadUrl?: string } });
+      const latestUpdate = this.live.feed().find((item) => item.type === 'resource.transfer.updated');
+      if (!latestUpdate || latestUpdate === this.lastProcessedRealtimeUpdate) {
+        return;
       }
+
+      this.lastProcessedRealtimeUpdate = latestUpdate;
+      this.applyRealtimeUpdate(latestUpdate.payload as { jobId: string; status: string; progress: number; resourceId?: string; teamId?: string | null; result?: { downloadUrl?: string } });
     });
   }
 
@@ -53,11 +60,21 @@ export class ResourceTransferQueueService {
 
     this.queueSignal.update((items) => [...additions, ...items]);
     additions.forEach((item, index) => {
-      this.api.uploadResourceAsync(files[index], item.teamId ?? undefined).subscribe({
-        next: (job) => this.patch(item.id, { jobId: job.id, progress: job.progress ?? 0, status: job.status ?? 'queued' }),
-        error: (error) => this.patch(item.id, { status: 'failed', progress: 0, error: error?.error?.message ?? error?.message ?? 'Upload fallito' })
+      this.pendingSubmissions.push(() => {
+        this.api.uploadResourceAsync(files[index], item.teamId ?? undefined).subscribe({
+          next: (job) => {
+            this.patch(item.id, { jobId: job.id, progress: job.progress ?? 0, status: job.status ?? 'queued' });
+            this.completeSubmission();
+          },
+          error: (error) => {
+            this.patch(item.id, { status: 'failed', progress: 0, error: error?.error?.message ?? error?.message ?? 'Upload fallito' });
+            this.completeSubmission();
+          }
+        });
       });
     });
+
+    this.processPendingSubmissions();
   }
 
   enqueueDownload(resource: { id: string; name: string; team?: { id?: string | null } | null }) {
@@ -72,14 +89,28 @@ export class ResourceTransferQueueService {
       progress: 0
     }, ...items]);
 
-    this.api.prepareResourceDownload(resource.id).subscribe({
-      next: (job) => this.patch(localId, { jobId: job.id, progress: job.progress ?? 0, status: job.status ?? 'queued' }),
-      error: (error) => this.patch(localId, { status: 'failed', progress: 0, error: error?.error?.message ?? error?.message ?? 'Download fallito' })
+    this.pendingSubmissions.push(() => {
+      this.api.prepareResourceDownload(resource.id).subscribe({
+        next: (job) => {
+          this.patch(localId, { jobId: job.id, progress: job.progress ?? 0, status: job.status ?? 'queued' });
+          this.completeSubmission();
+        },
+        error: (error) => {
+          this.patch(localId, { status: 'failed', progress: 0, error: error?.error?.message ?? error?.message ?? 'Download fallito' });
+          this.completeSubmission();
+        }
+      });
     });
+
+    this.processPendingSubmissions();
   }
 
   dismiss(itemId: string) {
     this.queueSignal.update((items) => items.filter((item) => item.id !== itemId));
+  }
+
+  clearAll() {
+    this.queueSignal.set([]);
   }
 
   private applyRealtimeUpdate(payload: { jobId: string; status: string; progress: number; resourceId?: string; teamId?: string | null; result?: { downloadUrl?: string } }) {
@@ -104,14 +135,9 @@ export class ResourceTransferQueueService {
     this.patch(item.id, patch);
 
     if (item.kind === 'download' && nextStatus === 'completed' && !item.autoOpened) {
-      const downloadUrl = item.resourceId ? this.api.downloadResource(item.resourceId) : undefined;
-      if (downloadUrl) {
-        const anchor = document.createElement('a');
-        anchor.href = downloadUrl;
-        anchor.target = '_blank';
-        anchor.rel = 'noreferrer';
-        anchor.click();
-        this.patch(item.id, { autoOpened: true, downloadUrl });
+      this.patch(item.id, { autoOpened: true });
+      if (item.resourceId) {
+        this.startAuthenticatedDownload(item.id, item.resourceId, item.name);
       }
     }
   }
@@ -121,6 +147,7 @@ export class ResourceTransferQueueService {
       next: (jobs) => {
         const resourceJobs = jobs.filter((job) => job.kind === 'resource_upload' || job.kind === 'resource_download');
         this.queueSignal.update((items) => {
+          const localPendingItems = items.filter((item) => !item.jobId);
           const mapped = resourceJobs.map((job) => {
             const existing = items.find((item) => item.jobId === job.id);
             return {
@@ -137,7 +164,56 @@ export class ResourceTransferQueueService {
               downloadUrl: existing?.downloadUrl
             } as ResourceTransferItem;
           });
-          return mapped;
+          return [...localPendingItems, ...mapped];
+        });
+      }
+    });
+  }
+
+  private processPendingSubmissions() {
+    if (this.submissionInFlight) {
+      return;
+    }
+
+    const nextSubmission = this.pendingSubmissions.shift();
+    if (!nextSubmission) {
+      return;
+    }
+
+    this.submissionInFlight = true;
+    nextSubmission();
+  }
+
+  private completeSubmission() {
+    this.submissionInFlight = false;
+    this.processPendingSubmissions();
+  }
+
+  private startAuthenticatedDownload(itemId: string, resourceId: string, fileName: string) {
+    this.api.downloadResourceWithProgress(resourceId).subscribe({
+      next: (event) => {
+        if (event.type === HttpEventType.DownloadProgress) {
+          const progress = event.total ? Math.round((event.loaded / event.total) * 100) : 100;
+          this.patch(itemId, { status: 'running', progress });
+          return;
+        }
+
+        if (event.type === HttpEventType.Response && event.body) {
+          const blobUrl = URL.createObjectURL(event.body);
+          const anchor = document.createElement('a');
+          anchor.href = blobUrl;
+          anchor.download = fileName;
+          anchor.click();
+          URL.revokeObjectURL(blobUrl);
+          this.patch(itemId, { status: 'completed', progress: 100, autoOpened: true });
+        }
+      },
+      error: (error) => {
+        this.patch(itemId, {
+          status: 'failed',
+          progress: 0,
+          autoOpened: false,
+          error: error?.error?.message ?? error?.message ?? 'Download fallito'
         });
       }
     });

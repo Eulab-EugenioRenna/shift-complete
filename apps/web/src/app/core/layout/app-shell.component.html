@@ -1,0 +1,81 @@
+<div class="min-screen bg-[var(--app-bg-accent)] text-[color:var(--text-1)] transition-colors">
+  <header class="sticky top-0 z-40 border-b border-[color:var(--border-soft)] bg-white/90 shadow-sm backdrop-blur dark:bg-slate-950/85">
+    <div class="grid min-h-20 grid-cols-[auto_1fr_auto] items-center gap-4 px-4 sm:px-6 lg:px-10 xl:px-12">
+      <div class="flex items-center gap-8 justify-self-start">
+        <button type="button" class="flex items-center gap-3 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-3 py-2 text-left transition hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface-1)]" (click)="goToHome()">
+          <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#3156b3,#4979e6)] text-white shadow-sm">
+            <i class="pi pi-briefcase text-base"></i>
+          </span>
+          <span>
+            <span class="block text-sm font-semibold tracking-tight text-[color:var(--text-1)]">Shift Complete</span>
+            <span class="block text-[11px] uppercase tracking-[0.22em] text-[color:var(--text-3)]">Control Surface</span>
+          </span>
+        </button>
+      </div>
+
+      <nav class="hidden items-center justify-center gap-1 md:flex" *ngIf="hasCenteredNavigation()">
+        <a
+          *ngFor="let item of navigationItems()"
+          [routerLink]="item.path"
+          routerLinkActive="bg-slate-950 text-white font-medium shadow-sm dark:bg-slate-100 dark:text-slate-950"
+          class="rounded-xl px-3 py-2 text-sm text-[color:var(--text-2)] transition hover:bg-[color:var(--surface-3)] hover:text-[color:var(--text-1)]"
+        >
+          {{ item.label }}
+        </a>
+      </nav>
+
+      <div class="flex items-center justify-self-end gap-3">
+        <button type="button" class="hidden items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-2 text-sm text-[color:var(--text-2)] transition hover:border-[color:var(--border-strong)] hover:text-[color:var(--text-1)] md:inline-flex" (click)="openSpotlight()">
+          <i class="pi pi-search text-xs"></i>
+          Cerca
+          <span class="rounded-md border border-[color:var(--border-soft)] px-1.5 py-0.5 text-[10px] text-[color:var(--text-3)]">cmd K</span>
+        </button>
+        <button type="button" class="hidden items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-2 text-sm text-[color:var(--text-2)] transition hover:border-[color:var(--border-strong)] hover:text-[color:var(--text-1)] md:inline-flex" (click)="setTheme(theme.preference() === 'light' ? 'dark' : theme.preference() === 'dark' ? 'system' : 'light')">
+          <i class="pi" [class.pi-sun]="theme.resolvedTheme() === 'light'" [class.pi-moon]="theme.resolvedTheme() === 'dark'"></i>
+          {{ themeLabel() }}
+        </button>
+        <div class="hidden items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 dark:border-amber-900/70 dark:bg-amber-950/50 dark:text-amber-200 md:flex" *ngIf="needsOnboarding()">
+          <i class="pi pi-compass text-[10px]"></i>
+          Onboarding da completare
+        </div>
+        <button type="button" class="hidden rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-1.5 text-xs font-medium text-[color:var(--text-2)] transition hover:border-[color:var(--border-strong)] hover:text-[color:var(--text-1)] md:inline-flex" (click)="goToOnboarding()" *ngIf="currentUser()?.role === 'volunteer'">
+          Profilo operativo
+        </button>
+        <button type="button" class="flex items-center gap-3 rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-2 py-2 transition hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface-2)]" (click)="goToUserPage()" *ngIf="currentUser() as user">
+          <span class="flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#3156b3,#4979e6)] text-sm font-semibold text-white">{{ initials(user.fullName) }}</span>
+          <span class="hidden text-right md:block">
+            <span class="block text-sm font-medium leading-none text-[color:var(--text-1)]">{{ user.fullName }}</span>
+            <span class="mt-1 block text-xs text-[color:var(--text-2)]">{{ roleLabel(user.role) }}</span>
+          </span>
+        </button>
+        <button type="button" class="flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] text-[color:var(--text-2)] transition hover:border-[color:var(--border-strong)] hover:text-[color:var(--text-1)]" (click)="signOut()" title="Esci">
+          <i class="pi pi-sign-out text-sm"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="border-t border-[color:var(--border-soft)] px-4 py-2 md:hidden">
+      <div class="mb-2">
+        <button type="button" class="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-2 text-sm text-[color:var(--text-2)]" (click)="openSpotlight()">
+          <i class="pi pi-search text-xs"></i>
+          Cerca
+        </button>
+      </div>
+      <nav class="flex gap-2 overflow-x-auto">
+        <a
+          *ngFor="let item of navigationItems()"
+          [routerLink]="item.path"
+          routerLinkActive="bg-slate-950 font-medium text-white dark:bg-slate-100 dark:text-slate-950"
+          class="whitespace-nowrap rounded-xl px-3 py-1.5 text-sm text-[color:var(--text-2)] transition"
+        >
+          {{ item.label }}
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="w-full px-4 py-8 sm:px-6 lg:px-10 xl:px-12">
+    <router-outlet />
+  </main>
+</div>
+<app-spotlight-search />

@@ -7,6 +7,11 @@ import { PingAiProviderDto } from './dto/ping-ai-provider.dto';
 import { SmtpEmailProvider } from '../notifications/providers/smtp-email.provider';
 import { WebhookNotificationProvider } from '../notifications/providers/webhook-notification.provider';
 
+type ResourceTeamQuotaRule = {
+  teamId: string;
+  storageLimitBytes?: number;
+};
+
 @Injectable()
 export class AiSettingsService {
   constructor(
@@ -34,6 +39,18 @@ export class AiSettingsService {
       throw new BadRequestException('Per SMTP e richiesto un mittente email predefinito');
     }
 
+    if (payload.resourceStorageDriver === 's3') {
+      if (!payload.resourceS3Endpoint || !payload.resourceS3Bucket || !payload.resourceS3AccessKey) {
+        throw new BadRequestException('Per S3 sono richiesti endpoint, bucket e access key');
+      }
+
+      const current = await this.prisma.aiSetting.findUnique({ where: { id: 'global' } });
+      const nextSecret = payload.resourceS3SecretKey || current?.resourceS3SecretKey || process.env.RESOURCE_S3_SECRET_KEY;
+      if (!nextSecret) {
+        throw new BadRequestException('Per S3 e richiesta una secret key');
+      }
+    }
+
     const updated = await this.prisma.aiSetting.upsert({
       where: { id: 'global' },
       update: {
@@ -51,8 +68,17 @@ export class AiSettingsService {
         smtpReplyTo: payload.smtpReplyTo,
         redisUrl: payload.redisUrl,
         webAppUrl: payload.webAppUrl,
-        resourceStoragePath: payload.resourceStoragePath,
-        resourceTempPath: payload.resourceTempPath,
+        resourceStorageDriver: payload.resourceStorageDriver,
+        totalStorageLimitBytes: payload.totalStorageLimitBytes,
+        defaultTeamStorageLimitBytes: payload.defaultTeamStorageLimitBytes,
+        resourceTeamQuotaRules: payload.resourceTeamQuotaRules ? toJsonValue(payload.resourceTeamQuotaRules) : undefined,
+        resourceS3Endpoint: payload.resourceS3Endpoint,
+        resourceS3Region: payload.resourceS3Region,
+        resourceS3Bucket: payload.resourceS3Bucket,
+        resourceS3AccessKey: payload.resourceS3AccessKey,
+        resourceS3SecretKey: payload.resourceS3SecretKey || undefined,
+        resourceS3ForcePathStyle: payload.resourceS3ForcePathStyle,
+        resourceS3UseSsl: payload.resourceS3UseSsl,
         resourceJobConcurrency: payload.resourceJobConcurrency,
         notificationJobConcurrency: payload.notificationJobConcurrency,
         aiJobConcurrency: payload.aiJobConcurrency,
@@ -83,8 +109,17 @@ export class AiSettingsService {
         smtpReplyTo: payload.smtpReplyTo,
         redisUrl: payload.redisUrl,
         webAppUrl: payload.webAppUrl,
-        resourceStoragePath: payload.resourceStoragePath ?? 'storage/resources',
-        resourceTempPath: payload.resourceTempPath ?? 'storage/resources/tmp',
+        resourceStorageDriver: payload.resourceStorageDriver ?? 'local',
+        totalStorageLimitBytes: payload.totalStorageLimitBytes,
+        defaultTeamStorageLimitBytes: payload.defaultTeamStorageLimitBytes,
+        resourceTeamQuotaRules: payload.resourceTeamQuotaRules ? toJsonValue(payload.resourceTeamQuotaRules) : undefined,
+        resourceS3Endpoint: payload.resourceS3Endpoint,
+        resourceS3Region: payload.resourceS3Region ?? 'us-east-1',
+        resourceS3Bucket: payload.resourceS3Bucket,
+        resourceS3AccessKey: payload.resourceS3AccessKey,
+        resourceS3SecretKey: payload.resourceS3SecretKey,
+        resourceS3ForcePathStyle: payload.resourceS3ForcePathStyle ?? true,
+        resourceS3UseSsl: payload.resourceS3UseSsl ?? false,
         resourceJobConcurrency: payload.resourceJobConcurrency ?? 3,
         notificationJobConcurrency: payload.notificationJobConcurrency ?? 5,
         aiJobConcurrency: payload.aiJobConcurrency ?? 2,
@@ -111,6 +146,7 @@ export class AiSettingsService {
           ...payload,
           apiKey: payload.apiKey ? '***' : undefined,
           smtpPassword: payload.smtpPassword ? '***' : undefined,
+          resourceS3SecretKey: payload.resourceS3SecretKey ? '***' : undefined,
           webhookSecret: payload.webhookSecret ? '***' : undefined
         })
       }
@@ -170,8 +206,17 @@ export class AiSettingsService {
         smtpReplyTo: process.env.SMTP_REPLY_TO ?? null,
         redisUrl: process.env.REDIS_URL ?? 'redis://localhost:6379',
         webAppUrl: process.env.WEB_APP_URL ?? 'http://localhost:4200',
-        resourceStoragePath: process.env.RESOURCE_STORAGE_PATH ?? 'storage/resources',
-        resourceTempPath: process.env.RESOURCE_TEMP_PATH ?? 'storage/resources/tmp',
+        resourceStorageDriver: process.env.RESOURCE_STORAGE_DRIVER ?? 'local',
+        totalStorageLimitBytes: process.env.TOTAL_STORAGE_LIMIT_BYTES ? Number(process.env.TOTAL_STORAGE_LIMIT_BYTES) : null,
+        defaultTeamStorageLimitBytes: process.env.DEFAULT_TEAM_STORAGE_LIMIT_BYTES ? Number(process.env.DEFAULT_TEAM_STORAGE_LIMIT_BYTES) : null,
+        resourceTeamQuotaRules: null,
+        resourceS3Endpoint: process.env.RESOURCE_S3_ENDPOINT ?? null,
+        resourceS3Region: process.env.RESOURCE_S3_REGION ?? 'us-east-1',
+        resourceS3Bucket: process.env.RESOURCE_S3_BUCKET ?? null,
+        resourceS3AccessKey: process.env.RESOURCE_S3_ACCESS_KEY ?? null,
+        resourceS3SecretKey: process.env.RESOURCE_S3_SECRET_KEY ?? null,
+        resourceS3ForcePathStyle: process.env.RESOURCE_S3_FORCE_PATH_STYLE !== 'false',
+        resourceS3UseSsl: process.env.RESOURCE_S3_USE_SSL === 'true',
         resourceJobConcurrency: Number(process.env.RESOURCE_JOB_CONCURRENCY ?? 3),
         notificationJobConcurrency: Number(process.env.NOTIFICATION_JOB_CONCURRENCY ?? 5),
         aiJobConcurrency: Number(process.env.AI_JOB_CONCURRENCY ?? 2),
@@ -202,8 +247,17 @@ export class AiSettingsService {
       smtpReplyTo: settings.smtpReplyTo ?? undefined,
       redisUrl: settings.redisUrl ?? undefined,
       webAppUrl: settings.webAppUrl ?? undefined,
-      resourceStoragePath: settings.resourceStoragePath ?? undefined,
-      resourceTempPath: settings.resourceTempPath ?? undefined,
+      resourceStorageDriver: settings.resourceStorageDriver ?? undefined,
+      totalStorageLimitBytes: settings.totalStorageLimitBytes ?? undefined,
+      defaultTeamStorageLimitBytes: settings.defaultTeamStorageLimitBytes ?? undefined,
+      resourceTeamQuotaRules: this.normalizeQuotaRules(settings.resourceTeamQuotaRules),
+      resourceS3Endpoint: settings.resourceS3Endpoint ?? undefined,
+      resourceS3Region: settings.resourceS3Region ?? undefined,
+      resourceS3Bucket: settings.resourceS3Bucket ?? undefined,
+      resourceS3AccessKey: settings.resourceS3AccessKey ?? undefined,
+      resourceS3SecretKey: settings.resourceS3SecretKey ?? undefined,
+      resourceS3ForcePathStyle: settings.resourceS3ForcePathStyle,
+      resourceS3UseSsl: settings.resourceS3UseSsl,
       resourceJobConcurrency: settings.resourceJobConcurrency,
       notificationJobConcurrency: settings.notificationJobConcurrency,
       aiJobConcurrency: settings.aiJobConcurrency,
@@ -235,8 +289,17 @@ export class AiSettingsService {
     smtpReplyTo: string | null;
     redisUrl: string | null;
     webAppUrl: string | null;
-    resourceStoragePath: string | null;
-    resourceTempPath: string | null;
+     resourceStorageDriver: string | null;
+      totalStorageLimitBytes: number | null;
+      defaultTeamStorageLimitBytes: number | null;
+      resourceTeamQuotaRules: unknown;
+      resourceS3Endpoint: string | null;
+    resourceS3Region: string | null;
+    resourceS3Bucket: string | null;
+    resourceS3AccessKey: string | null;
+    resourceS3SecretKey: string | null;
+    resourceS3ForcePathStyle: boolean;
+    resourceS3UseSsl: boolean;
     resourceJobConcurrency: number;
     notificationJobConcurrency: number;
     aiJobConcurrency: number;
@@ -264,14 +327,23 @@ export class AiSettingsService {
       smtpReplyTo: settings.smtpReplyTo,
       redisUrl: settings.redisUrl,
       webAppUrl: settings.webAppUrl,
-      resourceStoragePath: settings.resourceStoragePath,
-      resourceTempPath: settings.resourceTempPath,
+      resourceStorageDriver: settings.resourceStorageDriver,
+      totalStorageLimitBytes: settings.totalStorageLimitBytes,
+      defaultTeamStorageLimitBytes: settings.defaultTeamStorageLimitBytes,
+      resourceTeamQuotaRules: this.normalizeQuotaRules(settings.resourceTeamQuotaRules),
+      resourceS3Endpoint: settings.resourceS3Endpoint,
+      resourceS3Region: settings.resourceS3Region,
+      resourceS3Bucket: settings.resourceS3Bucket,
+      resourceS3AccessKey: settings.resourceS3AccessKey,
+      resourceS3ForcePathStyle: settings.resourceS3ForcePathStyle,
+      resourceS3UseSsl: settings.resourceS3UseSsl,
       resourceJobConcurrency: settings.resourceJobConcurrency,
       notificationJobConcurrency: settings.notificationJobConcurrency,
       aiJobConcurrency: settings.aiJobConcurrency,
       inAppNotificationsEnabled: settings.inAppNotificationsEnabled,
       websocketNotificationsEnabled: settings.websocketNotificationsEnabled,
       emailNotificationsEnabled: settings.emailNotificationsEnabled,
+      hasResourceS3SecretKey: Boolean(settings.resourceS3SecretKey),
       hasSmtpPassword: Boolean(settings.smtpPassword),
       webhookEnabled: settings.webhookEnabled,
       webhookUrl: settings.webhookUrl,
@@ -282,5 +354,18 @@ export class AiSettingsService {
       quietHours: settings.quietHours,
       hasApiKey: Boolean(settings.apiKey)
     };
+  }
+
+  private normalizeQuotaRules(value: unknown): ResourceTeamQuotaRule[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value
+      .filter((item): item is ResourceTeamQuotaRule => Boolean(item && typeof item === 'object' && typeof (item as ResourceTeamQuotaRule).teamId === 'string'))
+      .map((item) => ({
+        teamId: item.teamId,
+        storageLimitBytes: typeof item.storageLimitBytes === 'number' && item.storageLimitBytes > 0 ? item.storageLimitBytes : undefined,
+      }));
   }
 }

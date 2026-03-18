@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Role } from '@prisma/client';
+import { Readable } from 'node:stream';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import type { Response } from 'express';
@@ -15,6 +16,11 @@ export class ResourcesController {
   @Get()
   list(@CurrentUser() user: { sub: string; role: Role }) {
     return this.resourcesService.list(user.sub, user.role);
+  }
+
+  @Get('summary')
+  summary(@CurrentUser() user: { sub: string; role: Role }) {
+    return this.resourcesService.summary(user.sub, user.role);
   }
 
   @Roles(Role.administrator, Role.service_leader)
@@ -37,11 +43,13 @@ export class ResourcesController {
     return this.resourcesService.enqueueUpload(file, teamId, user.sub, user.role);
   }
 
+  @Roles(Role.administrator, Role.service_leader)
   @Patch(':resourceId')
   update(@Param('resourceId') resourceId: string, @Body() body: UpdateResourceDto, @CurrentUser() user: { sub: string; role: Role }) {
     return this.resourcesService.update(resourceId, body, user.sub, user.role);
   }
 
+  @Roles(Role.administrator, Role.service_leader)
   @Delete(':resourceId')
   remove(@Param('resourceId') resourceId: string, @CurrentUser() user: { sub: string; role: Role }) {
     return this.resourcesService.remove(resourceId, user.sub, user.role);
@@ -50,7 +58,15 @@ export class ResourcesController {
   @Get(':resourceId/download')
   async download(@Param('resourceId') resourceId: string, @CurrentUser() user: { sub: string; role: Role }, @Res() response: Response) {
     const file = await this.resourcesService.download(resourceId, user.sub, user.role);
-    response.download(file.path, file.name);
+    if (file.mode === 'local') {
+      response.download(file.path, file.name);
+      return;
+    }
+
+    response.setHeader('Content-Type', file.mimeType);
+    response.setHeader('Content-Length', String(file.sizeBytes));
+    response.attachment(file.name);
+    (file.body as Readable).pipe(response);
   }
 
   @Post(':resourceId/download-async')

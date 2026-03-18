@@ -1,0 +1,274 @@
+<section class="flex flex-col gap-6 text-slate-800 dark:text-slate-100">
+  <header class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <div>
+      <p class="text-sm font-semibold uppercase tracking-widest text-orange-500 dark:text-orange-300">File Manager</p>
+      <h2 class="mt-1 text-2xl font-semibold tracking-tight text-slate-800 dark:text-slate-100">Repository documentale diviso per team con code upload e download asincrone.</h2>
+    </div>
+    <div class="flex flex-wrap items-center gap-2" *ngIf="canManageResources()">
+      <select class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [(ngModel)]="uploadTeamId">
+        <option value="">{{ canManageGlobal() ? 'Libreria globale' : 'Seleziona team' }}</option>
+        <option *ngFor="let team of teamOptions()" [value]="team.id">{{ team.name }}</option>
+      </select>
+      <label class="cursor-pointer rounded-md bg-[#4979e6] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700">
+        <i class="pi pi-upload mr-2 text-xs"></i> Carica file
+        <input type="file" multiple class="hidden" (change)="onFileSelect($event)" />
+      </label>
+    </div>
+  </header>
+
+  <app-team-scope-chips [teams]="teams()"></app-team-scope-chips>
+
+  <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4" *ngIf="summaryCards().length">
+    <article *ngFor="let card of summaryCards()" class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
+      <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">{{ card.label }}</p>
+      <p class="mt-3 text-2xl font-semibold text-slate-900 dark:text-slate-100">{{ card.value }}</p>
+      <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">{{ card.detail }}</p>
+    </article>
+  </div>
+
+  <div class="grid gap-4 xl:grid-cols-[1.65fr_0.85fr]">
+    <div class="flex flex-col gap-4">
+      <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
+        <div class="flex flex-col gap-3">
+          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <button type="button" class="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800" (click)="openSpotlight()">
+              <i class="pi pi-search text-xs"></i>
+              Cerca file
+            </button>
+            <p class="text-xs text-slate-500 dark:text-slate-400">{{ filteredResources().length }} file visibili</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid gap-4" *ngIf="groupedResources().length; else noFiles">
+        <article *ngFor="let group of groupedResources()" class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
+          <div class="border-b border-slate-100 px-5 py-4 dark:border-slate-700">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">{{ group.label }}</h3>
+                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ group.items.length }} documenti disponibili</p>
+              </div>
+              <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ group.items.length }}</span>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-50 text-left text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
+                <tr>
+                  <th class="px-5 py-3">Nome</th>
+                  <th class="px-5 py-3">Tipo</th>
+                  <th class="px-5 py-3">Dimensione</th>
+                  <th class="px-5 py-3">Aggiornato</th>
+                  <th class="px-5 py-3 text-right">Azioni</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let resource of group.items" class="border-t border-slate-100 cursor-pointer hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60" [ngClass]="selectedResource()?.id === resource.id ? 'bg-blue-50 dark:bg-[#12233f]' : ''" [class.ring-1]="selectedResource()?.id === resource.id" [class.ring-inset]="selectedResource()?.id === resource.id" [class.ring-blue-200]="selectedResource()?.id === resource.id" (click)="focusResource(resource)">
+                  <td class="px-5 py-3">
+                    <div class="flex items-center gap-3">
+                       <div class="flex h-9 w-9 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-[#4979e6] dark:border-blue-900 dark:bg-blue-950/50">
+                        <i class="text-sm" [class]="fileIcon(resource.mimeType)"></i>
+                      </div>
+                      <div>
+                        <p *ngIf="renamingId() !== resource.id" class="font-medium text-slate-900 dark:text-slate-100">{{ resource.name }}</p>
+                        <input *ngIf="renamingId() === resource.id" class="rounded-md border border-[#4979e6] bg-white px-2 py-1 text-sm dark:bg-slate-900 dark:text-slate-100" [(ngModel)]="renameValue" (blur)="confirmRename(resource)" (keydown.enter)="confirmRename(resource)" (keydown.escape)="cancelRename()" />
+                        <p class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">{{ group.label }}</p>
+                      </div>
+                    </div>
+                  </td>
+                   <td class="px-5 py-3 text-xs font-mono text-slate-500 dark:text-slate-400">{{ resource.mimeType || 'n/a' }}</td>
+                   <td class="px-5 py-3 text-slate-500 dark:text-slate-400">{{ formatSize(resource.sizeBytes) }}</td>
+                   <td class="px-5 py-3 text-slate-500 dark:text-slate-400">{{ resource.uploadedAt | date:'short' }}</td>
+                  <td class="px-5 py-3 text-right">
+                      <div class="flex items-center justify-end gap-3">
+                        <button type="button" class="text-sm text-[#4979e6] hover:underline" (click)="queueDownload(resource)">Scarica</button>
+                        <button *ngIf="canManageResources()" type="button" class="text-sm text-slate-600 hover:underline" (click)="startRename(resource); $event.stopPropagation()">Rinomina</button>
+                        <button *ngIf="canManageResources()" type="button" class="text-sm text-red-600 hover:underline" (click)="deleteResource(resource.id); $event.stopPropagation()">Elimina</button>
+                      </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </div>
+      <ng-template #noFiles>
+        <div class="rounded-lg border border-slate-200 bg-white px-5 py-16 text-center text-slate-400 shadow-sm dark:border-slate-700 dark:bg-slate-900/85 dark:text-slate-500">
+          <i class="pi pi-folder-open mb-3 block text-4xl opacity-40"></i>
+          <p class="text-sm">Nessun file disponibile per il filtro selezionato.</p>
+        </div>
+      </ng-template>
+    </div>
+
+    <aside class="flex flex-col gap-4">
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div class="border-b border-slate-100 px-5 py-4">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h3 class="text-base font-semibold text-slate-900">Queue trasferimenti</h3>
+              <p class="mt-1 text-sm text-slate-500">Job backend distribuiti con progress realtime e recupero stato multiistanza.</p>
+            </div>
+            <button *ngIf="transferQueue.items().length" type="button" class="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900" (click)="transferQueue.clearAll()">
+              Pulisci tutto
+            </button>
+          </div>
+        </div>
+        <div class="divide-y divide-slate-100">
+          <div *ngFor="let item of transferQueue.items()" class="px-5 py-4">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-sm font-medium text-slate-900">{{ item.name }}</p>
+                <p class="mt-1 text-xs text-slate-500">{{ item.kind === 'upload' ? 'Upload' : 'Download' }} · {{ teamLabel(item.teamId) }}</p>
+              </div>
+              <button type="button" class="text-slate-400 hover:text-slate-700" (click)="transferQueue.dismiss(item.id)" *ngIf="item.status !== 'running'">
+                <i class="pi pi-times text-xs"></i>
+              </button>
+            </div>
+            <div class="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+              <div class="h-full rounded-full transition-all"
+                [class.bg-[#4979e6]]="item.status === 'running'"
+                [class.bg-emerald-500]="item.status === 'completed'"
+                [class.bg-red-500]="item.status === 'failed'"
+                [style.width.%]="item.status === 'failed' ? 100 : item.progress"></div>
+            </div>
+            <p class="mt-2 text-xs"
+              [class.text-slate-500]="item.status === 'queued' || item.status === 'running'"
+              [class.text-emerald-600]="item.status === 'completed'"
+              [class.text-red-600]="item.status === 'failed'">
+              {{ transferStatusLabel(item) }}
+            </p>
+          </div>
+          <div *ngIf="!transferQueue.items().length" class="px-5 py-10 text-center text-sm text-slate-400">Nessun trasferimento in coda.</div>
+        </div>
+      </div>
+
+      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Team visibili</p>
+        <div class="mt-4 grid gap-2">
+          <div *ngFor="let team of visibleGroups()" class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+            <span class="text-sm text-slate-700">{{ team.label }}</span>
+            <span class="text-xs font-medium text-slate-500">{{ team.count }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" *ngIf="summary() as summary">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Numeri per team</p>
+            <p class="mt-2 text-sm text-slate-500">Spazio usato, disponibile, file e cartelle per libreria globale e team accessibili.</p>
+          </div>
+          <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">{{ summary.teamCount }} team</span>
+        </div>
+        <div class="mt-4 grid gap-3">
+          <article *ngFor="let team of summary.teams" class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-sm font-medium text-slate-900">{{ team.label }}</p>
+                <p class="mt-1 text-xs text-slate-500">{{ team.fileCount }} file · {{ team.folderCount }} cartella</p>
+              </div>
+              <div class="flex flex-col items-end gap-2">
+                <span class="rounded-full px-2.5 py-1 text-[11px] font-medium"
+                  [class.bg-blue-50]="!team.isGlobal"
+                  [class.text-blue-700]="!team.isGlobal"
+                  [class.bg-slate-200]="team.isGlobal"
+                  [class.text-slate-700]="team.isGlobal">
+                  {{ team.isGlobal ? 'Globale' : 'Team' }}
+                </span>
+                <span class="rounded-full px-2.5 py-1 text-[11px] font-medium"
+                  [class.bg-slate-200]="usageStatus(team.usageRatio) === 'neutral'"
+                  [class.text-slate-700]="usageStatus(team.usageRatio) === 'neutral'"
+                  [class.bg-emerald-50]="usageStatus(team.usageRatio) === 'healthy'"
+                  [class.text-emerald-700]="usageStatus(team.usageRatio) === 'healthy'"
+                  [class.bg-amber-50]="usageStatus(team.usageRatio) === 'warning'"
+                  [class.text-amber-700]="usageStatus(team.usageRatio) === 'warning'"
+                  [class.bg-red-50]="usageStatus(team.usageRatio) === 'critical'"
+                  [class.text-red-700]="usageStatus(team.usageRatio) === 'critical'">
+                  {{ usageLabel(team.usageRatio) }}
+                </span>
+              </div>
+            </div>
+            <div class="mt-4 grid gap-3 sm:grid-cols-2">
+              <div>
+                <p class="text-xs uppercase tracking-widest text-slate-400">Spazio occupato</p>
+                <p class="mt-1 text-sm font-medium text-slate-800">{{ formatSize(team.usedBytes) }}</p>
+              </div>
+              <div>
+                <p class="text-xs uppercase tracking-widest text-slate-400">Spazio disponibile</p>
+                <p class="mt-1 text-sm font-medium text-slate-800">{{ team.availableBytes === null ? 'Illimitato' : formatSize(team.availableBytes) }}</p>
+                <p class="mt-1 text-[11px] text-slate-500">{{ teamLimitLabel(team.limitBytes) }}</p>
+              </div>
+              <div class="sm:col-span-2" *ngIf="team.limitBytes !== null">
+                <div class="flex items-center justify-between text-xs text-slate-500">
+                  <span>Limite {{ formatSize(team.limitBytes) }}</span>
+                  <span>{{ ((team.usageRatio ?? 0) * 100).toFixed(0) }}%</span>
+                </div>
+                <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
+                  <div class="h-full rounded-full"
+                    [class.bg-emerald-500]="usageStatus(team.usageRatio) === 'healthy'"
+                    [class.bg-amber-500]="usageStatus(team.usageRatio) === 'warning'"
+                    [class.bg-red-500]="usageStatus(team.usageRatio) === 'critical'"
+                    [class.bg-slate-400]="usageStatus(team.usageRatio) === 'neutral'"
+                    [style.width.%]="(team.usageRatio ?? 0) * 100"></div>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Cartelle e permessi</p>
+        <div class="mt-4 grid gap-3">
+          <div *ngFor="let folder of resourceFolders()" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <p class="text-sm font-medium text-slate-900">{{ folder.label }}</p>
+                <p class="mt-1 text-xs text-slate-500">{{ folder.count }} file · {{ folder.access }}</p>
+              </div>
+              <span class="rounded-full px-2.5 py-1 text-[11px] font-medium"
+                [class.bg-emerald-50]="folder.writable"
+                [class.text-emerald-700]="folder.writable"
+                [class.bg-slate-100]="!folder.writable"
+                [class.text-slate-500]="!folder.writable">
+                {{ folder.writable ? 'Scrittura' : 'Sola lettura' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <ng-container *ngIf="selectedResource() as resource; else noResourceSelected">
+          <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Dettaglio file</p>
+          <h3 class="mt-2 text-base font-semibold text-slate-900">{{ resource.name }}</h3>
+          <div class="mt-4 grid gap-3 text-sm text-slate-600">
+            <div>
+              <p class="text-xs uppercase tracking-widest text-slate-400">Team</p>
+              <p class="mt-1">{{ resource.team?.name || 'Libreria globale' }}</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-widest text-slate-400">Tipo</p>
+              <p class="mt-1 font-mono text-xs">{{ resource.mimeType || 'n/a' }}</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-widest text-slate-400">Dimensione</p>
+              <p class="mt-1">{{ formatSize(resource.sizeBytes) }}</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-widest text-slate-400">Aggiornato</p>
+              <p class="mt-1">{{ resource.uploadedAt | date:'fullDate' }} · {{ resource.uploadedAt | date:'shortTime' }}</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-widest text-slate-400">Cartella logica</p>
+              <p class="mt-1">{{ resourceFolder(resource) }}</p>
+            </div>
+          </div>
+        </ng-container>
+        <ng-template #noResourceSelected>
+          <p class="text-sm text-slate-500">Seleziona un file per vedere dettagli e contesto del team.</p>
+        </ng-template>
+      </div>
+    </aside>
+  </div>
+</section>

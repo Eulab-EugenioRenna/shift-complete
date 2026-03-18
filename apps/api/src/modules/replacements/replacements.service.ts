@@ -281,6 +281,14 @@ export class ReplacementsService {
       throw new ForbiddenException('Solo Amministratore o Leader del team puo risolvere la richiesta');
     }
 
+    if (replacement.status !== ReplacementStatus.PENDING) {
+      throw new ForbiddenException('La richiesta di sostituzione e gia stata gestita');
+    }
+
+    if (payload.status === 'APPROVED' && !payload.replacementAssigneeId) {
+      throw new ForbiddenException('Se approvi una sostituzione devi selezionare un sostituto');
+    }
+
     if (payload.status === 'APPROVED' && payload.replacementAssigneeId) {
       const membership = await this.prisma.teamMembership.findUnique({
         where: {
@@ -346,7 +354,7 @@ export class ReplacementsService {
     const updated = await this.prisma.replacement.update({
       where: { id: replacementId },
       data: {
-        replacementAssigneeId: payload.replacementAssigneeId,
+        replacementAssigneeId: payload.status === 'APPROVED' ? payload.replacementAssigneeId : null,
         status: payload.status as ReplacementStatus,
         resolvedAt: new Date()
       },

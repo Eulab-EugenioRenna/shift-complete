@@ -12,10 +12,11 @@ import {
   VerifyEmailRequest,
   TeamSummary,
 } from '@shift-complete/shared-types';
+import { resolveApiBaseUrl } from '../config/api-base-url';
 
 @Injectable({ providedIn: 'root' })
 export class AuthApiService {
-  private readonly apiBaseUrl = 'http://localhost:3333/api';
+  private readonly apiBaseUrl = resolveApiBaseUrl();
 
   constructor(private readonly http: HttpClient) {}
 

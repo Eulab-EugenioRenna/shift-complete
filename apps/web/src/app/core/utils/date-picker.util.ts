@@ -18,5 +18,10 @@ export function toIsoDateOnly(value: Date | null): string | undefined {
 }
 
 export function fromIsoDateOnly(value: string | null | undefined): Date | null {
-  return value ? new Date(`${value}T00:00:00`) : null;
+  if (!value) {
+    return null;
+  }
+
+  const parsed = value.includes('T') ? new Date(value) : new Date(`${value}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }

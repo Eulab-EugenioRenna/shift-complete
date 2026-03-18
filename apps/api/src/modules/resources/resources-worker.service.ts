@@ -1,5 +1,3 @@
-import { existsSync, renameSync } from 'node:fs';
-import { join } from 'node:path';
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { BackgroundJobKind, BackgroundJobStatus } from '@prisma/client';
 import { Job, Worker } from 'bullmq';
@@ -8,6 +6,7 @@ import { BackgroundJobsService } from '../jobs/background-jobs.service';
 import { RESOURCE_QUEUE } from '../queue/queue.constants';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { toJsonValue } from '../../common/utils/json.util';
+import { ResourceStorageService } from './resource-storage.service';
 
 @Injectable()
 export class ResourcesWorkerService implements OnModuleInit, OnModuleDestroy {
@@ -16,7 +15,8 @@ export class ResourcesWorkerService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly backgroundJobsService: BackgroundJobsService,
-    private readonly realtimeGateway: RealtimeGateway
+    private readonly realtimeGateway: RealtimeGateway,
+    private readonly resourceStorage: ResourceStorageService
   ) {}
 
   onModuleInit() {
@@ -39,7 +39,7 @@ export class ResourcesWorkerService implements OnModuleInit, OnModuleDestroy {
     return null;
   }
 
-  private async processUpload(job: Job<{ jobId: string; actorId: string; teamId?: string; tempPath: string; originalname: string; mimeType: string; size: number }>) {
+  private async processUpload(job: Job<{ jobId: string; actorId: string; teamId?: string; teamFolder?: string; tempPath: string; originalname: string; mimeType: string; size: number }>) {
     await this.backgroundJobsService.update(job.data.jobId, {
       status: BackgroundJobStatus.running,
       progress: 10,
@@ -48,12 +48,12 @@ export class ResourcesWorkerService implements OnModuleInit, OnModuleDestroy {
     });
     this.emit(job.data.jobId, 'running', 10);
 
-    const finalPath = join(await this.storageDir(), `${job.data.jobId}-${job.data.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`);
-    if (!existsSync(job.data.tempPath)) {
-      throw new Error('File temporaneo non trovato');
-    }
-
-    renameSync(job.data.tempPath, finalPath);
+    const finalPath = await this.resourceStorage.uploadTempFile(
+      job.data.tempPath,
+      job.data.originalname,
+      job.data.mimeType,
+      job.data.teamFolder ?? 'global'
+    );
     await this.backgroundJobsService.update(job.data.jobId, { progress: 55 });
     this.emit(job.data.jobId, 'running', 55);
 
@@ -130,10 +130,5 @@ export class ResourcesWorkerService implements OnModuleInit, OnModuleDestroy {
         concurrency: settings?.resourceJobConcurrency ?? Number(process.env.RESOURCE_JOB_CONCURRENCY ?? 3)
       }
     );
-  }
-
-  private async storageDir() {
-    const settings = await this.prisma.aiSetting.findUnique({ where: { id: 'global' } });
-    return join(process.cwd(), settings?.resourceStoragePath ?? process.env.RESOURCE_STORAGE_PATH ?? 'storage/resources');
   }
 }

@@ -44,4 +44,13 @@ Docker esegue automaticamente:
 - `prisma db push`
 - seed idempotente dell'amministratore e dati base
 
+## Produzione
+
+- usa `docker-compose.prod.yml` per VM/VPS
+- parti da `.env.production.example` per la configurazione prod
+- usa `make up` per il primo deploy
+- usa `make update` per aggiornare lo stack
+- non usare `docker compose down -v` in produzione
+- con storage locale i file persistono nel volume `app_storage`
+
 La documentazione completa è in `docs/`.

@@ -72,11 +72,15 @@ export class NotificationsService {
     if ((settings?.webhookEnabled ?? (process.env.WEBHOOK_NOTIFICATIONS_ENABLED === 'true'))) channels.push(NotificationChannel.webhook as NotificationChannel);
 
     if (channels.length) {
-      await this.notificationDispatchService.queueDeliveries(notification.id, channels, {
-        webAppUrl: settings?.webAppUrl ?? process.env.WEB_APP_URL,
-        link,
-        ...context
-      });
+      try {
+        await this.notificationDispatchService.queueDeliveries(notification.id, channels, {
+          webAppUrl: settings?.webAppUrl ?? process.env.WEB_APP_URL,
+          link,
+          ...context
+        });
+      } catch (error) {
+        console.warn('Notification delivery queue unavailable, keeping in-app notification only.', error);
+      }
     }
 
     return notification;

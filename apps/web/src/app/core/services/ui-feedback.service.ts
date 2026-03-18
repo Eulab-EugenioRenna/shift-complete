@@ -23,6 +23,10 @@ export class UiFeedbackService {
     this.itemsSignal.update((items) => items.filter((item) => item.id !== id));
   }
 
+  clearAll() {
+    this.itemsSignal.set([]);
+  }
+
   private push(type: ActionFeedbackItem['type'], title: string, message?: string) {
     const item: ActionFeedbackItem = {
       id: crypto.randomUUID(),

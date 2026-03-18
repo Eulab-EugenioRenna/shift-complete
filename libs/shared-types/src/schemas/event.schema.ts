@@ -25,6 +25,15 @@ export type CreateEventDto = z.infer<typeof CreateEventSchema>;
 export const UpdateEventSchema = CreateEventSchema.partial();
 export type UpdateEventDto = z.infer<typeof UpdateEventSchema>;
 
+export const EventEditModeSchema = z.enum(['single', 'series']);
+
+export const ExtendedUpdateEventSchema = UpdateEventSchema.extend({
+  editMode: EventEditModeSchema.optional(),
+  occurrenceStart: z.string().datetime().optional(),
+});
+
+export type ExtendedUpdateEventDto = z.infer<typeof ExtendedUpdateEventSchema>;
+
 export const AssignVolunteerSchema = z.object({
   slotId: z.string().cuid().or(z.string().uuid()),
   assigneeId: z.string().cuid().or(z.string().uuid()).optional().nullable(),

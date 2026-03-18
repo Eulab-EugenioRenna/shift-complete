@@ -9,7 +9,7 @@ import { DatePickerModule } from 'primeng/datepicker';
   imports: [CommonModule, FormsModule, DatePickerModule],
   template: `
     <div class="grid gap-2">
-      <label *ngIf="label" class="text-sm font-medium text-slate-700">{{ label }}</label>
+      <label *ngIf="label" class="text-sm font-medium text-slate-700 dark:text-slate-200">{{ label }}</label>
       <p-datepicker
         [(ngModel)]="value"
         (ngModelChange)="valueChange.emit($event)"
@@ -26,7 +26,7 @@ import { DatePickerModule } from 'primeng/datepicker';
         [disabled]="disabled"
         [inputStyleClass]="inputStyleClass"
       ></p-datepicker>
-      <p *ngIf="hint" class="text-xs text-slate-500">{{ hint }}</p>
+      <p *ngIf="hint" class="text-xs text-slate-500 dark:text-slate-400">{{ hint }}</p>
     </div>
   `
 })
@@ -44,7 +44,7 @@ export class UiDatePickerComponent {
   @Input() minDate?: Date;
   @Input() maxDate?: Date;
   @Input() disabled = false;
-  @Input() inputStyleClass = 'w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none';
+  @Input() inputStyleClass = 'w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
   @Input() value: Date | null = null;
   @Output() valueChange = new EventEmitter<Date | null>();
 }

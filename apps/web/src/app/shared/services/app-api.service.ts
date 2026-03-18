@@ -25,6 +25,7 @@ import {
   ManagedUserProfileDto,
   UpdateManagedUserProfileDto,
 } from '@shift-complete/shared-types';
+import { resolveApiBaseUrl } from '../../core/config/api-base-url';
 
 export interface DutyListItem {
   id: string;
@@ -37,7 +38,7 @@ export interface DutyListItem {
 
 @Injectable({ providedIn: 'root' })
 export class AppApiService {
-  private readonly apiBaseUrl = 'http://localhost:3333/api';
+  private readonly apiBaseUrl = resolveApiBaseUrl();
 
   constructor(private readonly http: HttpClient) {}
 
@@ -84,6 +85,10 @@ export class AppApiService {
 
   removeTeamMember(teamId: string, userId: string): Observable<{ deleted: boolean; teamId: string; userId: string }> {
     return this.http.delete<{ deleted: boolean; teamId: string; userId: string }>(`${this.apiBaseUrl}/teams/${teamId}/members/${userId}`);
+  }
+
+  assignTeamMemberDuties(teamId: string, userId: string, dutyIds: string[]): Observable<{ updated: boolean; teamId: string; userId: string; dutyIds: string[] }> {
+    return this.http.patch<{ updated: boolean; teamId: string; userId: string; dutyIds: string[] }>(`${this.apiBaseUrl}/teams/${teamId}/members/${userId}/duties`, { dutyIds });
   }
 
   teamJoinRequests(): Observable<TeamAccessRequestItem[]> {
@@ -173,12 +178,16 @@ export class AppApiService {
     return this.http.post<any>(`${this.apiBaseUrl}/events`, payload);
   }
 
-  updateEvent(eventId: string, payload: UpdateEventDto): Observable<any> {
+  updateEvent(eventId: string, payload: UpdateEventDto & { editMode?: 'single' | 'series'; occurrenceStart?: string }): Observable<any> {
     return this.http.patch<any>(`${this.apiBaseUrl}/events/${eventId}`, payload);
   }
 
-  deleteEvent(eventId: string): Observable<{ deleted: boolean; id: string }> {
-    return this.http.delete<{ deleted: boolean; id: string }>(`${this.apiBaseUrl}/events/${eventId}`);
+  deleteEvent(eventId: string, options?: { mode?: 'single' | 'series'; occurrenceStart?: string }): Observable<{ deleted: boolean; id: string }> {
+    const params = new URLSearchParams();
+    if (options?.mode) params.set('mode', options.mode);
+    if (options?.occurrenceStart) params.set('occurrenceStart', options.occurrenceStart);
+    const suffix = params.toString() ? `?${params.toString()}` : '';
+    return this.http.delete<{ deleted: boolean; id: string }>(`${this.apiBaseUrl}/events/${eventId}${suffix}`);
   }
 
   assignVolunteer(payload: AssignVolunteerDto): Observable<any> {
@@ -193,11 +202,15 @@ export class AppApiService {
     return this.http.get<any[]>(`${this.apiBaseUrl}/resources`);
   }
 
+  resourceSummary(): Observable<any> {
+    return this.http.get<any>(`${this.apiBaseUrl}/resources/summary`);
+  }
+
   aiSettings(): Observable<any> {
     return this.http.get(`${this.apiBaseUrl}/ai-settings`);
   }
 
-  updateAiSettings(payload: { provider: string; apiKey?: string; ollamaUrl?: string; agnostic?: boolean; model?: string; automationMode?: string; remindersEnabled?: boolean; quietHours?: boolean; smtpHost?: string; smtpPort?: number; smtpSecure?: boolean; smtpUser?: string; smtpPassword?: string; smtpFromEmail?: string; smtpFromName?: string; smtpReplyTo?: string; redisUrl?: string; webAppUrl?: string; resourceStoragePath?: string; resourceTempPath?: string; resourceJobConcurrency?: number; notificationJobConcurrency?: number; aiJobConcurrency?: number; inAppNotificationsEnabled?: boolean; websocketNotificationsEnabled?: boolean; emailNotificationsEnabled?: boolean; webhookEnabled?: boolean; webhookUrl?: string; webhookSecret?: string }): Observable<any> {
+  updateAiSettings(payload: { provider: string; apiKey?: string; ollamaUrl?: string; agnostic?: boolean; model?: string; automationMode?: string; remindersEnabled?: boolean; quietHours?: boolean; smtpHost?: string; smtpPort?: number; smtpSecure?: boolean; smtpUser?: string; smtpPassword?: string; smtpFromEmail?: string; smtpFromName?: string; smtpReplyTo?: string; redisUrl?: string; webAppUrl?: string; resourceStorageDriver?: string; totalStorageLimitBytes?: number; defaultTeamStorageLimitBytes?: number; resourceTeamQuotaRules?: Array<{ teamId: string; storageLimitBytes?: number }>; resourceS3Endpoint?: string; resourceS3Region?: string; resourceS3Bucket?: string; resourceS3AccessKey?: string; resourceS3SecretKey?: string; resourceS3ForcePathStyle?: boolean; resourceS3UseSsl?: boolean; resourceJobConcurrency?: number; notificationJobConcurrency?: number; aiJobConcurrency?: number; inAppNotificationsEnabled?: boolean; websocketNotificationsEnabled?: boolean; emailNotificationsEnabled?: boolean; webhookEnabled?: boolean; webhookUrl?: string; webhookSecret?: string }): Observable<any> {
     return this.http.patch(`${this.apiBaseUrl}/ai-settings`, payload);
   }
 

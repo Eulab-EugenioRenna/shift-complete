@@ -183,8 +183,20 @@ model TeamMembership {
   createdAt  DateTime @default(now())
   team       Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  duties     TeamMembershipDuty[]
 
   @@unique([teamId, userId])
+}
+
+model TeamMembershipDuty {
+  id           String         @id @default(cuid())
+  membershipId String
+  dutyId       String
+  createdAt    DateTime       @default(now())
+  membership   TeamMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  duty         Duty           @relation(fields: [dutyId], references: [id], onDelete: Cascade)
+
+  @@unique([membershipId, dutyId])
 }
 
 model Event {
@@ -222,6 +234,7 @@ model Duty {
   
   team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   slots       EventSlot[]
+  memberships TeamMembershipDuty[]
 }
 
 model EventSlot {
@@ -289,8 +302,17 @@ model AiSetting {
   smtpReplyTo       String?
   redisUrl          String?
   webAppUrl         String?
-  resourceStoragePath String? @default("storage/resources")
-  resourceTempPath  String?   @default("storage/resources/tmp")
+  resourceStorageDriver String? @default("local")
+  totalStorageLimitBytes Int?
+  defaultTeamStorageLimitBytes Int?
+  resourceTeamQuotaRules Json?
+  resourceS3Endpoint String?
+  resourceS3Region  String?
+  resourceS3Bucket  String?
+  resourceS3AccessKey String?
+  resourceS3SecretKey String?
+  resourceS3ForcePathStyle Boolean @default(true)
+  resourceS3UseSsl  Boolean @default(false)
   resourceJobConcurrency Int  @default(3)
   notificationJobConcurrency Int @default(5)
   aiJobConcurrency  Int      @default(2)

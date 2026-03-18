@@ -1,0 +1,117 @@
+- Rinomina e Elimina Visibili by ruolo
+- Desktop Full width - navbar logo left - menu center - profile/signout right
+- Sostituzioni visibile a Leader e Amministratore
+- Leader non riesce a creare team
+- filtro per team amministratore non funziona filter sui dati
+- calendario e altre pagine:  70 / 30 (full width: main + side)
+- check flussi pagina
+  - dashboard
+    - kpi valide e sync con db
+    - grafici presenze
+    - prossimi turni
+    - richieste 
+    - inventario / manutenzione / eventi
+    - team
+    - utenti
+  - calendario
+    - calendario con viste settimanali e mensili
+    - filtri per team e utente
+    - legenda colori
+    - click su evento apre popup con dettagli
+    - popup con dettagli evento
+      - nome evento
+      - data e ora
+      - team
+      - volontari
+      - note
+  - eventi
+    - lista eventi
+    - crea evento
+    - modifica evento
+    - elimina evento
+    - visualizza evento
+    - filtri per team e utente
+    - legenda colori
+    - click su evento apre popup con dettagli
+    - popup con dettagli evento
+      - nome evento
+      - data e ora
+      - team
+      - volontari
+      - note
+  - sostituzioni
+    - lista sostituzioni
+    - crea sostituzione
+    - modifica sostituzione
+    - elimina sostituzione
+    - visualizza sostituzione
+    - filtri per team e utente
+    - legenda colori
+    - click su sostituzione apre popup con dettagli
+    - popup con dettagli sostituzione
+      - nome sostituzione
+      - data e ora
+      - team
+      - volontari
+      - note
+  - inventario
+    - lista inventario
+    - crea inventario
+    - modifica inventario
+    - elimina inventario
+    - visualizza inventario
+    - filtri per team e utente
+    - legenda colori
+    - click su inventario apre popup con dettagli
+  - team
+    - lista team
+    - crea team
+    - modifica team
+    - elimina team
+    - visualizza team
+    - filtri per team e utente
+    - mansioni del team
+    - volontari del team
+    - assegnazione mansioni ai volontari del team
+    - lista volontari con mansioni
+    - legenda colori
+    - click su team apre popup con dettagli
+    - popup con dettagli team
+      - nome team
+      - data e ora
+      - team
+      - volontari
+      - note
+  - utenti solo admin
+    - lista utenti
+    - crea utente
+    - modifica utente
+    - elimina utente
+    - visualizza utente
+    - filtri per team e utente
+    - legenda colori
+    - click su utente apre popup con dettagli
+  - risorse
+    - lista risorse
+    - crea risorsa
+    - modifica risorsa
+    - elimina risorsa
+    - visualizza risorsa
+    - filtri per team e utente
+    - legenda colori
+    - click su risorsa apre popup con dettagli
+    - popup con dettagli risorsa
+      - nome risorsa
+      - data e ora
+      - team
+      - volontari
+      - note
+    - file manager, upload e download file
+    - cartella per ogni team
+    - gestione permessi e file system
+  - docker 
+    - web e api con modifiche dirette, no build image, usa nginx per servire file statici e api
+    
+    
+
+ 

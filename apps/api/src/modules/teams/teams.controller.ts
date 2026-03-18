@@ -8,6 +8,8 @@ import { UpdateTeamDto } from './dto/update-team.dto';
 import { TeamsService } from './teams.service';
 import {
   AddTeamMemberSchema,
+  AssignMemberDutiesDto,
+  AssignMemberDutiesSchema,
   CreateTeamJoinRequestDto,
   CreateTeamJoinRequestSchema,
   ResolveTeamJoinRequestDto,
@@ -23,10 +25,10 @@ export class TeamsController {
     return this.teamsService.list(user.sub, user.role);
   }
 
-  @Roles(Role.administrator)
+  @Roles(Role.administrator, Role.service_leader)
   @Post()
-  create(@Body() body: CreateTeamDto, @CurrentUser() user: { sub: string }) {
-    return this.teamsService.create(body, user.sub);
+  create(@Body() body: CreateTeamDto, @CurrentUser() user: { sub: string; role: Role }) {
+    return this.teamsService.create(body, user.sub, user.role);
   }
 
   @Roles(Role.administrator, Role.service_leader)
@@ -40,6 +42,18 @@ export class TeamsController {
   @Delete(':teamId/members/:userId')
   removeMember(@Param('teamId') teamId: string, @Param('userId') userId: string, @CurrentUser() user: { sub: string; role: Role }) {
     return this.teamsService.removeMember(teamId, userId, user.sub, user.role);
+  }
+
+  @Roles(Role.administrator, Role.service_leader)
+  @Patch(':teamId/members/:userId/duties')
+  @UsePipes(new ZodValidationPipe(AssignMemberDutiesSchema))
+  assignMemberDuties(
+    @Param('teamId') teamId: string,
+    @Param('userId') userId: string,
+    @Body() body: AssignMemberDutiesDto,
+    @CurrentUser() user: { sub: string; role: Role }
+  ) {
+    return this.teamsService.assignMemberDuties(teamId, userId, body.dutyIds, user.sub, user.role);
   }
 
   @Roles(Role.administrator, Role.service_leader)

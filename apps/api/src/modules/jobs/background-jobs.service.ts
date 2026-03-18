@@ -15,10 +15,25 @@ export class BackgroundJobsService {
     entityId?: string;
     payload?: unknown;
   }) {
+    return this.createWithResolvedUser(payload);
+  }
+
+  private async createWithResolvedUser(payload: {
+    kind: BackgroundJobKind;
+    userId?: string;
+    teamId?: string | null;
+    entityType?: string;
+    entityId?: string;
+    payload?: unknown;
+  }) {
+    const userId = payload.userId
+      ? (await this.prisma.user.findUnique({ where: { id: payload.userId }, select: { id: true } }))?.id
+      : undefined;
+
     return this.prisma.backgroundJob.create({
       data: {
         kind: payload.kind,
-        userId: payload.userId,
+        userId,
         teamId: payload.teamId ?? undefined,
         entityType: payload.entityType,
         entityId: payload.entityId,
