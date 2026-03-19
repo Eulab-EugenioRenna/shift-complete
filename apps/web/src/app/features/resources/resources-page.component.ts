@@ -46,6 +46,23 @@ type ResourceSummary = {
   standalone: true,
   imports: [CommonModule, FormsModule, TeamScopeChipsComponent],
   templateUrl: './resources-page.component.html',
+  styles: [`
+    :host ::ng-deep .resource-row-highlight {
+      animation: resourceRowHighlight 2.2s ease-out;
+    }
+
+    @keyframes resourceRowHighlight {
+      0% {
+        box-shadow: inset 0 0 0 999px rgba(251, 191, 36, 0.34);
+      }
+      45% {
+        box-shadow: inset 0 0 0 999px rgba(251, 191, 36, 0.2);
+      }
+      100% {
+        box-shadow: inset 0 0 0 999px rgba(251, 191, 36, 0);
+      }
+    }
+  `],
 })
 export class ResourcesPageComponent {
   private readonly api = inject(AppApiService);
@@ -65,7 +82,9 @@ export class ResourcesPageComponent {
   protected uploadTeamId = '';
   protected renameValue = '';
   protected readonly selectedResource = signal<ResourceItem | null>(null);
+  protected readonly highlightedResourceId = signal<string | null>(null);
   protected readonly summary = signal<ResourceSummary | null>(null);
+  private highlightResetTimer?: ReturnType<typeof setTimeout>;
 
   protected readonly teamOptions = computed(() => this.teams());
   protected readonly canManageResources = computed(() => this.session.hasAnyRole('administrator', 'service_leader'));
@@ -141,8 +160,6 @@ export class ResourcesPageComponent {
       },
     ];
   });
-  private lastCompletedUploads = 0;
-
   constructor() {
     this.loadContext();
     this.route.queryParamMap.subscribe((params) => {
@@ -159,11 +176,10 @@ export class ResourcesPageComponent {
       }
     });
     effect(() => {
-      const completedUploads = this.transferQueue.items().filter((item) => item.kind === 'upload' && item.status === 'completed').length;
-      if (completedUploads > this.lastCompletedUploads) {
-        this.loadResources();
+      const completedUpload = this.transferQueue.lastCompletedUpload();
+      if (completedUpload) {
+        this.loadResources(completedUpload.resourceId ?? this.selectedResource()?.id ?? undefined);
       }
-      this.lastCompletedUploads = completedUploads;
     });
   }
 
@@ -220,9 +236,9 @@ export class ResourcesPageComponent {
     }
 
     this.api.renameResource(resource.id, nextName).subscribe({
-      next: () => {
+      next: (updated) => {
         this.cancelRename();
-        this.loadResources();
+        this.loadResources(updated.id);
         this.feedback.success('File rinominato', `${resource.name} e ora ${nextName}.`);
       },
       error: (error) => {
@@ -238,7 +254,11 @@ export class ResourcesPageComponent {
     }
     this.api.deleteResource(id).subscribe({
       next: () => {
-        this.loadResources();
+        const nextSelectedId = this.selectedResource()?.id === id ? undefined : this.selectedResource()?.id;
+        if (this.selectedResource()?.id === id) {
+          this.selectedResource.set(null);
+        }
+        this.loadResources(nextSelectedId);
         this.feedback.success('File eliminato');
       },
       error: (error) => this.feedback.error('Eliminazione non riuscita', this.apiError.message(error, 'Impossibile eliminare il file.'))
@@ -352,20 +372,50 @@ export class ResourcesPageComponent {
     this.loadResources();
   }
 
-  private loadResources(): void {
+  private loadResources(preferredResourceId?: string): void {
     this.api.resources().subscribe({
       next: (resources) => {
         this.resources.set(resources);
-        const resourceId = this.route.snapshot.queryParamMap.get('resourceId');
+        const resourceId = preferredResourceId ?? this.route.snapshot.queryParamMap.get('resourceId');
         if (resourceId) {
-          this.selectedResource.set(resources.find((resource) => resource.id === resourceId) ?? null);
+          const selected = resources.find((resource) => resource.id === resourceId) ?? null;
+          this.selectedResource.set(selected);
+          if (selected) {
+            void this.router.navigate([], { queryParams: { resourceId: selected.id }, queryParamsHandling: 'merge' });
+            this.focusResourceRow(selected.id);
+          } else if (this.route.snapshot.queryParamMap.get('resourceId')) {
+            void this.router.navigate([], { queryParams: { resourceId: null }, queryParamsHandling: 'merge' });
+          }
+          return;
         }
+
+        const selectedId = this.selectedResource()?.id;
+        this.selectedResource.set(selectedId ? resources.find((resource) => resource.id === selectedId) ?? null : null);
       },
       error: (error) => this.feedback.error('Risorse non caricate', this.apiError.message(error, 'Impossibile recuperare le risorse.'))
     });
     this.api.resourceSummary().subscribe({
       next: (summary) => this.summary.set(summary),
       error: (error) => this.feedback.error('Statistiche risorse non caricate', this.apiError.message(error, 'Impossibile recuperare i contatori risorse.'))
+    });
+  }
+
+  private focusResourceRow(resourceId: string): void {
+    this.highlightedResourceId.set(resourceId);
+    if (this.highlightResetTimer) {
+      clearTimeout(this.highlightResetTimer);
+    }
+    this.highlightResetTimer = setTimeout(() => this.highlightedResourceId.set(null), 2200);
+
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    setTimeout(() => {
+      const row = document.querySelector(`[data-resource-id="${resourceId}"]`);
+      if (row instanceof HTMLElement) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     });
   }
 }

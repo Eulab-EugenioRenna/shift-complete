@@ -241,8 +241,8 @@
           </button>
         </div>
         <div class="mb-4 flex items-center gap-2">
-          <ui-label [tone]="highlightedTab() === 'replacements' ? 'info' : 'neutral'">Replacement</ui-label>
-          <ui-label [tone]="highlightedTab() === 'requests' ? 'info' : 'neutral'">Team requests</ui-label>
+          <ui-label [tone]="highlightedTab() === 'replacements' ? 'info' : 'neutral'">{{ teamRequestTabLabel('replacements') }}</ui-label>
+          <ui-label [tone]="highlightedTab() === 'requests' ? 'info' : 'neutral'">{{ teamRequestTabLabel('requests') }}</ui-label>
         </div>
         <div class="grid gap-4 xl:grid-cols-[1fr_320px]">
           <ui-table-shell>
@@ -262,12 +262,12 @@
                   <td class="px-4 py-3">{{ replacement.requestedBy?.fullName || replacement.assignment?.assignee?.fullName || '-' }}</td>
                   <td class="px-4 py-3">{{ replacement.assignment?.slot?.duty?.name || '-' }}</td>
                   <td class="px-4 py-3">
-                    <ui-label [tone]="replacement.status === 'APPROVED' ? 'success' : (replacement.status === 'DECLINED' ? 'warn' : 'info')">{{ replacement.status }}</ui-label>
+                    <ui-label [tone]="replacement.status === 'APPROVED' ? 'success' : (replacement.status === 'DECLINED' ? 'warn' : 'info')">{{ replacementStatusLabel(replacement.status) }}</ui-label>
                   </td>
                   <td class="px-4 py-3">
                     <div class="mb-2 flex items-center gap-2 text-xs text-slate-500" *ngIf="replacement.suggestedReplacement">
                       <span>Suggerito: {{ replacement.suggestedReplacement?.fullName }} · score {{ replacement.suggestedReplacement?.score }}</span>
-                      <button type="button" class="font-medium text-[#4979e6]" (click)="openReplacementAssistant(replacement)">Assistant</button>
+                      <button type="button" class="font-medium text-[#4979e6]" (click)="openReplacementAssistant(replacement)">Assistente</button>
                     </div>
                     <ng-container *ngIf="canManageRequests()">
                       <ui-select *ngIf="replacement.status === 'PENDING'" [options]="replacementOptions(replacement)" [value]="replacementAssigneeSelection[replacement.id]" (valueChange)="replacementAssigneeSelection[replacement.id] = castString($event)"></ui-select>
@@ -285,7 +285,7 @@
             </table>
           </ui-table-shell>
 
-          <ui-sidebar-panel title="Replacement assistant" eyebrow="Team workspace">
+          <ui-sidebar-panel title="Assistente sostituzioni" eyebrow="Spazio team">
             <div *ngIf="assistantReplacement() as replacement; else noReplacementAssistant" class="grid gap-4">
               <div>
                 <p class="text-sm font-medium text-slate-900">{{ replacement.assignment?.slot?.event?.title || 'Sostituzione' }}</p>
@@ -299,7 +299,7 @@
                 <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Prossima azione consigliata</p>
                 <p class="mt-2 text-sm text-slate-700">{{ assistantRecommendation(replacement) }}</p>
               </div>
-              <div class="rounded-2xl border border-[#d9e6ff] bg-[#f7faff] p-4" *ngIf="replacement.suggestedReplacement as suggested">
+              <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/70 dark:bg-blue-950/30" *ngIf="replacement.suggestedReplacement as suggested">
                 <div class="flex items-center justify-between gap-2">
                   <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#4979e6]">Miglior candidato</p>
                   <ui-label [tone]="assistantScoreTone(suggested.score)">score {{ suggested.score }}</ui-label>
@@ -354,8 +354,8 @@
               <tr *ngFor="let request of teamRequests()" class="border-t border-slate-100">
                 <td class="px-4 py-3">{{ request.team?.name || '-' }}</td>
                 <td class="px-4 py-3">{{ request.targetUser?.fullName || request.fullName || request.email || '-' }}</td>
-                <td class="px-4 py-3">{{ request.kind }}</td>
-                <td class="px-4 py-3"><ui-label [tone]="request.status === 'APPROVED' ? 'success' : (request.status === 'DECLINED' ? 'warn' : 'info')">{{ request.status }}</ui-label></td>
+                <td class="px-4 py-3">{{ teamRequestKindLabel(request.kind) }}</td>
+                <td class="px-4 py-3"><ui-label [tone]="request.status === 'APPROVED' ? 'success' : (request.status === 'DECLINED' ? 'warn' : 'info')">{{ teamRequestStatusLabel(request.status) }}</ui-label></td>
                 <td class="px-4 py-3">
                   <ng-container *ngIf="canManageRequests(); else requestReadonly">
                   <button type="button" class="text-sm text-emerald-700" (click)="approveTeamRequest(request)" [disabled]="request.status !== 'PENDING'">Approva</button>
@@ -375,7 +375,7 @@
       </ui-card>
 
       <p-dialog [(visible)]="teamDialogVisible" [modal]="true" [appendTo]="'body'" [baseZIndex]="1200" [blockScroll]="true" [dismissableMask]="true" [closeOnEscape]="true" [focusOnShow]="false" [showHeader]="false" [closable]="false" [style]="{ width: '38rem', maxWidth: '95vw', maxHeight: '90vh' }" [contentStyle]="{ background: 'transparent', padding: '0', overflow: 'hidden' }" [draggable]="false" [resizable]="false">
-        <ui-dialog-shell title="Team" eyebrow="Workspace config" subtitle="Configura identita, descrizione e responsabilita del team." icon="pi pi-users" tone="info" [hasFooter]="true" (closeRequested)="teamDialogVisible = false">
+        <ui-dialog-shell title="Team" eyebrow="Configurazione spazio" subtitle="Configura identita, descrizione e responsabilita del team." icon="pi pi-users" tone="info" [hasFooter]="true" (closeRequested)="teamDialogVisible = false">
           <div class="grid gap-4">
             <div class="grid gap-2">
               <label class="text-sm font-medium text-slate-700">Nome team</label>
@@ -395,7 +395,7 @@
       </p-dialog>
 
       <p-dialog [(visible)]="dutyDialogVisible" [modal]="true" [appendTo]="'body'" [baseZIndex]="1200" [blockScroll]="true" [dismissableMask]="true" [closeOnEscape]="true" [focusOnShow]="false" [showHeader]="false" [closable]="false" [style]="{ width: '40rem', maxWidth: '95vw', maxHeight: '90vh' }" [contentStyle]="{ background: 'transparent', padding: '0', overflow: 'hidden' }" [draggable]="false" [resizable]="false">
-        <ui-dialog-shell title="Mansione team" eyebrow="Duty CRUD" subtitle="Definisci ruolo operativo, colore e semantica visiva della mansione." icon="pi pi-briefcase" tone="info" [hasFooter]="true" (closeRequested)="dutyDialogVisible = false">
+        <ui-dialog-shell title="Mansione team" eyebrow="Gestione mansioni" subtitle="Definisci ruolo operativo, colore e semantica visiva della mansione." icon="pi pi-briefcase" tone="info" [hasFooter]="true" (closeRequested)="dutyDialogVisible = false">
           <div class="grid gap-4">
             <ui-select label="Team" [options]="teamOptions()" [value]="dutyForm.teamId" (valueChange)="dutyForm.teamId = castString($event)"></ui-select>
             <div class="grid gap-2">

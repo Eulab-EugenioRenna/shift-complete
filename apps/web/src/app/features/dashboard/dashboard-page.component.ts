@@ -185,6 +185,14 @@ export class DashboardPageComponent {
     return items.filter((assignment) => assignment.status === 'open').slice(0, 6);
   });
 
+  protected readonly liveFeedPreview = computed(() =>
+    this.live.feed().slice(0, 3).map((item) => ({
+      ...item,
+      translatedType: this.translateLiveItemType(item.type),
+      translatedSubject: this.translateLiveItemSubject(item.payload?.notification?.subject || item.payload?.kind || 'Aggiornamento operativo')
+    }))
+  );
+
   constructor() {
     this.live.connect();
     this.loadData();
@@ -284,5 +292,69 @@ export class DashboardPageComponent {
     }
 
     void this.router.navigate(['/events']);
+  }
+
+  protected roleLabel(role: Role | undefined): string {
+    if (role === ROLES.ADMINISTRATOR) {
+      return 'Amministratore';
+    }
+    if (role === ROLES.SERVICE_LEADER) {
+      return 'Responsabile di servizio';
+    }
+    if (role === ROLES.VOLUNTEER) {
+      return 'Volontario';
+    }
+    return role ?? 'Utente';
+  }
+
+  protected eventTypeLabel(type: string | undefined): string {
+    if (type === 'single') {
+      return 'Singolo';
+    }
+    if (type === 'recurring') {
+      return 'Ricorrente';
+    }
+    return type ?? 'Evento';
+  }
+
+  protected replacementStatusLabel(status: string | undefined): string {
+    if (status === 'PENDING') {
+      return 'In attesa';
+    }
+    if (status === 'APPROVED') {
+      return 'Approvata';
+    }
+    if (status === 'DECLINED') {
+      return 'Rifiutata';
+    }
+    return status ?? 'Aggiornata';
+  }
+
+  private translateLiveItemType(type: string | undefined): string {
+    const normalized = String(type ?? '').toLowerCase();
+    if (normalized.includes('notification.created')) {
+      return 'Nuova notifica';
+    }
+    if (normalized.includes('notification.delivery.updated')) {
+      return 'Consegna notifica aggiornata';
+    }
+    if (normalized.includes('resource.transfer.updated')) {
+      return 'Trasferimento risorsa aggiornato';
+    }
+    if (normalized.includes('ai.job.updated')) {
+      return 'Job AI aggiornato';
+    }
+    if (normalized.includes('scheduling.updated')) {
+      return 'Pianificazione aggiornata';
+    }
+    return 'Aggiornamento in tempo reale';
+  }
+
+  private translateLiveItemSubject(subject: string): string {
+    const normalized = subject.trim().toLowerCase();
+    if (normalized === 'team') {
+      return 'Team';
+    }
+    return subject;
   }
 }

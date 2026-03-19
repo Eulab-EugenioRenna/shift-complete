@@ -733,6 +733,36 @@ export class EventsPageComponent {
     return replacement.replacementAssignee?.fullName ? `Copertura: ${replacement.replacementAssignee.fullName}` : 'Copertura da confermare';
   }
 
+  protected eventTypeLabel(type: string | undefined): string {
+    if (type === 'single') {
+      return 'Singolo';
+    }
+    if (type === 'recurring') {
+      return 'Ricorrente';
+    }
+    return type ?? 'Evento';
+  }
+
+  protected replacementStatusLabel(status: ReplacementItem['status']): string {
+    if (status === 'APPROVED') {
+      return 'Approvata';
+    }
+    if (status === 'DECLINED') {
+      return 'Rifiutata';
+    }
+    return 'In attesa';
+  }
+
+  protected coverageStatusLabel(status: string): string {
+    if (status === 'covered') {
+      return 'Coperto';
+    }
+    if (status === 'suggested') {
+      return 'Suggerito';
+    }
+    return 'Da coprire';
+  }
+
   protected assistantRecommendation(replacement: ReplacementItem): string {
     if (replacement.status === 'APPROVED') {
       return replacement.replacementAssignee?.fullName

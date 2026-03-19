@@ -181,6 +181,13 @@ export class InventoryPageComponent {
     return 'info';
   }
 
+  protected statusLabel(status: string): string {
+    if (status === 'available') return 'Disponibile';
+    if (status === 'checked_out') return 'In prestito';
+    if (status === 'maintenance') return 'In manutenzione';
+    return status;
+  }
+
   private emptyForm() {
     return {
       teamId: this.teams()[0]?.id ?? '',

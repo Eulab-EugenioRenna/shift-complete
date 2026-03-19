@@ -269,6 +269,18 @@ export class ReplacementsHistoryPageComponent {
     return 'Decisione richiesta';
   }
 
+  protected replacementStatusLabel(status: ReplacementItem['status']): string {
+    if (status === 'APPROVED') {
+      return 'Approvata';
+    }
+
+    if (status === 'DECLINED') {
+      return 'Rifiutata';
+    }
+
+    return 'In attesa';
+  }
+
   protected assistantCoverageLabel(replacement: ReplacementItem): string {
     return replacement.replacementAssignee?.fullName ? `Copertura: ${replacement.replacementAssignee.fullName}` : 'Copertura da confermare';
   }

@@ -20,14 +20,21 @@ export interface ResourceTransferItem {
   autoOpened?: boolean;
 }
 
+export interface CompletedUploadEvent {
+  id: string;
+  resourceId?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ResourceTransferQueueService {
   private readonly queueSignal = signal<ResourceTransferItem[]>([]);
+  private readonly completedUploadSignal = signal<CompletedUploadEvent | null>(null);
   private submissionInFlight = false;
   private readonly pendingSubmissions: Array<() => void> = [];
   private lastProcessedRealtimeUpdate?: { type: string; payload: any };
 
   readonly items = this.queueSignal.asReadonly();
+  readonly lastCompletedUpload = this.completedUploadSignal.asReadonly();
 
   constructor(
     private readonly api: AppApiService,
@@ -146,11 +153,12 @@ export class ResourceTransferQueueService {
     this.api.jobs().subscribe({
       next: (jobs) => {
         const resourceJobs = jobs.filter((job) => job.kind === 'resource_upload' || job.kind === 'resource_download');
+        let newlyCompletedUpload: CompletedUploadEvent | null = null;
         this.queueSignal.update((items) => {
           const localPendingItems = items.filter((item) => !item.jobId);
           const mapped = resourceJobs.map((job) => {
             const existing = items.find((item) => item.jobId === job.id);
-            return {
+            const nextItem = {
               id: existing?.id ?? crypto.randomUUID(),
               jobId: job.id,
               kind: job.kind === 'resource_download' ? 'download' : 'upload',
@@ -163,9 +171,22 @@ export class ResourceTransferQueueService {
               autoOpened: existing?.autoOpened ?? false,
               downloadUrl: existing?.downloadUrl
             } as ResourceTransferItem;
+
+            if (nextItem.kind === 'upload' && nextItem.status === 'completed' && existing?.status !== 'completed') {
+              newlyCompletedUpload = {
+                id: nextItem.jobId ?? nextItem.id,
+                resourceId: nextItem.resourceId
+              };
+            }
+
+            return nextItem;
           });
           return [...localPendingItems, ...mapped];
         });
+
+        if (newlyCompletedUpload) {
+          this.completedUploadSignal.set(newlyCompletedUpload);
+        }
       }
     });
   }
@@ -220,6 +241,20 @@ export class ResourceTransferQueueService {
   }
 
   private patch(itemId: string, partial: Partial<ResourceTransferItem>) {
-    this.queueSignal.update((items) => items.map((item) => item.id === itemId ? { ...item, ...partial } : item));
+    this.queueSignal.update((items) => items.map((item) => {
+      if (item.id !== itemId) {
+        return item;
+      }
+
+      const nextItem = { ...item, ...partial };
+      if (item.kind === 'upload' && item.status !== 'completed' && nextItem.status === 'completed') {
+        this.completedUploadSignal.set({
+          id: nextItem.jobId ?? nextItem.id,
+          resourceId: nextItem.resourceId
+        });
+      }
+
+      return nextItem;
+    }));
   }
 }

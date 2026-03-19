@@ -412,6 +412,38 @@ export class TeamsPageComponent {
     return replacement.replacementAssignee?.fullName ? `Copertura: ${replacement.replacementAssignee.fullName}` : 'Copertura da confermare';
   }
 
+  protected replacementStatusLabel(status: ReplacementItem['status']): string {
+    if (status === 'APPROVED') {
+      return 'Approvata';
+    }
+
+    if (status === 'DECLINED') {
+      return 'Rifiutata';
+    }
+
+    return 'In attesa';
+  }
+
+  protected teamRequestTabLabel(tab: 'replacements' | 'requests'): string {
+    return tab === 'replacements' ? 'Sostituzioni' : 'Richieste team';
+  }
+
+  protected teamRequestKindLabel(kind: TeamAccessRequestItem['kind']): string {
+    return kind === 'SIGNUP' ? 'Registrazione' : 'Ingresso nel team';
+  }
+
+  protected teamRequestStatusLabel(status: TeamAccessRequestItem['status']): string {
+    if (status === 'APPROVED') {
+      return 'Approvata';
+    }
+
+    if (status === 'DECLINED') {
+      return 'Rifiutata';
+    }
+
+    return 'In attesa';
+  }
+
   protected assistantRecommendation(replacement: ReplacementItem): string {
     if (replacement.status === 'APPROVED') {
       return replacement.replacementAssignee?.fullName
