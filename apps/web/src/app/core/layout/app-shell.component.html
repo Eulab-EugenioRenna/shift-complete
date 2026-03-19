@@ -1,5 +1,5 @@
 <div class="min-screen bg-[var(--app-bg-accent)] text-[color:var(--text-1)] transition-colors">
-  <header class="sticky top-0 z-40 border-b border-[color:var(--border-soft)] bg-white/90 shadow-sm backdrop-blur dark:bg-slate-950/85">
+  <header class="sticky top-0 z-40 border-b border-[color:var(--border-soft)] bg-[color:var(--surface-overlay)] shadow-sm backdrop-blur">
     <div class="grid min-h-20 grid-cols-[auto_1fr_auto] items-center gap-4 px-4 sm:px-6 lg:px-10 xl:px-12">
       <div class="flex items-center gap-8 justify-self-start">
         <button type="button" class="flex items-center gap-3 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-3 py-2 text-left transition hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface-1)]" (click)="goToHome()">
@@ -17,7 +17,7 @@
         <a
           *ngFor="let item of navigationItems()"
           [routerLink]="item.path"
-          routerLinkActive="bg-slate-950 text-white font-medium shadow-sm dark:bg-slate-100 dark:text-slate-950"
+          routerLinkActive="bg-[color:var(--accent-1)] text-white font-medium shadow-sm dark:text-[color:var(--text-inverse)]"
           class="rounded-xl px-3 py-2 text-sm text-[color:var(--text-2)] transition hover:bg-[color:var(--surface-3)] hover:text-[color:var(--text-1)]"
         >
           {{ item.label }}
@@ -65,7 +65,7 @@
         <a
           *ngFor="let item of navigationItems()"
           [routerLink]="item.path"
-          routerLinkActive="bg-slate-950 font-medium text-white dark:bg-slate-100 dark:text-slate-950"
+          routerLinkActive="bg-[color:var(--accent-1)] font-medium text-white dark:text-[color:var(--text-inverse)]"
           class="whitespace-nowrap rounded-xl px-3 py-1.5 text-sm text-[color:var(--text-2)] transition"
         >
           {{ item.label }}

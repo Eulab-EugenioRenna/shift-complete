@@ -101,12 +101,12 @@
     </div>
 
     <aside class="flex flex-col gap-4">
-      <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div class="border-b border-slate-100 px-5 py-4">
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
+        <div class="border-b border-slate-100 px-5 py-4 dark:border-slate-700">
           <div class="flex items-start justify-between gap-3">
             <div>
-              <h3 class="text-base font-semibold text-slate-900">Queue trasferimenti</h3>
-              <p class="mt-1 text-sm text-slate-500">Job backend distribuiti con progress realtime e recupero stato multiistanza.</p>
+              <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">Queue trasferimenti</h3>
+              <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Job backend distribuiti con progress realtime e recupero stato multiistanza.</p>
             </div>
             <button *ngIf="transferQueue.items().length" type="button" class="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900" (click)="transferQueue.clearAll()">
               Pulisci tutto
@@ -142,21 +142,21 @@
         </div>
       </div>
 
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-        <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Team visibili</p>
+      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
+        <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">Team visibili</p>
         <div class="mt-4 grid gap-2">
-          <div *ngFor="let team of visibleGroups()" class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-            <span class="text-sm text-slate-700">{{ team.label }}</span>
-            <span class="text-xs font-medium text-slate-500">{{ team.count }}</span>
+          <div *ngFor="let team of visibleGroups()" class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800/70">
+            <span class="text-sm text-slate-700 dark:text-slate-200">{{ team.label }}</span>
+            <span class="text-xs font-medium text-slate-500 dark:text-slate-400">{{ team.count }}</span>
           </div>
         </div>
       </div>
 
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" *ngIf="summary() as summary">
+      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900/85" *ngIf="summary() as summary">
         <div class="flex items-start justify-between gap-3">
           <div>
-            <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Numeri per team</p>
-            <p class="mt-2 text-sm text-slate-500">Spazio usato, disponibile, file e cartelle per libreria globale e team accessibili.</p>
+            <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">Numeri per team</p>
+            <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Spazio usato, disponibile, file e cartelle per libreria globale e team accessibili.</p>
           </div>
           <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">{{ summary.teamCount }} team</span>
         </div>
@@ -217,8 +217,8 @@
         </div>
       </div>
 
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-        <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Cartelle e permessi</p>
+      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
+        <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">Cartelle e permessi</p>
         <div class="mt-4 grid gap-3">
           <div *ngFor="let folder of resourceFolders()" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
             <div class="flex items-center justify-between gap-3">
@@ -238,11 +238,11 @@
         </div>
       </div>
 
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
         <ng-container *ngIf="selectedResource() as resource; else noResourceSelected">
-          <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Dettaglio file</p>
-          <h3 class="mt-2 text-base font-semibold text-slate-900">{{ resource.name }}</h3>
-          <div class="mt-4 grid gap-3 text-sm text-slate-600">
+          <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">Dettaglio file</p>
+          <h3 class="mt-2 text-base font-semibold text-slate-900 dark:text-slate-100">{{ resource.name }}</h3>
+          <div class="mt-4 grid gap-3 text-sm text-slate-600 dark:text-slate-300">
             <div>
               <p class="text-xs uppercase tracking-widest text-slate-400">Team</p>
               <p class="mt-1">{{ resource.team?.name || 'Libreria globale' }}</p>

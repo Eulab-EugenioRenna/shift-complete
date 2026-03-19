@@ -1,0 +1,91 @@
+- DARK
+    - dashboard
+        - segnali e backlog bianco
+        - richieste bianco
+        - replacement monitor bianco
+        - Realtime Feed bianco
+    - calendario 
+        - calendario mensile, settimanale, quadri bianco
+        - agenda hover bianco, contrasto titoli assente
+    - eventi
+        - registro eventi bianco
+        - titolo nero
+    - sostituzioni
+        - barra bianca registro sostituzioni
+    - team
+        - replacement pending bianco
+        - coperture recuperate bianco
+        - azioni team aperte bianco
+        - barra bianca richieste sostituzione
+        - matrice volontari
+            - chip bianche
+    - utenti
+        - nuovo utente bianco input neri, annulla bianco
+    - risorse 
+        - queque trasferimenti bianco
+        - team visibili bianco
+        - numeri per team bianco
+        - cartelle permessi bianco
+        - dettaglio bianco
+    - impostazioni 
+        - backend bianco
+        - observabilty bianco
+
+- LIGHT
+    - dashboard
+        - titolo bianco
+        - eventi attivi nero
+        - copertura nero
+        - sostituzioni aperte nero
+        - inventario prodotto nero
+        - agenda nero
+        - kpi nero
+    - calendario
+        - titolo chiaro
+        - switch nero 
+        - calendario sfondo dark quadro bianco
+        - agenda dark
+        - vista consultazione dark
+        - calendar board dark
+    - eventi
+        - workspace eventi dark entrambi
+        - nuovo evento dark modale
+        - board dark
+        - auto assegna dark 
+    - sostituzioni
+        - titolo chiaro
+        - decision support dark
+    - team
+        - titolo chiaro
+        - team attivi dark
+        - inline managment dark
+        - team workspace dark
+        - nuovo team dark modale
+        - nuova mansione dark modale
+    - inventario
+        - titolo chiaro
+        - dettaglio dark
+        - cerca dark
+        - logistica dark
+    - utenti
+        - titolo chiaro
+        - dettaglio dark
+        - cerca dark
+        - lista dark
+        - nuovo utente testo nero 
+            - annulla chiaro modale 
+    - risorse
+        - titolo chiaro
+        - spazio occuparo dark
+        - spazio disponibile dark
+        - numero file dark 
+        - cartelle dark
+        - cerca dark
+        - logistica dark
+    - impostazioni
+        - titolo chiaro
+        - utente dark
+        - ai dark
+    - spotlight dark
+
+- auth non temizzata

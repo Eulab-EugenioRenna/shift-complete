@@ -11,7 +11,7 @@
           type="button"
           *ngFor="let option of viewOptions"
           class="rounded-2xl px-4 py-2 text-sm transition"
-          [ngClass]="currentView() === option.value ? 'bg-slate-950 text-white' : 'text-slate-600'"
+          [ngClass]="currentView() === option.value ? 'bg-[#4979e6] text-white dark:text-slate-950' : 'text-slate-600 dark:text-slate-300'"
           (click)="currentView.set(option.value)"
         >
           {{ option.label }}
@@ -66,10 +66,10 @@
                 <div
                   *ngFor="let day of monthCells()"
                   class="min-h-[5.75rem] rounded-2xl border p-2 transition sm:min-h-[7.5rem] sm:p-2.5"
-                  [ngClass]="day.inCurrentMonth ? 'border-slate-200 bg-slate-50 hover:bg-white' : 'border-slate-100 bg-white opacity-70'">
+                  [ngClass]="day.inCurrentMonth ? 'border-slate-200 bg-slate-50 hover:bg-white dark:border-slate-700 dark:bg-slate-900/60 dark:hover:bg-slate-900' : 'border-slate-100 bg-white opacity-70 dark:border-slate-800 dark:bg-slate-950/40'">
                   <div class="mb-2 flex items-center justify-between gap-2">
                     <p class="inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold sm:h-7 sm:min-w-7 sm:px-2 sm:text-xs"
-                      [ngClass]="day.isToday ? 'bg-blue-600 text-white' : 'text-slate-700'">
+                      [ngClass]="day.isToday ? 'bg-blue-600 text-white' : 'text-slate-700 dark:text-slate-200'">
                       {{ day.dayNumber }}
                     </p>
                     <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#4979e6] px-1.5 text-[10px] font-bold text-white" *ngIf="day.events.length">{{ day.events.length }}</span>
@@ -109,10 +109,10 @@
                 <span *ngFor="let label of weekdayLabels">{{ label }}</span>
               </div>
               <div class="grid grid-cols-7 gap-2">
-                <div *ngFor="let day of weekDays()" class="flex min-h-[24rem] flex-col rounded-2xl border border-slate-200 bg-slate-50 sm:min-h-[32rem]">
-                  <div class="border-b border-slate-200 px-2 py-3 text-center sm:px-3">
-                    <p class="text-sm font-semibold text-slate-800">{{ day.dayNumber }}</p>
-                    <p class="text-[10px] uppercase tracking-[0.2em] text-slate-400">{{ day.monthLabel }}</p>
+                <div *ngFor="let day of weekDays()" class="flex min-h-[24rem] flex-col rounded-2xl border border-slate-200 bg-slate-50 sm:min-h-[32rem] dark:border-slate-700 dark:bg-slate-900/70">
+                  <div class="border-b border-slate-200 px-2 py-3 text-center sm:px-3 dark:border-slate-700">
+                    <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ day.dayNumber }}</p>
+                    <p class="text-[10px] uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">{{ day.monthLabel }}</p>
                   </div>
                   <div class="flex flex-1 flex-col gap-2 p-2 sm:p-3">
                     <button
@@ -124,7 +124,7 @@
                       <p class="truncate font-semibold">{{ event.title }}</p>
                       <p class="mt-1 text-[10px] text-orange-600">{{ event.startsAt | date:'shortTime' }} – {{ event.endsAt | date:'shortTime' }}</p>
                     </button>
-                    <div *ngIf="!day.events.length" class="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white text-xs text-slate-300">—</div>
+                    <div *ngIf="!day.events.length" class="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white text-xs text-slate-300 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-500">—</div>
                   </div>
                 </div>
               </div>
@@ -133,19 +133,19 @@
         </ng-container>
 
         <ng-container *ngSwitchDefault>
-          <div class="divide-y divide-slate-100 rounded-[20px] border border-slate-100">
+          <div class="divide-y divide-slate-100 rounded-[20px] border border-slate-100 dark:divide-slate-800 dark:border-slate-800">
             <div *ngFor="let event of sortedEvents()"
-              class="group flex items-start gap-4 px-5 py-4 hover:bg-slate-50 transition cursor-pointer"
+              class="group flex cursor-pointer items-start gap-4 px-5 py-4 transition hover:bg-slate-50 dark:hover:bg-slate-800/60"
               (click)="selectEvent(event)">
               <div class="flex min-w-12 flex-col items-center justify-center rounded-xl bg-[#4979e6] px-2 py-2 text-center text-white">
                 <span class="text-lg font-light leading-none">{{ event.startsAt | date:'d' }}</span>
                 <span class="mt-0.5 text-[9px] font-semibold uppercase tracking-widest">{{ event.startsAt | date:'MMM' }}</span>
               </div>
               <div class="flex-1">
-                <p class="text-sm font-semibold text-slate-800 transition group-hover:text-[#4979e6]">{{ event.title }}</p>
-                <p class="mt-0.5 text-xs text-slate-500">{{ event.startsAt | date:'shortTime' }} – {{ event.endsAt | date:'shortTime' }}</p>
+                <p class="text-sm font-semibold text-slate-800 transition group-hover:text-[#4979e6] dark:text-slate-100">{{ event.title }}</p>
+                <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ event.startsAt | date:'shortTime' }} – {{ event.endsAt | date:'shortTime' }}</p>
                 <div class="mt-2 flex flex-wrap gap-1.5">
-                  <span class="inline-flex rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{{ event.type }}</span>
+                  <span class="inline-flex rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ event.type }}</span>
                   <span class="inline-flex rounded-full border px-2 py-0.5 text-xs font-medium"
                     [class.bg-emerald-50]="(event.assignments?.length || 0) > 0"
                     [class.text-emerald-700]="(event.assignments?.length || 0) > 0"

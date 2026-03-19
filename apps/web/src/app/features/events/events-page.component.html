@@ -1,9 +1,9 @@
-<section class="grid gap-6">
+<section class="grid gap-6 text-slate-800 dark:text-slate-100">
   <header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
     <div>
-      <p class="text-sm uppercase tracking-[0.3em] text-teal-700">Eventi</p>
-      <h2 class="text-3xl font-semibold tracking-tight text-slate-900">CRUD eventi, assegnazioni e copertura reale dei turni.</h2>
-      <p class="mt-2 max-w-3xl text-sm text-slate-500">Gestisci creazione, modifica, assegnazioni e replacement in una workspace operativa dedicata agli eventi.</p>
+      <p class="text-sm uppercase tracking-[0.3em] text-teal-700 dark:text-teal-300">Eventi</p>
+      <h2 class="text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">CRUD eventi, assegnazioni e copertura reale dei turni.</h2>
+      <p class="mt-2 max-w-3xl text-sm text-slate-500 dark:text-slate-300">Gestisci creazione, modifica, assegnazioni e replacement in una workspace operativa dedicata agli eventi.</p>
     </div>
     <div class="flex flex-wrap items-center gap-2" *ngIf="canManageEvents()">
       <button pButton type="button" label="Nuovo evento" icon="pi pi-plus" (click)="openEventDialog()"></button>
@@ -15,11 +15,11 @@
   <app-team-scope-chips [teams]="teams()"></app-team-scope-chips>
 
   <div class="grid gap-4 xl:grid-cols-[1.4fr_0.6fr]">
-    <div class="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
-      <div class="border-b border-slate-100 px-5 py-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
+      <div class="flex flex-col gap-4 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-700">
         <div>
-          <h3 class="text-base font-semibold text-slate-800">Registro eventi</h3>
-          <p class="mt-0.5 text-sm text-slate-500">Tutti gli eventi ordinati per data con accesso diretto a modifica, eliminazione e board operativa.</p>
+          <h3 class="text-base font-semibold text-slate-800 dark:text-slate-100">Registro eventi</h3>
+          <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-300">Tutti gli eventi ordinati per data con accesso diretto a modifica, eliminazione e board operativa.</p>
         </div>
         <div class="grid gap-2 sm:grid-cols-2 sm:items-end">
           <ui-select label="Filtro utente" [options]="selectableUsers()" [value]="selectedUserFilter()" (valueChange)="selectedUserFilter.set(castNullable($event) || '')"></ui-select>
@@ -27,7 +27,7 @@
         </div>
       </div>
 
-      <div class="border-b border-slate-100 px-5 py-4 bg-slate-50">
+      <div class="border-b border-slate-100 bg-slate-50 px-5 py-4 dark:border-slate-700 dark:bg-slate-950/40">
         <div class="flex flex-wrap gap-2">
           <span class="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-medium text-orange-700"><span class="h-2 w-2 rounded-full bg-orange-400"></span> Evento singolo</span>
           <span class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700"><span class="h-2 w-2 rounded-full bg-emerald-500"></span> Evento ricorrente</span>
@@ -35,9 +35,9 @@
         </div>
       </div>
 
-      <div class="divide-y divide-slate-100">
+      <div class="divide-y divide-slate-100 dark:divide-slate-800">
         <div *ngFor="let event of sortedEvents()"
-          class="group flex cursor-pointer items-start gap-4 px-5 py-4 transition hover:bg-slate-50"
+          class="group flex cursor-pointer items-start gap-4 px-5 py-4 transition hover:bg-slate-50 dark:hover:bg-slate-800/60"
           [class.bg-slate-50]="selectedEvent()?.id === event.id"
           (click)="selectEvent(event)">
           <div class="flex min-w-12 flex-col items-center justify-center rounded-xl bg-[#4979e6] px-2 py-2 text-center text-white">
@@ -47,8 +47,8 @@
           <div class="flex-1">
             <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <p class="text-sm font-semibold text-slate-800 transition group-hover:text-[#4979e6]">{{ event.title }}</p>
-                <p class="mt-0.5 text-xs text-slate-500">{{ event.startsAt | date:'short' }} - {{ event.endsAt | date:'short' }}</p>
+                <p class="text-sm font-semibold text-slate-800 transition group-hover:text-[#4979e6] dark:text-slate-100">{{ event.title }}</p>
+                <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ event.startsAt | date:'short' }} - {{ event.endsAt | date:'short' }}</p>
               </div>
               <div class="flex flex-wrap gap-1.5">
                 <ui-label tone="neutral">{{ event.isOccurrence ? 'occorrenza' : event.type }}</ui-label>

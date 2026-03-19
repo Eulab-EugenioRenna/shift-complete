@@ -48,10 +48,7 @@ import { SpotlightSearchService } from '../../core/services/spotlight-search.ser
               type="button"
               *ngFor="let item of group.items"
               class="flex w-full items-start justify-between gap-3 rounded-2xl px-3 py-3 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800/80"
-              [class.bg-slate-100]="spotlight.results()[spotlight.activeIndex()]?.id === item.id"
-              [class.dark:bg-slate-800]="spotlight.results()[spotlight.activeIndex()]?.id === item.id"
-              [class.ring-1]="spotlight.results()[spotlight.activeIndex()]?.id === item.id"
-              [class.ring-slate-200]="spotlight.results()[spotlight.activeIndex()]?.id === item.id"
+              [ngClass]="spotlight.results()[spotlight.activeIndex()]?.id === item.id ? 'bg-slate-100 ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700' : ''"
               (click)="spotlight.activate(item)"
               (mouseenter)="spotlight.setActiveById(item.id)"
             >

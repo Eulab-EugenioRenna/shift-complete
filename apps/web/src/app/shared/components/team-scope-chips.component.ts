@@ -12,7 +12,7 @@ import { SessionService } from '../../core/services/session.service';
       <button
         type="button"
         class="rounded-full border px-3 py-1.5 text-xs font-medium transition"
-        [ngClass]="!scope.teamId() ? 'border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-950' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:text-slate-100'"
+        [ngClass]="!scope.teamId() ? 'border-[color:var(--border-strong)] bg-[color:var(--surface-3)] text-[color:var(--text-1)]' : 'border-[color:var(--border-soft)] bg-[color:var(--surface-1)] text-[color:var(--text-2)] hover:border-[color:var(--border-strong)] hover:text-[color:var(--text-1)]'"
         (click)="scope.clear()"
       >
         Tutti
@@ -21,7 +21,7 @@ import { SessionService } from '../../core/services/session.service';
         type="button"
         *ngFor="let team of teams"
         class="rounded-full border px-3 py-1.5 text-xs font-medium transition"
-        [ngClass]="scope.teamId() === team.id ? 'border-[#4979e6] bg-[#4979e6] text-white dark:border-blue-400 dark:bg-blue-500 dark:text-slate-950' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:text-slate-100'"
+        [ngClass]="scope.teamId() === team.id ? 'border-[color:var(--accent-1)] bg-[color:var(--accent-1)] text-white dark:text-[color:var(--text-inverse)]' : 'border-[color:var(--border-soft)] bg-[color:var(--surface-1)] text-[color:var(--text-2)] hover:border-[color:var(--border-strong)] hover:text-[color:var(--text-1)]'"
         (click)="scope.setTeam(team.id)"
       >
         {{ team.name }}

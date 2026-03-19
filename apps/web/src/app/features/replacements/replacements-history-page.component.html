@@ -58,7 +58,7 @@
     </div>
     <ui-table-shell>
       <table class="min-w-full text-sm">
-        <thead class="bg-slate-50 text-left text-slate-500">
+        <thead class="bg-slate-50 text-left text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
           <tr>
             <th class="px-4 py-3" *ngIf="canManageReplacements()"><input type="checkbox" [checked]="allPendingSelected()" (change)="toggleAllPending($any($event.target).checked)" /></th>
             <th class="px-4 py-3">Evento</th>
@@ -179,9 +179,9 @@
           <ui-label tone="neutral">{{ assistantCoverageLabel(replacement) }}</ui-label>
         </div>
       </div>
-      <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Prossima azione consigliata</p>
-        <p class="mt-2 text-sm text-slate-700">{{ assistantRecommendation(replacement) }}</p>
+      <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/40">
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">Prossima azione consigliata</p>
+        <p class="mt-2 text-sm text-slate-700 dark:text-slate-200">{{ assistantRecommendation(replacement) }}</p>
       </div>
       <div class="rounded-2xl border border-[#d9e6ff] bg-[#f7faff] p-4" *ngIf="replacement.suggestedReplacement as suggested">
         <div class="flex items-center justify-between gap-2">

@@ -1,22 +1,22 @@
-<section class="grid gap-6 xl:grid-cols-[1.4fr_0.6fr]">
+<section class="grid gap-6 text-slate-800 dark:text-slate-100 xl:grid-cols-[1.4fr_0.6fr]">
   <div class="flex flex-col gap-6">
   <header class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
     <div>
       <p class="text-sm font-semibold uppercase tracking-widest text-rose-600">Superuser</p>
-      <h2 class="mt-1 text-2xl font-semibold tracking-tight text-slate-800">Gestione utenti, team e invio credenziali.</h2>
+      <h2 class="mt-1 text-2xl font-semibold tracking-tight text-slate-800 dark:text-slate-100">Gestione utenti, team e invio credenziali.</h2>
     </div>
-    <button class="rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white" (click)="openCreate()">Nuovo utente</button>
+    <button class="rounded-md bg-[#4979e6] px-4 py-2 text-sm font-medium text-white dark:text-slate-950" (click)="openCreate()">Nuovo utente</button>
   </header>
 
   <app-team-scope-chips [teams]="teams()"></app-team-scope-chips>
 
-  <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
+  <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
     <div class="flex flex-col gap-3 md:flex-row md:items-center">
-      <button type="button" class="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50" (click)="openSpotlight()">
+      <button type="button" class="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800" (click)="openSpotlight()">
         <i class="pi pi-search text-xs"></i>
         Cerca persone
       </button>
-      <select class="rounded-md border border-slate-300 px-3 py-2 text-sm" [(ngModel)]="roleFilter" (ngModelChange)="loadUsers()">
+      <select class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [(ngModel)]="roleFilter" (ngModelChange)="loadUsers()">
         <option value="">Tutti i ruoli</option>
         <option value="administrator">Amministratore</option>
         <option value="service_leader">Leader</option>
@@ -25,9 +25,9 @@
     </div>
   </div>
 
-  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
     <table class="min-w-full text-sm">
-      <thead class="bg-slate-50 text-left text-slate-500">
+      <thead class="bg-slate-50 text-left text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
         <tr>
           <th class="px-5 py-3">Utente</th>
           <th class="px-5 py-3">Ruolo</th>
@@ -37,19 +37,19 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let user of filteredUsers()" class="border-t border-slate-100 cursor-pointer hover:bg-slate-50" (click)="selectUser(user)">
+        <tr *ngFor="let user of filteredUsers()" class="cursor-pointer border-t border-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60" (click)="selectUser(user)">
           <td class="px-5 py-3">
-            <p class="font-medium text-slate-900">{{ user.fullName }}</p>
-            <p class="text-xs text-slate-500">{{ user.email }}</p>
+            <p class="font-medium text-slate-900 dark:text-slate-100">{{ user.fullName }}</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">{{ user.email }}</p>
           </td>
-          <td class="px-5 py-3 text-slate-600">{{ user.role }}</td>
-          <td class="px-5 py-3 text-slate-600">{{ teamNames(user.activeTeamIds) }}</td>
-          <td class="px-5 py-3 text-slate-600">{{ user.onboardingCompleted ? 'Completo' : 'In corso' }}</td>
+          <td class="px-5 py-3 text-slate-600 dark:text-slate-300">{{ user.role }}</td>
+          <td class="px-5 py-3 text-slate-600 dark:text-slate-300">{{ teamNames(user.activeTeamIds) }}</td>
+          <td class="px-5 py-3 text-slate-600 dark:text-slate-300">{{ user.onboardingCompleted ? 'Completo' : 'In corso' }}</td>
           <td class="px-5 py-3 text-right">
-            <div class="mb-2 text-xs text-slate-400" *ngIf="deliverySummary(user.id) as summary">{{ summary }}</div>
-            <a class="mr-3 text-slate-700 hover:underline" [routerLink]="['/admin/users', user.id]">Dettaglio</a>
+            <div class="mb-2 text-xs text-slate-400 dark:text-slate-500" *ngIf="deliverySummary(user.id) as summary">{{ summary }}</div>
+            <a class="mr-3 text-slate-700 hover:underline dark:text-slate-200" [routerLink]="['/admin/users', user.id]">Dettaglio</a>
             <button class="mr-3 text-[#4979e6] hover:underline" (click)="editUser(user); $event.stopPropagation()">Modifica</button>
-            <button class="mr-3 text-slate-700 hover:underline" (click)="sendCredentials(user.id); $event.stopPropagation()">Invia credenziali</button>
+            <button class="mr-3 text-slate-700 hover:underline dark:text-slate-200" (click)="sendCredentials(user.id); $event.stopPropagation()">Invia credenziali</button>
             <button class="text-red-600 hover:underline" (click)="deleteUser(user.id); $event.stopPropagation()">Elimina</button>
           </td>
         </tr>
@@ -58,31 +58,31 @@
   </div>
   </div>
 
-  <aside class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm h-fit sticky top-4">
+  <aside class="sticky top-4 h-fit rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
     <ng-container *ngIf="selectedUser() as user; else noSelectedUser">
-      <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Dettaglio utente</p>
-      <h3 class="mt-2 text-lg font-semibold text-slate-900">{{ user.fullName }}</h3>
-      <div class="mt-4 grid gap-3 text-sm text-slate-600">
+      <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">Dettaglio utente</p>
+      <h3 class="mt-2 text-lg font-semibold text-slate-900 dark:text-slate-100">{{ user.fullName }}</h3>
+      <div class="mt-4 grid gap-3 text-sm text-slate-600 dark:text-slate-300">
         <div>
-          <p class="text-xs uppercase tracking-widest text-slate-400">Email</p>
+          <p class="text-xs uppercase tracking-widest text-slate-400 dark:text-slate-500">Email</p>
           <p class="mt-1">{{ user.email }}</p>
         </div>
         <div>
-          <p class="text-xs uppercase tracking-widest text-slate-400">Ruolo</p>
+          <p class="text-xs uppercase tracking-widest text-slate-400 dark:text-slate-500">Ruolo</p>
           <p class="mt-1">{{ user.role }}</p>
         </div>
         <div>
-          <p class="text-xs uppercase tracking-widest text-slate-400">Team</p>
+          <p class="text-xs uppercase tracking-widest text-slate-400 dark:text-slate-500">Team</p>
           <p class="mt-1">{{ teamNames(user.activeTeamIds) }}</p>
         </div>
         <div>
-          <p class="text-xs uppercase tracking-widest text-slate-400">Onboarding</p>
+          <p class="text-xs uppercase tracking-widest text-slate-400 dark:text-slate-500">Onboarding</p>
           <p class="mt-1">{{ user.onboardingCompleted ? 'Completo' : 'In corso' }}</p>
         </div>
       </div>
     </ng-container>
     <ng-template #noSelectedUser>
-      <p class="text-sm text-slate-500">Seleziona un utente per vedere il riepilogo rapido.</p>
+      <p class="text-sm text-slate-500 dark:text-slate-400">Seleziona un utente per vedere il riepilogo rapido.</p>
     </ng-template>
   </aside>
 
@@ -118,25 +118,25 @@
     </ui-dialog-shell>
   </p-dialog>
 
-  <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" *ngIf="formOpen()">
-    <h3 class="text-lg font-semibold text-slate-900">{{ editingId() ? 'Modifica utente' : 'Nuovo utente' }}</h3>
+  <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900/85" *ngIf="formOpen()">
+    <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ editingId() ? 'Modifica utente' : 'Nuovo utente' }}</h3>
     <div class="mt-4 grid gap-4">
       <app-user-profile-editor [profileForm]="form" [showSubmit]="false" [teamPreferenceOptions]="preferredTeamOptions()" [dutyPreferenceOptions]="preferredDutyOptions()"></app-user-profile-editor>
       <div class="grid gap-4 md:grid-cols-2">
-        <select class="rounded-md border border-slate-300 px-3 py-2 text-sm" [(ngModel)]="form.role">
+        <select class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [(ngModel)]="form.role">
           <option value="volunteer">Volontario</option>
           <option value="service_leader">Leader</option>
           <option value="administrator">Amministratore</option>
         </select>
         <div>
-          <p class="mb-2 text-xs text-slate-400">Clicca una chip per rimuoverla dal gruppo.</p>
+          <p class="mb-2 text-xs text-slate-400 dark:text-slate-500">Clicca una chip per rimuoverla dal gruppo.</p>
           <div class="mb-2 flex flex-wrap gap-2">
-            <button type="button" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50" *ngFor="let teamId of form.teamIds" (click)="removeTeamMembership(teamId)" title="Rimuovi team assegnato">
+            <button type="button" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800" *ngFor="let teamId of form.teamIds" (click)="removeTeamMembership(teamId)" title="Rimuovi team assegnato">
               <span>{{ teamNameById(teamId) }}</span>
               <i class="pi pi-times text-[10px]"></i>
             </button>
           </div>
-          <select multiple class="min-h-32 rounded-md border border-slate-300 px-3 py-2 text-sm" [(ngModel)]="form.teamIds">
+          <select multiple class="min-h-32 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [(ngModel)]="form.teamIds">
             <option *ngFor="let team of teams()" [ngValue]="team.id">{{ team.name }}</option>
           </select>
         </div>
@@ -144,7 +144,7 @@
     </div>
     <div class="mt-4 flex items-center gap-3">
       <button class="rounded-md bg-[#4979e6] px-4 py-2 text-sm font-medium text-white" (click)="saveUser()">{{ editingId() ? 'Salva' : 'Crea utente' }}</button>
-      <button class="rounded-md border border-slate-300 px-4 py-2 text-sm" (click)="formOpen.set(false)">Annulla</button>
+      <button class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200" (click)="formOpen.set(false)">Annulla</button>
     </div>
   </div>
 </section>

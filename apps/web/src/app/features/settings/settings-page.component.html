@@ -7,7 +7,7 @@
   <div class="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
     <div class="grid gap-2 md:grid-cols-4">
           <button *ngFor="let tab of tabs" type="button" class="rounded-xl px-4 py-3 text-sm font-medium transition"
-        [ngClass]="activeTab() === tab.id ? 'bg-slate-950 text-white dark:bg-slate-100 dark:text-slate-950' : 'bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300'"
+        [ngClass]="activeTab() === tab.id ? 'bg-[#4979e6] text-white dark:text-slate-950' : 'bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300'"
         (click)="activeTab.set(tab.id)">
         {{ tab.label }}
       </button>
@@ -45,13 +45,13 @@
   </div>
 
   <!-- Provider AI -->
-  <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden" *ngIf="activeTab() === 'ai'">
-    <div class="border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/80" *ngIf="activeTab() === 'ai'">
+    <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-700">
       <div>
-        <h3 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+        <h3 class="flex items-center gap-2 text-base font-semibold text-slate-800 dark:text-slate-100">
           <i class="pi pi-microchip-ai text-[#4979e6]"></i> Provider AI
         </h3>
-        <p class="mt-0.5 text-sm text-slate-500">Seleziona il motore AI e configura le credenziali di accesso.</p>
+        <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-300">Seleziona il motore AI e configura le credenziali di accesso.</p>
       </div>
       <!-- Connection Status Indicator -->
       <div class="flex items-center gap-2 text-sm font-medium" *ngIf="pingStatus() !== 'idle'">
@@ -76,18 +76,13 @@
     <div class="px-6 py-5 grid gap-5">
       <!-- Provider selector -->
       <div class="grid gap-2">
-        <label class="text-sm font-medium text-slate-700">Provider</label>
+        <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Provider</label>
         <div class="flex gap-2 flex-wrap">
           <button *ngFor="let p of providerOptions"
             type="button"
             class="px-4 py-2 rounded-md border text-sm font-medium transition"
-            [class.bg-[#4979e6]]="selectedProvider() === p.value"
             [class.text-white]="selectedProvider() === p.value"
-            [class.border-[#4979e6]]="selectedProvider() === p.value"
-            [class.bg-white]="selectedProvider() !== p.value"
-            [class.text-slate-700]="selectedProvider() !== p.value"
-            [class.border-slate-300]="selectedProvider() !== p.value"
-            [class.hover:bg-slate-50]="selectedProvider() !== p.value"
+            [ngClass]="selectedProvider() === p.value ? 'bg-[#4979e6] text-white border-[#4979e6] dark:text-slate-950' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-800'"
             (click)="selectedProvider.set(p.value)">
             {{ p.label }}
           </button>
@@ -96,22 +91,22 @@
 
       <!-- API Key (OpenAI / Anthropic) -->
       <div class="grid gap-2" *ngIf="needsApiKey()">
-        <label class="text-sm font-medium text-slate-700">API Key</label>
+        <label class="text-sm font-medium text-slate-700 dark:text-slate-200">API Key</label>
         <div class="relative">
           <input class="w-full rounded-md border border-slate-300 px-3 py-2 pr-10 text-sm font-mono text-slate-800 placeholder-slate-400 focus:border-[#4979e6] focus:outline-none focus:ring-1 focus:ring-[#4979e6] transition"
             [type]="showApiKey() ? 'text' : 'password'"
             [(ngModel)]="apiKey"
             placeholder="sk-..." />
-          <button type="button" class="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 transition hover:text-[#4979e6]" (click)="showApiKey.set(!showApiKey())" [attr.aria-label]="showApiKey() ? 'Nascondi chiave API' : 'Mostra chiave API'">
+          <button type="button" class="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 transition hover:text-[#4979e6] dark:text-slate-500" (click)="showApiKey.set(!showApiKey())" [attr.aria-label]="showApiKey() ? 'Nascondi chiave API' : 'Mostra chiave API'">
             <i class="pi" [class.pi-eye]="!showApiKey()" [class.pi-eye-slash]="showApiKey()"></i>
           </button>
         </div>
-        <p class="text-xs text-slate-500">La chiave viene salvata lato backend e non viene riproposta in chiaro dopo il salvataggio.</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400">La chiave viene salvata lato backend e non viene riproposta in chiaro dopo il salvataggio.</p>
       </div>
 
       <!-- Ollama URL -->
       <div class="grid gap-2" *ngIf="selectedProvider() === 'ollama'">
-        <label class="text-sm font-medium text-slate-700">Ollama URL</label>
+        <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Ollama URL</label>
         <input class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono text-slate-800 placeholder-slate-400 focus:border-[#4979e6] focus:outline-none focus:ring-1 focus:ring-[#4979e6] transition"
           type="text"
           [(ngModel)]="ollamaUrl"
@@ -121,7 +116,7 @@
       <!-- Models list -->
       <div class="grid gap-2" *ngIf="selectedProvider() !== 'disabled'">
         <div class="flex items-center justify-between">
-          <label class="text-sm font-medium text-slate-700">Modello</label>
+          <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Modello</label>
           <button class="text-xs text-[#4979e6] font-medium hover:underline flex items-center gap-1" (click)="fetchModels()" [disabled]="loadingModels()">
             <i class="pi pi-refresh text-xs" [class.animate-spin]="loadingModels()"></i> {{ loadingModels() ? 'Carico...' : 'Ricarica lista modelli' }}
           </button>
@@ -131,24 +126,20 @@
             <button *ngFor="let model of availableModels()"
               type="button"
               class="px-3 py-1 rounded-full border text-xs font-medium transition"
-              [class.bg-[#4979e6]]="selectedModel() === model"
               [class.text-white]="selectedModel() === model"
-              [class.border-[#4979e6]]="selectedModel() === model"
-              [class.bg-slate-100]="selectedModel() !== model"
-              [class.text-slate-700]="selectedModel() !== model"
-              [class.border-slate-200]="selectedModel() !== model"
+              [ngClass]="selectedModel() === model ? 'bg-[#4979e6] text-white border-[#4979e6] dark:text-slate-950' : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700'"
               (click)="selectedModel.set(model)">
               {{ model }}
             </button>
           </div>
         </div>
         <ng-template #noModels>
-          <p class="text-sm text-slate-400 italic">Nessun modello trovato. Avvia il ping per caricare la lista.</p>
+          <p class="text-sm italic text-slate-400 dark:text-slate-500">Nessun modello trovato. Avvia il ping per caricare la lista.</p>
         </ng-template>
       </div>
 
       <!-- Disabled state -->
-      <div class="rounded-md bg-slate-50 border border-slate-200 px-4 py-3 text-sm text-slate-500" *ngIf="selectedProvider() === 'disabled'">
+      <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300" *ngIf="selectedProvider() === 'disabled'">
         <i class="pi pi-info-circle mr-2"></i> AI disabilitata. La pianificazione automatica userà la modalità manuale.
       </div>
 
@@ -158,7 +149,7 @@
           (click)="saveAiSettings()" [disabled]="saving()">
           <i class="pi pi-save mr-1 text-xs"></i> {{ saving() ? 'Salvataggio...' : 'Salva impostazioni' }}
         </button>
-        <button class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition disabled:opacity-60"
+        <button class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           (click)="pingProvider()" [disabled]="pingStatus() === 'testing' || selectedProvider() === 'disabled'">
           <i class="pi pi-wifi mr-1 text-xs"></i> Testa connessione
         </button>
@@ -169,38 +160,38 @@
   </div>
 
   <!-- Automazioni -->
-  <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden" *ngIf="activeTab() === 'ai'">
-    <div class="border-b border-slate-100 px-6 py-4">
-      <h3 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/80" *ngIf="activeTab() === 'ai'">
+    <div class="border-b border-slate-100 px-6 py-4 dark:border-slate-700">
+      <h3 class="flex items-center gap-2 text-base font-semibold text-slate-800 dark:text-slate-100">
         <i class="pi pi-cog text-[#4979e6]"></i> Automazioni
       </h3>
-      <p class="mt-0.5 text-sm text-slate-500">Bilanciamento tra manuale e scheduling assistito.</p>
+      <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-300">Bilanciamento tra manuale e scheduling assistito.</p>
     </div>
     <div class="px-6 py-5 grid gap-5">
       <div class="grid gap-2">
-        <label class="text-sm font-medium text-slate-700">Modalità pianificazione</label>
-        <p class="text-xs text-slate-500">Ciclo turni, sostituzioni, limiti, quiet hours, reminder e fallback manuale.</p>
+        <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Modalità pianificazione</label>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Ciclo turni, sostituzioni, limiti, quiet hours, reminder e fallback manuale.</p>
         <ui-select [options]="automationModes" [value]="selectedAutomationMode" (valueChange)="onAutomationModeChange($event)"></ui-select>
       </div>
       <div class="grid gap-3">
-        <div class="flex items-center justify-between py-3 border-b border-slate-100">
+        <div class="flex items-center justify-between border-b border-slate-100 py-3 dark:border-slate-800">
           <div>
-            <p class="text-sm font-medium text-slate-800">Modalità AI agnostic</p>
-            <p class="text-xs text-slate-500">Usa il provider configurato per ottimizzare le assegnazioni.</p>
+            <p class="text-sm font-medium text-slate-800 dark:text-slate-100">Modalità AI agnostic</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Usa il provider configurato per ottimizzare le assegnazioni.</p>
           </div>
           <ui-toggle label="" [value]="agnosticMode()" (valueChange)="agnosticMode.set($event)"></ui-toggle>
         </div>
-        <div class="flex items-center justify-between py-3 border-b border-slate-100">
+        <div class="flex items-center justify-between border-b border-slate-100 py-3 dark:border-slate-800">
           <div>
-            <p class="text-sm font-medium text-slate-800">Reminder automatici</p>
-            <p class="text-xs text-slate-500">Notifiche automatiche ai volontari prima degli eventi assegnati.</p>
+            <p class="text-sm font-medium text-slate-800 dark:text-slate-100">Reminder automatici</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Notifiche automatiche ai volontari prima degli eventi assegnati.</p>
           </div>
           <ui-toggle label="" [value]="remindersEnabled()" (valueChange)="remindersEnabled.set($event)"></ui-toggle>
         </div>
         <div class="flex items-center justify-between py-3">
           <div>
-            <p class="text-sm font-medium text-slate-800">Quiet hours</p>
-            <p class="text-xs text-slate-500">Non inviare notifiche tra le 22:00 e le 08:00.</p>
+            <p class="text-sm font-medium text-slate-800 dark:text-slate-100">Quiet hours</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Non inviare notifiche tra le 22:00 e le 08:00.</p>
           </div>
           <ui-toggle label="" [value]="quietHours()" (valueChange)="quietHours.set($event)"></ui-toggle>
         </div>
@@ -208,28 +199,28 @@
     </div>
   </div>
 
-  <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden" *ngIf="activeTab() === 'ai'">
-    <div class="border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/80" *ngIf="activeTab() === 'ai'">
+    <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-700">
       <div>
-        <h3 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+        <h3 class="flex items-center gap-2 text-base font-semibold text-slate-800 dark:text-slate-100">
           <i class="pi pi-sparkles text-[#4979e6]"></i> AI jobs e capabilities
         </h3>
-        <p class="mt-0.5 text-sm text-slate-500">Base pronta per frontend: provider, capability e prompt asincroni via queue.</p>
+        <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-300">Base pronta per frontend: provider, capability e prompt asincroni via queue.</p>
       </div>
       <button class="text-xs font-medium text-[#4979e6] hover:underline" (click)="loadAiJobs()">Aggiorna job</button>
     </div>
     <div class="px-6 py-5 grid gap-6">
       <div class="grid gap-3 md:grid-cols-2">
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4" *ngFor="let capability of aiCapabilities()">
-          <p class="text-sm font-semibold text-slate-900">{{ capability.provider }}</p>
-          <p class="mt-2 text-xs text-slate-500">chat={{ capability.supportsChat }} · models={{ capability.supportsModelListing }} · health={{ capability.supportsHealthcheck }}</p>
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/70" *ngFor="let capability of aiCapabilities()">
+          <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ capability.provider }}</p>
+          <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">chat={{ capability.supportsChat }} · models={{ capability.supportsModelListing }} · health={{ capability.supportsHealthcheck }}</p>
         </div>
       </div>
       <div class="grid gap-2">
-        <label class="text-sm font-medium text-slate-700">Prompt rapido</label>
-        <textarea class="min-h-28 rounded-md border border-slate-300 px-3 py-2 text-sm" [ngModel]="aiPrompt()" (ngModelChange)="aiPrompt.set($event)" placeholder="Es. suggerisci una bozza di reminder per i volontari del turno di domani"></textarea>
+        <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Prompt rapido</label>
+        <textarea class="min-h-28 rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [ngModel]="aiPrompt()" (ngModelChange)="aiPrompt.set($event)" placeholder="Es. suggerisci una bozza di reminder per i volontari del turno di domani"></textarea>
         <div class="flex items-center gap-3">
-          <button class="rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60" (click)="runAiPrompt()" [disabled]="creatingAiJob() || selectedProvider() === 'disabled'">{{ creatingAiJob() ? 'Invio...' : 'Crea job AI' }}</button>
+          <button class="rounded-md bg-[#4979e6] px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:text-slate-950" (click)="runAiPrompt()" [disabled]="creatingAiJob() || selectedProvider() === 'disabled'">{{ creatingAiJob() ? 'Invio...' : 'Crea job AI' }}</button>
         </div>
       </div>
       <div class="divide-y divide-slate-100 rounded-2xl border border-slate-200">
@@ -260,12 +251,12 @@
     </div>
   </div>
 
-  <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden" *ngIf="activeTab() === 'backend'">
-    <div class="border-b border-slate-100 px-6 py-4">
-      <h3 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/80" *ngIf="activeTab() === 'backend'">
+    <div class="border-b border-slate-100 px-6 py-4 dark:border-slate-700">
+      <h3 class="flex items-center gap-2 text-base font-semibold text-slate-800 dark:text-slate-100">
         <i class="pi pi-server text-[#4979e6]"></i> Backend channels
       </h3>
-      <p class="mt-0.5 text-sm text-slate-500">Configurazione persistita di SMTP, webhook e valori backend operativi.</p>
+      <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-300">Configurazione persistita di SMTP, webhook e valori backend operativi.</p>
     </div>
     <div class="px-6 py-5 grid gap-6">
       <div class="grid gap-4 md:grid-cols-2">
@@ -470,13 +461,13 @@
     </div>
   </div>
 
-  <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden" *ngIf="activeTab() === 'observability'">
-    <div class="border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/80" *ngIf="activeTab() === 'observability'">
+    <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-700">
       <div>
-        <h3 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+        <h3 class="flex items-center gap-2 text-base font-semibold text-slate-800 dark:text-slate-100">
           <i class="pi pi-send text-[#4979e6]"></i> Delivery notifiche
         </h3>
-        <p class="mt-0.5 text-sm text-slate-500">Storico canali email, websocket e webhook gestiti dalla coda notifiche.</p>
+        <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-300">Storico canali email, websocket e webhook gestiti dalla coda notifiche.</p>
       </div>
       <button class="text-xs font-medium text-[#4979e6] hover:underline" (click)="loadNotificationDeliveries()">Aggiorna delivery</button>
     </div>
@@ -495,13 +486,13 @@
     </div>
   </div>
 
-  <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden" *ngIf="activeTab() === 'observability'">
-    <div class="border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/80" *ngIf="activeTab() === 'observability'">
+    <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-700">
       <div>
-        <h3 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+        <h3 class="flex items-center gap-2 text-base font-semibold text-slate-800 dark:text-slate-100">
           <i class="pi pi-history text-[#4979e6]"></i> Audit recente
         </h3>
-        <p class="mt-0.5 text-sm text-slate-500">Ultime modifiche tracciate su configurazioni e flussi operativi.</p>
+        <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-300">Ultime modifiche tracciate su configurazioni e flussi operativi.</p>
       </div>
       <button class="text-xs font-medium text-[#4979e6] hover:underline" (click)="loadAuditLogs()">Aggiorna log</button>
     </div>
