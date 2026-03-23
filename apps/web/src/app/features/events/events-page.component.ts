@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { map, of, switchMap, tap } from 'rxjs';
@@ -143,6 +143,26 @@ export class EventsPageComponent {
   protected previewVisible = false;
   protected assignmentBoardVisible = false;
   protected eventDialogVisible = false;
+
+  @HostListener('document:keydown.escape', ['$event'])
+  protected handleEscape(event: KeyboardEvent): void {
+    if (this.eventDialogVisible) {
+      this.eventDialogVisible = false;
+      event.preventDefault();
+      return;
+    }
+
+    if (this.assignmentBoardVisible) {
+      this.assignmentBoardVisible = false;
+      event.preventDefault();
+      return;
+    }
+
+    if (this.previewVisible) {
+      this.previewVisible = false;
+      event.preventDefault();
+    }
+  }
   protected eventForm = { title: '', startsAt: null as Date | null, endsAt: null as Date | null, isRecurring: false, recurrenceFrequency: 'WEEKLY' as 'WEEKLY' | 'MONTHLY' | 'YEARLY', slots: [] as EventSlotForm[] };
   protected replacementReason = '';
   protected readonly replacementAssigneeId = signal<string | null>(null);

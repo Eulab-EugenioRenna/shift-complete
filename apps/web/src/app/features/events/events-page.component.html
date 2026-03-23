@@ -1,9 +1,9 @@
-<section class="grid gap-6 text-slate-800 dark:text-slate-100">
+<section class="grid gap-6 text-[color:var(--text-1)]">
   <header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
     <div>
       <p class="text-sm uppercase tracking-[0.3em] text-teal-700 dark:text-teal-300">Eventi</p>
-      <h2 class="text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">CRUD eventi, assegnazioni e copertura reale dei turni.</h2>
-      <p class="mt-2 max-w-3xl text-sm text-slate-500 dark:text-slate-300">Gestisci creazione, modifica, assegnazioni e sostituzioni in uno spazio operativo dedicato agli eventi.</p>
+      <h2 class="text-3xl font-semibold tracking-tight text-[color:var(--text-1)]">CRUD eventi, assegnazioni e copertura reale dei turni.</h2>
+      <p class="mt-2 max-w-3xl text-sm text-[color:var(--text-2)]">Gestisci creazione, modifica, assegnazioni e sostituzioni in uno spazio operativo dedicato agli eventi.</p>
     </div>
     <div class="flex flex-wrap items-center gap-2" *ngIf="canManageEvents()">
       <button pButton type="button" label="Nuovo evento" icon="pi pi-plus" (click)="openEventDialog()"></button>
@@ -15,11 +15,11 @@
   <app-team-scope-chips [teams]="teams()"></app-team-scope-chips>
 
   <div class="grid gap-4 xl:grid-cols-[1.4fr_0.6fr]">
-    <div class="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
-      <div class="flex flex-col gap-4 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-700">
+    <div class="overflow-hidden rounded-[24px] border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] shadow-[var(--shadow-soft)]">
+      <div class="flex flex-col gap-4 border-b border-[color:var(--border-soft)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 class="text-base font-semibold text-slate-800 dark:text-slate-100">Registro eventi</h3>
-          <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-300">Tutti gli eventi ordinati per data con accesso diretto a modifica, eliminazione e board operativa.</p>
+          <h3 class="text-base font-semibold text-[color:var(--text-1)]">Registro eventi</h3>
+          <p class="mt-0.5 text-sm text-[color:var(--text-2)]">Tutti gli eventi ordinati per data con accesso diretto a modifica, eliminazione e board operativa.</p>
         </div>
         <div class="grid gap-2 sm:grid-cols-2 sm:items-end">
           <ui-select label="Filtro utente" [options]="selectableUsers()" [value]="selectedUserFilter()" (valueChange)="selectedUserFilter.set(castNullable($event) || '')"></ui-select>
@@ -27,7 +27,7 @@
         </div>
       </div>
 
-      <div class="border-b border-slate-100 bg-slate-50 px-5 py-4 dark:border-slate-700 dark:bg-slate-950/40">
+      <div class="border-b border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-5 py-4">
         <div class="flex flex-wrap gap-2">
           <span class="app-event-chip app-event-chip-neutral"><span class="app-event-chip-dot"></span> Evento singolo</span>
           <span class="app-event-chip app-event-chip-success"><span class="app-event-chip-dot"></span> Evento ricorrente</span>
@@ -35,10 +35,10 @@
         </div>
       </div>
 
-      <div class="divide-y divide-slate-100 dark:divide-slate-800">
+      <div class="divide-y divide-[color:var(--border-soft)]">
         <div *ngFor="let event of sortedEvents()"
-          class="group flex cursor-pointer items-start gap-4 px-5 py-4 transition hover:bg-slate-50 dark:hover:bg-slate-800/60"
-          [class.bg-slate-50]="selectedEvent()?.id === event.id"
+          class="group flex cursor-pointer items-start gap-4 px-5 py-4 transition hover:bg-[color:var(--surface-2)]"
+          [ngClass]="selectedEvent()?.id === event.id ? 'bg-[color:var(--surface-2)]' : ''"
           (click)="selectEvent(event)">
           <div class="flex min-w-12 flex-col items-center justify-center rounded-xl bg-[#4979e6] px-2 py-2 text-center text-white">
             <span class="text-lg font-light leading-none">{{ event.startsAt | date:'d' }}</span>
@@ -47,8 +47,8 @@
           <div class="flex-1">
             <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <p class="text-sm font-semibold text-slate-800 transition group-hover:text-[#4979e6] dark:text-slate-100">{{ event.title }}</p>
-                <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ event.startsAt | date:'short' }} - {{ event.endsAt | date:'short' }}</p>
+                <p class="text-sm font-semibold text-[color:var(--text-1)] transition group-hover:text-[#4979e6]">{{ event.title }}</p>
+                <p class="mt-0.5 text-xs text-[color:var(--text-2)]">{{ event.startsAt | date:'short' }} - {{ event.endsAt | date:'short' }}</p>
               </div>
               <div class="flex flex-wrap gap-1.5">
                 <ui-label [tone]="event.isOccurrence ? 'info' : eventTypeTone(event.type)">{{ event.isOccurrence ? 'Occorrenza' : eventTypeLabel(event.type) }}</ui-label>
@@ -57,9 +57,9 @@
               </div>
             </div>
           </div>
-          <i class="pi pi-chevron-right mt-1 text-slate-300 transition group-hover:text-[#4979e6]"></i>
+          <i class="pi pi-chevron-right mt-1 text-[color:var(--text-3)] transition group-hover:text-[#4979e6]"></i>
         </div>
-        <div *ngIf="!events().length" class="px-5 py-12 text-center text-sm text-slate-400">
+        <div *ngIf="!events().length" class="px-5 py-12 text-center text-sm text-[color:var(--text-3)]">
           <i class="pi pi-calendar mb-2 block text-3xl opacity-40"></i>
           Nessun evento disponibile.
         </div>
@@ -69,41 +69,43 @@
     <div class="grid gap-4">
       <ui-sidebar-panel title="Dettaglio evento" eyebrow="Workspace eventi">
         <div *ngIf="selectedEvent() as event; else noEvent" class="grid gap-4">
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <p class="text-lg font-semibold text-slate-900">{{ event.title }}</p>
-              <p class="mt-1 text-xs text-slate-500">{{ event.startsAt | date:'fullDate' }} · {{ event.startsAt | date:'shortTime' }} - {{ event.endsAt | date:'shortTime' }}</p>
+          <div class="grid gap-4">
+            <div class="min-w-0">
+              <p class="text-lg font-semibold text-[color:var(--text-1)]">{{ event.title }}</p>
+              <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ event.startsAt | date:'fullDate' }} · {{ event.startsAt | date:'shortTime' }} - {{ event.endsAt | date:'shortTime' }}</p>
             </div>
-            <div class="flex flex-wrap gap-2" *ngIf="canManageEvents()">
-              <button type="button" class="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50" (click)="openEditEvent(event, 'single')">Modifica occorrenza</button>
-              <button *ngIf="event.type === 'recurring' && event.seriesId" type="button" class="rounded-md border border-emerald-200 px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-50" (click)="openEditEvent(event, 'series')">Modifica serie</button>
-              <button type="button" class="rounded-md border border-red-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50" (click)="deleteEvent(event, 'single')">Elimina occorrenza</button>
-              <button *ngIf="event.type === 'recurring' && event.seriesId" type="button" class="rounded-md border border-red-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50" (click)="deleteEvent(event, 'series')">Elimina serie</button>
+            <div class="grid gap-2" *ngIf="canManageEvents()">
+              <button type="button" class="min-w-[11.5rem] rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-2 text-sm font-medium text-[color:var(--text-2)] text-center transition hover:bg-[color:var(--surface-2)] hover:text-[color:var(--text-1)]" (click)="openEditEvent(event, 'single')">Modifica occorrenza</button>
+              <button *ngIf="event.type === 'recurring' && event.seriesId" type="button" class="min-w-[11.5rem] rounded-md border border-emerald-300 bg-emerald-600 px-3 py-2 text-sm font-medium text-white text-center shadow-sm transition hover:bg-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/60 dark:text-emerald-100 dark:hover:bg-emerald-950/80" (click)="openEditEvent(event, 'series')">Modifica serie</button>
+            </div>
+            <div class="grid gap-2" *ngIf="canManageEvents()">
+              <button type="button" class="min-w-[11.5rem] rounded-md border border-red-300 bg-red-600 px-3 py-2 text-sm font-medium text-white text-center shadow-sm transition hover:bg-red-700 dark:border-red-900/70 dark:bg-red-950/60 dark:text-red-100 dark:hover:bg-red-950/80" (click)="deleteEvent(event, 'single')">Elimina occorrenza</button>
+              <button *ngIf="event.type === 'recurring' && event.seriesId" type="button" class="min-w-[11.5rem] rounded-md border border-red-300 bg-red-600 px-3 py-2 text-sm font-medium text-white text-center shadow-sm transition hover:bg-red-700 dark:border-red-900/70 dark:bg-red-950/60 dark:text-red-100 dark:hover:bg-red-950/80" (click)="deleteEvent(event, 'series')">Elimina serie</button>
             </div>
           </div>
-          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-            <p class="font-medium text-slate-900">Finestra operativa</p>
+          <div class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-4 text-sm text-[color:var(--text-2)]">
+            <p class="font-medium text-[color:var(--text-1)]">Finestra operativa</p>
             <p class="mt-1">{{ event.startsAt | date:'short' }} - {{ event.endsAt | date:'short' }}</p>
             <div class="mt-3 flex flex-wrap gap-2">
               <ui-label [tone]="eventTypeTone(event.type)">{{ eventTypeLabel(event.type) }}</ui-label>
               <ui-label [tone]="(event.assignments?.length || 0) > 0 ? 'success' : 'warn'">{{ (event.assignments?.length || 0) > 0 ? 'copertura avviata' : 'nessuna assegnazione' }}</ui-label>
             </div>
-            <p class="mt-3 text-xs text-slate-500" *ngIf="event.isVirtualOccurrence">Questa occorrenza deriva dalla serie ricorrente: per assegnazioni o modifiche autonome materializzala con "Modifica occorrenza".</p>
+            <p class="mt-3 text-xs text-[color:var(--text-2)]" *ngIf="event.isVirtualOccurrence">Questa occorrenza deriva dalla serie ricorrente: per assegnazioni o modifiche autonome materializzala con "Modifica occorrenza".</p>
           </div>
-          <div class="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
-            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Dettaglio evento</p>
+          <div class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] p-4 text-sm text-[color:var(--text-2)] shadow-[var(--shadow-soft)]">
+            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Dettaglio evento</p>
             <div class="mt-3 grid gap-2">
-              <div class="flex items-center justify-between gap-3"><span>Nome evento</span><span class="font-medium text-slate-900">{{ event.title }}</span></div>
-              <div class="flex items-center justify-between gap-3"><span>Data e ora</span><span class="font-medium text-slate-900">{{ event.startsAt | date:'short' }} - {{ event.endsAt | date:'shortTime' }}</span></div>
-              <div class="flex items-center justify-between gap-3"><span>Tipo vista</span><span class="font-medium text-slate-900">{{ event.isOccurrence ? 'Occorrenza' : 'Evento base' }}</span></div>
-              <div class="flex items-center justify-between gap-3"><span>Team</span><span class="font-medium text-slate-900">{{ event.slots?.length || 0 }} slot</span></div>
-              <div class="flex items-center justify-between gap-3"><span>Volontari</span><span class="font-medium text-slate-900">{{ event.assignments?.length || 0 }} assegnazioni</span></div>
-              <div class="flex items-center justify-between gap-3"><span>Note</span><span class="font-medium text-slate-900">{{ event.description || 'Usa board e timeline sostituzioni' }}</span></div>
+              <div class="flex items-center justify-between gap-3"><span>Nome evento</span><span class="font-medium text-[color:var(--text-1)]">{{ event.title }}</span></div>
+              <div class="flex items-center justify-between gap-3"><span>Data e ora</span><span class="font-medium text-[color:var(--text-1)]">{{ event.startsAt | date:'short' }} - {{ event.endsAt | date:'shortTime' }}</span></div>
+              <div class="flex items-center justify-between gap-3"><span>Tipo vista</span><span class="font-medium text-[color:var(--text-1)]">{{ event.isOccurrence ? 'Occorrenza' : 'Evento base' }}</span></div>
+              <div class="flex items-center justify-between gap-3"><span>Team</span><span class="font-medium text-[color:var(--text-1)]">{{ event.slots?.length || 0 }} slot</span></div>
+              <div class="flex items-center justify-between gap-3"><span>Volontari</span><span class="font-medium text-[color:var(--text-1)]">{{ event.assignments?.length || 0 }} assegnazioni</span></div>
+              <div class="flex items-center justify-between gap-3"><span>Note</span><span class="font-medium text-[color:var(--text-1)]">{{ event.description || 'Usa board e timeline sostituzioni' }}</span></div>
             </div>
           </div>
           <ui-table-shell title="Slot evento">
             <table class="min-w-full text-sm">
-              <thead class="bg-slate-50 text-left text-slate-500">
+            <thead class="bg-[color:var(--surface-2)] text-left text-[color:var(--text-2)]">
                 <tr>
                   <th class="px-4 py-3">Mansione</th>
                   <th class="px-4 py-3">Team</th>
@@ -112,16 +114,16 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let slot of event.slots || []" class="border-t border-slate-100" [class.bg-amber-50]="isTargetSlot(slot)" [class.ring-1]="isTargetSlot(slot)" [class.ring-amber-300]="isTargetSlot(slot)">
+                <tr *ngFor="let slot of event.slots || []" class="border-t border-[color:var(--border-soft)]" [class.bg-amber-50]="isTargetSlot(slot)" [class.ring-1]="isTargetSlot(slot)" [class.ring-amber-300]="isTargetSlot(slot)">
                   <td class="px-4 py-3">{{ slot.roleName || 'Mansione' }}</td>
                   <td class="px-4 py-3">{{ slot.teamName || 'Team' }}</td>
                   <td class="px-4 py-3">
                     <div class="grid gap-2" *ngIf="slot.assignments?.length; else noSlotAssignments">
-                      <div *ngFor="let assignment of slot.assignments" class="rounded-2xl border border-slate-200 bg-white px-3 py-3">
+                      <div *ngFor="let assignment of slot.assignments" class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-3">
                         <div class="flex items-start justify-between gap-3">
                           <div>
-                            <p class="font-medium text-slate-900">{{ assignment.assignee?.fullName || 'Assegnazione aperta' }}</p>
-                            <p class="text-xs text-slate-500">{{ assignment.status }}</p>
+                            <p class="font-medium text-[color:var(--text-1)]">{{ assignment.assignee?.fullName || 'Assegnazione aperta' }}</p>
+                            <p class="text-xs text-[color:var(--text-2)]">{{ assignment.status }}</p>
                           </div>
                           <div class="flex flex-wrap gap-2" *ngIf="replacementForAssignment(assignment.id) as replacement">
                             <ui-label [tone]="replacementTone(replacement.status)">{{ replacementStatusLabel(replacement.status) }}</ui-label>
@@ -129,21 +131,21 @@
                             <button type="button" class="text-xs font-medium text-[#4979e6]" (click)="openReplacementAssistant(replacement)">Assistente</button>
                           </div>
                         </div>
-                        <div class="mt-3 rounded-2xl border border-slate-100 bg-slate-50 p-3" *ngIf="replacementForAssignment(assignment.id) as replacement">
-                          <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Timeline sostituzione</p>
-                          <div class="mt-2 grid gap-2 text-xs text-slate-600">
-                            <div class="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2">
+                        <div class="mt-3 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-3" *ngIf="replacementForAssignment(assignment.id) as replacement">
+                          <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Timeline sostituzione</p>
+                          <div class="mt-2 grid gap-2 text-xs text-[color:var(--text-2)]">
+                            <div class="flex items-center justify-between gap-3 rounded-xl bg-[color:var(--surface-1)] px-3 py-2">
                               <span>Assegnazione originaria</span>
-                              <span class="font-medium text-slate-800">{{ replacement.requestedBy?.fullName || assignment.assignee?.fullName || 'Volontario' }}</span>
+                              <span class="font-medium text-[color:var(--text-1)]">{{ replacement.requestedBy?.fullName || assignment.assignee?.fullName || 'Volontario' }}</span>
                             </div>
-                            <div class="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2" *ngIf="replacement.replacementAssignee?.fullName">
+                            <div class="flex items-center justify-between gap-3 rounded-xl bg-[color:var(--surface-1)] px-3 py-2" *ngIf="replacement.replacementAssignee?.fullName">
                               <span>Sostituto confermato</span>
                               <span class="font-medium text-emerald-700">{{ replacement.replacementAssignee?.fullName }}</span>
                             </div>
                           </div>
                         </div>
                         <div class="mt-2 grid gap-2" *ngIf="canRequestReplacement(assignment)">
-                          <input class="rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none" [(ngModel)]="replacementReason" placeholder="Motivo sostituzione" />
+                          <input class="rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-2 text-xs text-[color:var(--text-1)] outline-none placeholder:text-[color:var(--text-3)]" [(ngModel)]="replacementReason" placeholder="Motivo sostituzione" />
                           <button type="button" class="text-xs font-medium text-orange-700" (click)="requestReplacement(assignment.id)" [disabled]="hasPendingReplacement(assignment.id)">
                             {{ hasPendingReplacement(assignment.id) ? 'Richiesta inviata' : 'Richiedi sostituzione' }}
                           </button>
@@ -151,7 +153,7 @@
                       </div>
                     </div>
                     <ng-template #noSlotAssignments>
-                      <span class="text-sm text-slate-400">Nessuna assegnazione</span>
+                      <span class="text-sm text-[color:var(--text-3)]">Nessuna assegnazione</span>
                     </ng-template>
                   </td>
                   <td class="px-4 py-3">
@@ -161,45 +163,45 @@
               </tbody>
             </table>
           </ui-table-shell>
-          <div class="rounded-2xl border border-slate-200 p-4 text-sm text-slate-600">
-            <p class="font-medium text-slate-900">Tempo reale</p>
+          <div class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] p-4 text-sm text-[color:var(--text-2)] shadow-[var(--shadow-soft)]">
+            <p class="font-medium text-[color:var(--text-1)]">Tempo reale</p>
             <p class="mt-1">{{ live.connected() ? 'Connesso al gateway websocket' : 'In attesa connessione websocket' }}</p>
           </div>
         </div>
         <ng-template #noEvent>
-          <p class="text-sm text-slate-500">Seleziona un evento dalla lista oppure creane uno nuovo.</p>
+          <p class="text-sm text-[color:var(--text-2)]">Seleziona un evento dalla lista oppure creane uno nuovo.</p>
         </ng-template>
       </ui-sidebar-panel>
 
       <ui-sidebar-panel title="Assistente sostituzioni" eyebrow="Spazio eventi">
         <div *ngIf="assistantReplacement() as replacement; else noReplacementAssistant" class="grid gap-4">
           <div>
-            <p class="text-sm font-medium text-slate-900">{{ replacement.assignment?.slot?.event?.title || 'Sostituzione' }}</p>
-            <p class="text-xs text-slate-500">{{ replacement.assignment?.slot?.team?.name || '-' }} · {{ replacement.assignment?.slot?.duty?.name || '-' }}</p>
+            <p class="text-sm font-medium text-[color:var(--text-1)]">{{ replacement.assignment?.slot?.event?.title || 'Sostituzione' }}</p>
+            <p class="text-xs text-[color:var(--text-2)]">{{ replacement.assignment?.slot?.team?.name || '-' }} · {{ replacement.assignment?.slot?.duty?.name || '-' }}</p>
             <div class="mt-3 flex flex-wrap gap-2">
               <ui-label [tone]="replacementTone(replacement.status)">{{ assistantStatusLabel(replacement) }}</ui-label>
               <ui-label tone="neutral">{{ assistantCoverageLabel(replacement) }}</ui-label>
             </div>
           </div>
-          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Prossima azione consigliata</p>
-            <p class="mt-2 text-sm text-slate-700">{{ assistantRecommendation(replacement) }}</p>
+          <div class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-4">
+            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Prossima azione consigliata</p>
+            <p class="mt-2 text-sm text-[color:var(--text-1)]">{{ assistantRecommendation(replacement) }}</p>
           </div>
           <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/70 dark:bg-blue-950/30" *ngIf="replacement.suggestedReplacement as suggested">
             <div class="flex items-center justify-between gap-2">
               <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#4979e6]">Miglior candidato</p>
               <ui-label [tone]="assistantScoreTone(suggested.score)">score {{ suggested.score }}</ui-label>
             </div>
-            <p class="mt-2 text-sm text-slate-700"><span class="font-medium text-slate-900">{{ suggested.fullName }}</span></p>
+            <p class="mt-2 text-sm text-[color:var(--text-2)]"><span class="font-medium text-[color:var(--text-1)]">{{ suggested.fullName }}</span></p>
             <div class="mt-3 flex flex-wrap gap-1.5">
               <ui-label *ngFor="let reason of suggested.reasons" tone="neutral">{{ reason }}</ui-label>
             </div>
           </div>
           <div class="grid gap-2" *ngIf="replacement.suggestedCandidates?.length">
-            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Top candidati</p>
-            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-3" *ngFor="let candidate of replacement.suggestedCandidates | slice:0:3">
+            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Top candidati</p>
+            <div class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-3" *ngFor="let candidate of replacement.suggestedCandidates | slice:0:3">
               <div class="flex items-center justify-between gap-2">
-                <span class="font-medium text-slate-800">{{ candidate.fullName }}</span>
+                <span class="font-medium text-[color:var(--text-1)]">{{ candidate.fullName }}</span>
                 <ui-label [tone]="assistantScoreTone(candidate.score)">score {{ candidate.score }}</ui-label>
               </div>
               <div class="mt-2 flex flex-wrap gap-1.5">
@@ -209,11 +211,11 @@
           </div>
           <div class="flex gap-2" *ngIf="replacement.status === 'PENDING' && canManageReplacements()">
             <button type="button" class="rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white" (click)="approveReplacementWithSuggestion(replacement)" [disabled]="!replacement.suggestedReplacement?.id || locallyReservedSuggestionIds().includes(replacement.suggestedReplacement.id)">Approva con suggerito</button>
-            <button type="button" class="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-600" (click)="assistantReplacement.set(null)">Chiudi</button>
+            <button type="button" class="rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-4 py-2 text-sm text-[color:var(--text-2)] transition hover:bg-[color:var(--surface-2)] hover:text-[color:var(--text-1)]" (click)="assistantReplacement.set(null)">Chiudi</button>
           </div>
         </div>
         <ng-template #noReplacementAssistant>
-          <p class="text-sm text-slate-500">Apri una sostituzione dalla timeline o dalla board per vedere stato, priorita operativa, ranking candidati e azione consigliata.</p>
+          <p class="text-sm text-[color:var(--text-2)]">Apri una sostituzione dalla timeline o dalla board per vedere stato, priorita operativa, ranking candidati e azione consigliata.</p>
         </ng-template>
       </ui-sidebar-panel>
     </div>
@@ -223,52 +225,52 @@
     <ui-dialog-shell [title]="editingEventId() ? 'Modifica evento' : 'Nuovo evento'" eyebrow="Workspace eventi" subtitle="Definisci slot, team e ricorrenza del servizio." icon="pi pi-calendar-plus" tone="info" [hasFooter]="true" (closeRequested)="eventDialogVisible = false">
       <div class="grid gap-5">
         <div class="grid gap-2">
-          <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Titolo evento</label>
-          <input class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#4979e6] focus:ring-2 focus:ring-[#4979e6]/15 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [(ngModel)]="eventForm.title" placeholder="Titolo evento" />
+          <label class="text-sm font-medium text-[color:var(--text-2)]">Titolo evento</label>
+          <input class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-4 py-3 text-sm text-[color:var(--text-1)] outline-none transition placeholder:text-[color:var(--text-3)] focus:border-[#4979e6] focus:ring-2 focus:ring-[#4979e6]/15" [(ngModel)]="eventForm.title" placeholder="Titolo evento" />
         </div>
-        <div class="grid gap-4 rounded-[26px] border border-slate-200 bg-slate-50/90 p-5 dark:border-slate-700 dark:bg-slate-950/40 md:grid-cols-2">
+        <div class="grid gap-4 rounded-[26px] border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-5 md:grid-cols-2">
           <div class="grid gap-2">
-            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Inizio</label>
-            <ui-date-picker [(value)]="eventForm.startsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1400" inputStyleClass="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#4979e6] dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"></ui-date-picker>
+            <label class="text-sm font-medium text-[color:var(--text-2)]">Inizio</label>
+            <ui-date-picker [(value)]="eventForm.startsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1400" inputStyleClass="w-full rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-4 py-3 text-sm text-[color:var(--text-1)] outline-none transition placeholder:text-[color:var(--text-3)] focus:border-[#4979e6]"></ui-date-picker>
           </div>
           <div class="grid gap-2">
-            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Fine</label>
-            <ui-date-picker [(value)]="eventForm.endsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1400" inputStyleClass="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#4979e6] dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"></ui-date-picker>
+            <label class="text-sm font-medium text-[color:var(--text-2)]">Fine</label>
+            <ui-date-picker [(value)]="eventForm.endsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1400" inputStyleClass="w-full rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-4 py-3 text-sm text-[color:var(--text-1)] outline-none transition placeholder:text-[color:var(--text-3)] focus:border-[#4979e6]"></ui-date-picker>
           </div>
         </div>
-        <div class="rounded-[26px] border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-950/40">
+        <div class="rounded-[26px] border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-5">
           <ui-toggle label="Evento ricorrente settimanale" [value]="eventForm.isRecurring" (valueChange)="eventForm.isRecurring = $event"></ui-toggle>
           <div class="mt-4" *ngIf="eventForm.isRecurring">
             <ui-select label="Ripetizione" [options]="recurrenceOptions" [value]="eventForm.recurrenceFrequency" (valueChange)="updateRecurrenceFrequency($event)"></ui-select>
           </div>
         </div>
-        <div class="grid gap-4 rounded-[26px] border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-950/40">
+        <div class="grid gap-4 rounded-[26px] border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-5">
           <div class="flex items-center justify-between gap-3">
             <div>
-              <p class="text-sm font-medium text-slate-900 dark:text-slate-100">Slot evento</p>
-              <p class="text-xs text-slate-500 dark:text-slate-400">Aggiungi piu team e piu mansioni nello stesso evento.</p>
+              <p class="text-sm font-medium text-[color:var(--text-1)]">Slot evento</p>
+              <p class="text-xs text-[color:var(--text-2)]">Aggiungi piu team e piu mansioni nello stesso evento.</p>
             </div>
-            <button type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800" (click)="addEventSlot()">Aggiungi slot</button>
+            <button type="button" class="rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-2 text-sm text-[color:var(--text-2)] transition hover:bg-[color:var(--surface-2)] hover:text-[color:var(--text-1)]" (click)="addEventSlot()">Aggiungi slot</button>
           </div>
           <div class="grid gap-3" *ngFor="let slot of eventForm.slots; let slotIndex = index">
-            <div class="rounded-[24px] border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+            <div class="rounded-[24px] border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] p-4 shadow-[var(--shadow-soft)]">
               <div class="mb-3 flex items-center justify-between gap-3">
-                <p class="text-sm font-medium text-slate-900 dark:text-slate-100">Slot {{ slotIndex + 1 }}</p>
+                <p class="text-sm font-medium text-[color:var(--text-1)]">Slot {{ slotIndex + 1 }}</p>
                 <button type="button" class="text-xs text-red-600 hover:text-red-700" (click)="removeEventSlot(slotIndex)" [disabled]="eventForm.slots.length === 1">Rimuovi</button>
               </div>
                 <div class="grid gap-4 md:grid-cols-2">
                   <ui-select label="Team" [options]="teamOptions()" [value]="slot.teamId" (valueChange)="updateSlotTeam(slotIndex, castNullable($event) ?? '')"></ui-select>
                   <ui-select label="Mansione" [options]="slotDutyOptions(slot.teamId)" [value]="slot.dutyId" (valueChange)="updateSlotDuty(slotIndex, castNullable($event) ?? '')"></ui-select>
                   <div class="grid gap-2">
-                    <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Inizio slot</label>
-                  <ui-date-picker [(value)]="slot.startsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1400" inputStyleClass="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"></ui-date-picker>
+                    <label class="text-sm font-medium text-[color:var(--text-2)]">Inizio slot</label>
+                  <ui-date-picker [(value)]="slot.startsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1400" inputStyleClass="w-full rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-4 py-3 text-sm text-[color:var(--text-1)] outline-none placeholder:text-[color:var(--text-3)]"></ui-date-picker>
                 </div>
                 <div class="grid gap-2">
-                    <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Fine slot</label>
-                    <ui-date-picker [(value)]="slot.endsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1400" inputStyleClass="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"></ui-date-picker>
+                    <label class="text-sm font-medium text-[color:var(--text-2)]">Fine slot</label>
+                    <ui-date-picker [(value)]="slot.endsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1400" inputStyleClass="w-full rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-4 py-3 text-sm text-[color:var(--text-1)] outline-none placeholder:text-[color:var(--text-3)]"></ui-date-picker>
                   </div>
                 </div>
-                <div class="mt-4 rounded-2xl border border-slate-100 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950/50">
+                <div class="mt-4 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-3">
                   <ui-toggle label="Slot richiesto" [value]="slot.required" (valueChange)="slot.required = $event"></ui-toggle>
                 </div>
               </div>
@@ -276,7 +278,7 @@
           </div>
         </div>
       <div dialog-footer class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <button type="button" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800" (click)="eventDialogVisible = false">Annulla</button>
+        <button type="button" class="rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-4 py-2.5 text-sm font-medium text-[color:var(--text-2)] transition hover:bg-[color:var(--surface-2)] hover:text-[color:var(--text-1)]" (click)="eventDialogVisible = false">Annulla</button>
         <button type="button" class="rounded-xl bg-[#4979e6] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50" (click)="saveEvent()" [disabled]="!isEventFormValid()">{{ editingEventId() ? (editingEventScope() === 'series' ? 'Salva serie' : 'Salva occorrenza') : 'Crea evento' }}</button>
       </div>
     </ui-dialog-shell>
@@ -307,22 +309,22 @@
           </ng-template>
         </p-table>
       </ui-table-shell>
-      <div class="mt-4 rounded-[24px] border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-950/40" *ngIf="previewSuggestions().length">
-        <p class="text-sm font-medium text-slate-900 dark:text-slate-100">Perche e stato scelto</p>
+      <div class="mt-4 rounded-[24px] border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-5" *ngIf="previewSuggestions().length">
+        <p class="text-sm font-medium text-[color:var(--text-1)]">Perche e stato scelto</p>
         <div class="mt-3 grid gap-3">
-          <div class="rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900" *ngFor="let suggestion of previewSuggestions() | slice:0:3">
+          <div class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] p-3" *ngFor="let suggestion of previewSuggestions() | slice:0:3">
             <div class="flex items-center justify-between gap-3">
-              <p class="font-medium text-slate-900 dark:text-slate-100">{{ suggestion.roleName }} · {{ suggestion.teamName }}</p>
+              <p class="font-medium text-[color:var(--text-1)]">{{ suggestion.roleName }} · {{ suggestion.teamName }}</p>
               <ui-label tone="info">{{ suggestion.assigneeName || 'Nessun candidato' }}</ui-label>
             </div>
             <div class="mt-2 flex flex-wrap gap-2">
               <ui-label *ngFor="let reason of suggestion.reasons || []" [tone]="reasonTone(reason)">{{ reason }}</ui-label>
             </div>
             <div class="mt-3 grid gap-2" *ngIf="suggestion.candidates?.length">
-              <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">Classifica candidati</p>
-              <div class="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-300" *ngFor="let candidate of suggestion.candidates">
+              <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Classifica candidati</p>
+              <div class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-3 py-3 text-xs text-[color:var(--text-2)]" *ngFor="let candidate of suggestion.candidates">
                 <div class="flex items-center justify-between gap-2">
-                  <span class="font-medium text-slate-800 dark:text-slate-100">{{ candidate.fullName }}</span>
+                  <span class="font-medium text-[color:var(--text-1)]">{{ candidate.fullName }}</span>
                   <ui-label tone="info">score {{ candidate.score }}</ui-label>
                 </div>
                 <div class="mt-2 flex flex-wrap gap-1.5">
@@ -339,11 +341,11 @@
   <p-dialog [(visible)]="assignmentBoardVisible" [modal]="true" [appendTo]="'body'" [baseZIndex]="1200" [blockScroll]="true" [dismissableMask]="true" [closeOnEscape]="true" [focusOnShow]="false" [showHeader]="false" [closable]="false" [style]="{ width: '78rem', maxWidth: '98vw', maxHeight: '90vh' }" [contentStyle]="{ background: 'transparent', padding: '0', overflow: 'hidden' }" [draggable]="false" [resizable]="false">
     <ui-dialog-shell title="Board assegnazioni" eyebrow="Workspace eventi" subtitle="Gestisci assegnazioni, replacement e copertura del servizio in un'unica board." icon="pi pi-directions-alt" tone="info" (closeRequested)="assignmentBoardVisible = false">
       <div class="grid gap-4" *ngIf="selectedEvent() as event; else noAssignmentEvent">
-        <div class="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-700 dark:bg-slate-950/40">
+        <div class="rounded-[24px] border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-4 py-4">
           <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ event.title }}</p>
-              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Trascina una persona del team nello slot corretto oppure gestisci replacement e conferme direttamente dalla board.</p>
+              <p class="text-sm font-semibold text-[color:var(--text-1)]">{{ event.title }}</p>
+              <p class="mt-1 text-xs text-[color:var(--text-2)]">Trascina una persona del team nello slot corretto oppure gestisci replacement e conferme direttamente dalla board.</p>
             </div>
             <div class="flex flex-wrap gap-2">
               <ui-label tone="neutral">{{ selectedEventSlots().length }} slot</ui-label>
@@ -353,47 +355,47 @@
         </div>
 
         <div class="grid gap-4 xl:grid-cols-2">
-          <div *ngFor="let slot of selectedEventSlots()" class="relative flex h-full flex-col rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm transition dark:border-slate-700 dark:bg-slate-900" [class.ring-2]="isTargetSlot(slot) || dragHoverSlotId() === slot.id" [class.ring-amber-300]="isTargetSlot(slot) || dragHoverSlotId() === slot.id" [ngClass]="dragHoverSlotId() === slot.id ? 'border-[#4979e6] bg-blue-50 dark:bg-[#12233f]' : ''" (dragover)="allowDrop($event, slot.id)" (dragenter)="setDragHoverSlot(slot.id)" (dragleave)="clearDragHoverSlot(slot.id)" (drop)="dropVolunteer(slot.id)">
+          <div *ngFor="let slot of selectedEventSlots()" class="relative flex h-full flex-col rounded-[24px] border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] p-4 shadow-[var(--shadow-soft)] transition" [class.ring-2]="isTargetSlot(slot) || dragHoverSlotId() === slot.id" [class.ring-amber-300]="isTargetSlot(slot) || dragHoverSlotId() === slot.id" [ngClass]="dragHoverSlotId() === slot.id ? 'border-[#4979e6] bg-[#f8fbff]' : ''" (dragover)="allowDrop($event, slot.id)" (dragenter)="setDragHoverSlot(slot.id)" (dragleave)="clearDragHoverSlot(slot.id)" (drop)="dropVolunteer(slot.id)">
             <div *ngIf="dragHoverSlotId() === slot.id" class="pointer-events-none absolute inset-3 rounded-2xl border-2 border-dashed border-[#4979e6] bg-blue-50/80 dark:bg-[#12233f]/80"></div>
-            <div class="flex items-start justify-between gap-3 border-b border-slate-100 pb-4 dark:border-slate-700">
+            <div class="flex items-start justify-between gap-3 border-b border-[color:var(--border-soft)] pb-4">
               <div>
-                <p class="font-medium text-slate-900 dark:text-slate-100">{{ slot.roleName }}</p>
-                <p class="text-sm text-slate-500 dark:text-slate-400">{{ slot.teamName }}</p>
+                <p class="font-medium text-[color:var(--text-1)]">{{ slot.roleName }}</p>
+                <p class="text-sm text-[color:var(--text-2)]">{{ slot.teamName }}</p>
               </div>
               <ui-label [tone]="slot.assignments?.length ? 'success' : 'warn'">{{ slot.assignments?.length ? 'coperto' : 'vacante' }}</ui-label>
             </div>
 
             <div class="mt-4 grid flex-1 gap-4 lg:grid-cols-2">
-              <div class="grid content-start gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950/50">
+              <div class="grid content-start gap-2 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-3">
                 <div class="flex items-center justify-between gap-2">
-                  <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">Persone del team</p>
-                  <span class="text-xs text-slate-400 dark:text-slate-500">{{ membersForTeam(slot.teamId).length }}</span>
+                  <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Persone del team</p>
+                  <span class="text-xs text-[color:var(--text-3)]">{{ membersForTeam(slot.teamId).length }}</span>
                 </div>
-                <div *ngFor="let member of membersForTeam(slot.teamId)" draggable="true" (dragstart)="startDragging(member.id)" (dragend)="finishDragging()" class="cursor-grab rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm shadow-sm transition hover:border-slate-300 hover:shadow dark:border-slate-700 dark:bg-slate-900" [ngClass]="draggedVolunteerId() === member.id ? 'border-[#4979e6] bg-blue-50 dark:bg-[#12233f] shadow-lg scale-[1.01]' : ''">
+                <div *ngFor="let member of membersForTeam(slot.teamId)" draggable="true" (dragstart)="startDragging(member.id)" (dragend)="finishDragging()" class="cursor-grab rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-3 text-sm shadow-[var(--shadow-soft)] transition hover:border-[color:var(--border-strong)] hover:shadow" [ngClass]="draggedVolunteerId() === member.id ? 'border-[#4979e6] bg-[#f8fbff] shadow-lg scale-[1.01]' : ''">
                   <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
-                      <p class="truncate font-medium text-slate-900 dark:text-slate-100">{{ member.fullName }}</p>
-                      <p class="truncate text-xs text-slate-500 dark:text-slate-400">{{ member.email }}</p>
+                      <p class="truncate font-medium text-[color:var(--text-1)]">{{ member.fullName }}</p>
+                      <p class="truncate text-xs text-[color:var(--text-2)]">{{ member.email }}</p>
                     </div>
                     <ui-label tone="neutral">{{ member.role }}</ui-label>
                   </div>
                 </div>
-                <div *ngIf="!membersForTeam(slot.teamId).length" class="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-4 text-sm text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500">
+                <div *ngIf="!membersForTeam(slot.teamId).length" class="rounded-2xl border border-dashed border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-4 py-4 text-sm text-[color:var(--text-3)]">
                   Nessuna persona presente in questo team.
                 </div>
               </div>
 
-              <div class="grid content-start gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950/50">
+              <div class="grid content-start gap-2 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-3">
                 <div class="flex items-center justify-between gap-2">
-                  <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Assegnazioni slot</p>
-                  <span class="text-xs text-slate-400">{{ slot.assignments?.length || 0 }}</span>
+                  <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Assegnazioni slot</p>
+                  <span class="text-xs text-[color:var(--text-3)]">{{ slot.assignments?.length || 0 }}</span>
                 </div>
                 <div class="rounded-xl border border-dashed px-3 py-3 text-sm transition dark:border-slate-700" [ngClass]="dragHoverSlotId() === slot.id ? 'border-[#4979e6] bg-blue-50 text-[#3156b3] dark:bg-[#12233f] dark:text-blue-200' : 'border-orange-200 bg-orange-50 text-orange-700 dark:bg-amber-950/40 dark:text-amber-200'" *ngIf="!slot.assignments?.length">{{ dragHoverSlotId() === slot.id ? 'Rilascia qui per assegnare il volontario.' : 'Trascina qui un volontario per assegnarlo.' }}</div>
-                <div class="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm dark:border-slate-700 dark:bg-slate-900" *ngFor="let assignment of slot.assignments">
+                <div class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-3 text-sm" *ngFor="let assignment of slot.assignments">
                   <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
-                      <p class="truncate font-medium text-slate-900 dark:text-slate-100">{{ assignment.assignee?.fullName || 'Assegnazione senza volontario' }}</p>
-                      <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ assignment.assignee?.email || 'Nessuna mail disponibile' }}</p>
+                      <p class="truncate font-medium text-[color:var(--text-1)]">{{ assignment.assignee?.fullName || 'Assegnazione senza volontario' }}</p>
+                      <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ assignment.assignee?.email || 'Nessuna mail disponibile' }}</p>
                     </div>
                     <div class="flex flex-wrap justify-end gap-2">
                       <ui-label *ngIf="assignment.replacementApproved" tone="success">replacement</ui-label>
@@ -401,12 +403,12 @@
                       <button type="button" class="text-xs font-medium text-[#4979e6]" *ngIf="replacementForAssignment(assignment.id) as replacement" (click)="openReplacementAssistant(replacement)">Assistente</button>
                     </div>
                   </div>
-                  <div class="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 dark:border-slate-700 dark:bg-slate-950/50" *ngIf="replacementForAssignment(assignment.id) as replacement">
-                    <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">Timeline</p>
-                    <div class="mt-2 grid gap-2 text-xs text-slate-600 dark:text-slate-300">
+                  <div class="mt-3 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-3 py-3" *ngIf="replacementForAssignment(assignment.id) as replacement">
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Timeline</p>
+                    <div class="mt-2 grid gap-2 text-xs text-[color:var(--text-2)]">
                       <div class="flex items-center justify-between gap-3">
                         <span>Originario</span>
-                        <span class="font-medium text-slate-800 dark:text-slate-100">{{ replacement.requestedBy?.fullName || assignment.assignee?.fullName || '-' }}</span>
+                        <span class="font-medium text-[color:var(--text-1)]">{{ replacement.requestedBy?.fullName || assignment.assignee?.fullName || '-' }}</span>
                       </div>
                       <div class="flex items-center justify-between gap-3" *ngIf="replacement.replacementAssignee?.fullName">
                         <span>Sostituto</span>
@@ -419,7 +421,7 @@
                     </div>
                   </div>
                   <div class="mt-3 grid gap-2" *ngIf="canRequestReplacement(assignment)">
-                     <input class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [(ngModel)]="replacementReason" placeholder="Motivo sostituzione" />
+                     <input class="rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-2 text-xs text-[color:var(--text-1)] outline-none placeholder:text-[color:var(--text-3)]" [(ngModel)]="replacementReason" placeholder="Motivo sostituzione" />
                     <button type="button" class="text-left text-xs font-medium text-orange-700" (click)="requestReplacement(assignment.id)" [disabled]="hasPendingReplacement(assignment.id)">
                       {{ hasPendingReplacement(assignment.id) ? 'Richiesta inviata' : 'Richiedi sostituzione' }}
                     </button>
@@ -438,7 +440,7 @@
         </div>
       </div>
       <ng-template #noAssignmentEvent>
-        <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-400">
+        <div class="rounded-2xl border border-dashed border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-6 py-8 text-center text-sm text-[color:var(--text-2)]">
           Seleziona prima un evento per aprire la board assegnazioni.
         </div>
       </ng-template>

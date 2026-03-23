@@ -5,86 +5,149 @@ import { roleGuard } from './core/guards/role.guard';
 
 export const appRoutes: Routes = [
   {
-    path: '',
+    path: "",
     canActivate: [authGuard],
-    loadComponent: () => import('./core/layout/app-shell.component').then((m) => m.AppShellComponent),
+    loadComponent: () =>
+      import("./core/layout/app-shell.component").then(
+        (m) => m.AppShellComponent,
+      ),
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+      { path: "", pathMatch: "full", redirectTo: "dashboard" },
       {
-        path: 'dashboard',
+        path: "dashboard",
         canActivate: [onboardingGuard],
         data: { allowIncompleteOnboarding: true },
-        loadComponent: () => import('./features/dashboard/dashboard-page.component').then((m) => m.DashboardPageComponent)
+        loadComponent: () =>
+          import("./features/dashboard/dashboard-page.component").then(
+            (m) => m.DashboardPageComponent,
+          ),
       },
       {
-        path: 'calendar',
+        path: "calendar",
         canActivate: [onboardingGuard],
         data: { allowIncompleteOnboarding: true },
-        loadComponent: () => import('./features/calendar-view/calendar-view-page.component').then((m) => m.CalendarViewPageComponent)
+        loadComponent: () =>
+          import("./features/calendar-view/calendar-view-page.component").then(
+            (m) => m.CalendarViewPageComponent,
+          ),
       },
       {
-        path: 'events',
+        path: "events",
         canActivate: [onboardingGuard],
         data: { allowIncompleteOnboarding: true },
-        loadComponent: () => import('./features/events/events-page.component').then((m) => m.EventsPageComponent)
+        loadComponent: () =>
+          import("./features/events/events-page.component").then(
+            (m) => m.EventsPageComponent,
+          ),
       },
       {
-        path: 'replacements',
+        path: "replacements",
         canActivate: [roleGuard, onboardingGuard],
-        data: { roles: ['administrator', 'service_leader'], allowIncompleteOnboarding: true },
-        loadComponent: () => import('./features/replacements/replacements-history-page.component').then((m) => m.ReplacementsHistoryPageComponent)
+        data: {
+          roles: ["administrator", "service_leader"],
+          allowIncompleteOnboarding: true,
+        },
+        loadComponent: () =>
+          import("./features/replacements/replacements-history-page.component").then(
+            (m) => m.ReplacementsHistoryPageComponent,
+          ),
       },
       {
-        path: 'teams',
+        path: "teams",
         canActivate: [roleGuard, onboardingGuard],
-        data: { roles: ['administrator', 'service_leader'], allowIncompleteOnboarding: true },
-        loadComponent: () => import('./features/teams/teams-page.component').then((m) => m.TeamsPageComponent)
+        data: {
+          roles: ["administrator", "service_leader"],
+          allowIncompleteOnboarding: true,
+        },
+        loadComponent: () =>
+          import("./features/teams/teams-page.component").then(
+            (m) => m.TeamsPageComponent,
+          ),
       },
       {
-        path: 'inventory',
+        path: "design",
         canActivate: [roleGuard, onboardingGuard],
-        data: { roles: ['administrator', 'service_leader'], allowIncompleteOnboarding: true },
-        loadComponent: () => import('./features/inventory/inventory-page.component').then((m) => m.InventoryPageComponent)
+        data: {
+          roles: ["administrator", "service_leader"],
+          allowIncompleteOnboarding: true,
+        },
+        loadComponent: () =>
+          import("./features/design/design-manual-page.component").then(
+            (m) => m.DesignManualPageComponent,
+          ),
       },
       {
-        path: 'resources',
+        path: "inventory",
+        canActivate: [roleGuard, onboardingGuard],
+        data: {
+          roles: ["administrator", "service_leader"],
+          allowIncompleteOnboarding: true,
+        },
+        loadComponent: () =>
+          import("./features/inventory/inventory-page.component").then(
+            (m) => m.InventoryPageComponent,
+          ),
+      },
+      {
+        path: "resources",
         canActivate: [onboardingGuard],
         data: { allowIncompleteOnboarding: true },
-        loadComponent: () => import('./features/resources/resources-page.component').then((m) => m.ResourcesPageComponent)
+        loadComponent: () =>
+          import("./features/resources/resources-page.component").then(
+            (m) => m.ResourcesPageComponent,
+          ),
       },
       {
-        path: 'user',
+        path: "user",
         canActivate: [onboardingGuard],
         data: { allowIncompleteOnboarding: true },
-        loadComponent: () => import('./features/user/user-page.component').then((m) => m.UserPageComponent)
+        loadComponent: () =>
+          import("./features/user/user-page.component").then(
+            (m) => m.UserPageComponent,
+          ),
       },
       {
-        path: 'settings',
+        path: "settings",
         canActivate: [onboardingGuard],
         data: { allowIncompleteOnboarding: true },
-        loadComponent: () => import('./features/settings/settings-page.component').then((m) => m.SettingsPageComponent)
+        loadComponent: () =>
+          import("./features/settings/settings-page.component").then(
+            (m) => m.SettingsPageComponent,
+          ),
       },
       {
-        path: 'admin/users',
+        path: "admin/users",
         canActivate: [roleGuard, onboardingGuard],
-        data: { roles: ['administrator'], allowIncompleteOnboarding: true },
-        loadComponent: () => import('./features/admin/admin-users-page.component').then((m) => m.AdminUsersPageComponent)
+        data: { roles: ["administrator"], allowIncompleteOnboarding: true },
+        loadComponent: () =>
+          import("./features/admin/admin-users-page.component").then(
+            (m) => m.AdminUsersPageComponent,
+          ),
       },
       {
-        path: 'admin/users/:userId',
+        path: "admin/users/:userId",
         canActivate: [roleGuard, onboardingGuard],
-        data: { roles: ['administrator'], allowIncompleteOnboarding: true },
-        loadComponent: () => import('./features/admin/admin-user-detail-page.component').then((m) => m.AdminUserDetailPageComponent)
+        data: { roles: ["administrator"], allowIncompleteOnboarding: true },
+        loadComponent: () =>
+          import("./features/admin/admin-user-detail-page.component").then(
+            (m) => m.AdminUserDetailPageComponent,
+          ),
       },
       {
-        path: 'onboarding',
-        loadComponent: () => import('./features/onboarding/onboarding-page.component').then((m) => m.OnboardingPageComponent)
-      }
-    ]
+        path: "onboarding",
+        loadComponent: () =>
+          import("./features/onboarding/onboarding-page.component").then(
+            (m) => m.OnboardingPageComponent,
+          ),
+      },
+    ],
   },
   {
-    path: 'auth',
-    loadComponent: () => import('./features/auth/auth-page.component').then((m) => m.AuthPageComponent)
+    path: "auth",
+    loadComponent: () =>
+      import("./features/auth/auth-page.component").then(
+        (m) => m.AuthPageComponent,
+      ),
   },
-  { path: '**', redirectTo: '' }
+  { path: "**", redirectTo: "" },
 ];

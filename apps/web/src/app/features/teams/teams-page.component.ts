@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, ElementRef, ViewChild, effect, inject, signal } from '@angular/core';
+import { Component, HostListener, computed, ElementRef, ViewChild, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -82,7 +82,22 @@ export class TeamsPageComponent {
   protected readonly locallyReservedSuggestionIds = signal<string[]>([]);
   protected readonly highlightedTab = signal<'replacements' | 'requests'>('replacements');
   protected readonly assistantReplacement = signal<ReplacementItem | null>(null);
+  protected readonly assistantTeamRequest = signal<TeamAccessRequestItem | null>(null);
   @ViewChild('teamRequestsSection') private teamRequestsSection?: ElementRef<HTMLElement>;
+
+  @HostListener('document:keydown.escape', ['$event'])
+  protected handleEscape(event: KeyboardEvent): void {
+    if (this.dutyDialogVisible) {
+      this.dutyDialogVisible = false;
+      event.preventDefault();
+      return;
+    }
+
+    if (this.teamDialogVisible) {
+      this.teamDialogVisible = false;
+      event.preventDefault();
+    }
+  }
 
   constructor() {
     this.loadData();
@@ -370,6 +385,7 @@ export class TeamsPageComponent {
   protected clearTeamRequestsCard(): void {
     this.highlightedTab.set('replacements');
     this.selectedJoinRequestOption.set(null);
+    this.assistantTeamRequest.set(null);
   }
 
   protected replacementTone(status: ReplacementItem['status']): 'success' | 'warn' | 'info' {
@@ -442,6 +458,47 @@ export class TeamsPageComponent {
     }
 
     return 'In attesa';
+  }
+
+  protected openTeamRequestAssistant(request: TeamAccessRequestItem): void {
+    this.highlightedTab.set('requests');
+    this.assistantTeamRequest.set(request);
+  }
+
+  protected teamRequestAssistantStatusLabel(request: TeamAccessRequestItem): string {
+    if (request.status === 'APPROVED') {
+      return 'Richiesta approvata';
+    }
+
+    if (request.status === 'DECLINED') {
+      return 'Richiesta chiusa';
+    }
+
+    return 'Decisione richiesta';
+  }
+
+  protected teamRequestAssistantKindLabel(request: TeamAccessRequestItem): string {
+    return request.kind === 'SIGNUP' ? 'Signup al workspace' : 'Ingresso nel team';
+  }
+
+  protected teamRequestAssistantSubject(request: TeamAccessRequestItem): string {
+    return request.targetUser?.fullName || request.fullName || request.email || 'Richiesta team';
+  }
+
+  protected teamRequestAssistantRecommendation(request: TeamAccessRequestItem): string {
+    if (request.status === 'APPROVED') {
+      return request.kind === 'SIGNUP'
+        ? 'La persona puo completare l’accesso al workspace: verifica onboarding e assegnazione team iniziale.'
+        : 'La persona e stata accettata nel team: verifica mansioni, copertura e leadership associata.';
+    }
+
+    if (request.status === 'DECLINED') {
+      return 'La richiesta e chiusa: se serve, raccogli motivazione operativa e proponi un nuovo inserimento guidato.';
+    }
+
+    return request.kind === 'SIGNUP'
+      ? 'Valuta se il profilo puo entrare nel workspace e se il team associato e corretto prima di approvare.'
+      : 'Controlla carico del team, ruolo della persona e disponibilita operativa prima di approvare l’ingresso.';
   }
 
   protected assistantRecommendation(replacement: ReplacementItem): string {
@@ -559,6 +616,7 @@ export class TeamsPageComponent {
     if (request.kind === 'SIGNUP') {
       this.authApi.resolveSignupRequest(request.id, 'APPROVED').subscribe({
         next: () => {
+          this.assistantTeamRequest.set({ ...request, status: 'APPROVED', reviewedAt: new Date().toISOString() });
           this.loadData();
           this.feedback.success('Richiesta signup approvata');
         },
@@ -569,6 +627,7 @@ export class TeamsPageComponent {
 
     this.api.resolveTeamJoinRequest(request.id, 'APPROVED').subscribe({
       next: () => {
+        this.assistantTeamRequest.set({ ...request, status: 'APPROVED', reviewedAt: new Date().toISOString() });
         this.loadData();
         this.feedback.success('Richiesta team approvata');
       },
@@ -583,6 +642,7 @@ export class TeamsPageComponent {
     if (request.kind === 'SIGNUP') {
       this.authApi.resolveSignupRequest(request.id, 'DECLINED').subscribe({
         next: () => {
+          this.assistantTeamRequest.set({ ...request, status: 'DECLINED', reviewedAt: new Date().toISOString() });
           this.loadData();
           this.feedback.success('Richiesta signup rifiutata');
         },
@@ -593,6 +653,7 @@ export class TeamsPageComponent {
 
     this.api.resolveTeamJoinRequest(request.id, 'DECLINED').subscribe({
       next: () => {
+        this.assistantTeamRequest.set({ ...request, status: 'DECLINED', reviewedAt: new Date().toISOString() });
         this.loadData();
         this.feedback.success('Richiesta team rifiutata');
       },

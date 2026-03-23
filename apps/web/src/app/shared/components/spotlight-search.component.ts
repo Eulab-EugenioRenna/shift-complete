@@ -13,6 +13,7 @@ import { SpotlightSearchService } from '../../core/services/spotlight-search.ser
       [(visible)]="visible"
       [modal]="true"
       [dismissableMask]="true"
+      [closeOnEscape]="true"
       [draggable]="false"
       [resizable]="false"
       [showHeader]="false"

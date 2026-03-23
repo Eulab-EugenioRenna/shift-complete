@@ -5,8 +5,15 @@ import { Component, Input } from '@angular/core';
   selector: 'ui-table-shell',
   standalone: true,
   imports: [CommonModule],
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+    `
+  ],
   template: `
-    <section class="overflow-hidden rounded-[24px] border border-[color:var(--border-soft)] bg-[color:var(--surface-1)]">
+    <section class="overflow-hidden rounded-[24px] border border-[color:var(--border-soft)] bg-[color:var(--surface-1)]" [class.h-full]="fullHeight">
       <div *ngIf="title" class="border-b border-[color:var(--border-soft)] px-5 py-4">
         <h3 class="text-base font-semibold text-[color:var(--text-1)]">{{ title }}</h3>
       </div>
@@ -18,4 +25,5 @@ import { Component, Input } from '@angular/core';
 })
 export class UiTableShellComponent {
   @Input() title?: string;
+  @Input() fullHeight = false;
 }

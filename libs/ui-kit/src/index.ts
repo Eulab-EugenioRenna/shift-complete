@@ -5,6 +5,8 @@ export * from './lib/components/ui-select.component';
 export * from './lib/components/ui-autocomplete.component';
 export * from './lib/components/ui-inline-edit.component';
 export * from './lib/components/ui-label.component';
+export * from './lib/components/ui-chip.component';
+export * from './lib/components/ui-badge.component';
 export * from './lib/components/ui-icon.component';
 export * from './lib/components/ui-tooltip.directive';
 export * from './lib/components/ui-dialog-shell.component';

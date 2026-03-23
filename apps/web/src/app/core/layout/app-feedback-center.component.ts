@@ -12,58 +12,34 @@ import { ActionFeedbackItem } from '@shift-complete/shared-types';
 export class AppFeedbackCenterComponent {
   protected readonly feedback = inject(UiFeedbackService);
 
-  protected cardClasses(item: ActionFeedbackItem): string {
+  private toneClass(item: ActionFeedbackItem): string {
     switch (item.type) {
       case 'success':
-        return 'border-emerald-600 bg-emerald-600 text-white';
+        return 'ui-tone-success';
       case 'error':
-        return 'border-red-600 bg-red-600 text-white';
+        return 'ui-tone-danger';
       default:
-        return 'border-[#4979e6] bg-[#4979e6] text-white';
+        return 'ui-tone-info';
     }
+  }
+
+  protected cardClasses(item: ActionFeedbackItem): string {
+    return `${this.toneClass(item)} border-[color:var(--ui-tone-border)] bg-[color:var(--ui-tone-soft)] text-[color:var(--ui-tone-text)]`;
   }
 
   protected iconClasses(item: ActionFeedbackItem): string {
-    switch (item.type) {
-      case 'success':
-        return 'bg-white/20 text-white';
-      case 'error':
-        return 'bg-white/20 text-white';
-      default:
-        return 'bg-white/20 text-white';
-    }
+    return `${this.toneClass(item)} bg-[color:var(--ui-tone-solid)] text-white`;
   }
 
   protected titleClasses(item: ActionFeedbackItem): string {
-    switch (item.type) {
-      case 'success':
-        return 'text-white';
-      case 'error':
-        return 'text-white';
-      default:
-        return 'text-white';
-    }
+    return `${this.toneClass(item)} text-[color:var(--ui-tone-text)]`;
   }
 
   protected messageClasses(item: ActionFeedbackItem): string {
-    switch (item.type) {
-      case 'success':
-        return 'text-white/88';
-      case 'error':
-        return 'text-white/88';
-      default:
-        return 'text-white/88';
-    }
+    return 'text-[color:var(--text-2)]';
   }
 
   protected dismissClasses(item: ActionFeedbackItem): string {
-    switch (item.type) {
-      case 'success':
-        return 'text-white/70 hover:text-white';
-      case 'error':
-        return 'text-white/70 hover:text-white';
-      default:
-        return 'text-white/70 hover:text-white';
-    }
+    return `${this.toneClass(item)} text-[color:var(--ui-tone-text)] opacity-70 hover:opacity-100`;
   }
 }
