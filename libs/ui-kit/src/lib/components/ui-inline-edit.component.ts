@@ -7,9 +7,9 @@ import { FormsModule } from '@angular/forms';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="inline-flex min-w-48 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2">
-      <input class="w-full bg-transparent text-sm text-slate-800 outline-none" [(ngModel)]="draft" [placeholder]="placeholder" />
-      <button type="button" class="text-xs font-medium text-slate-500" (click)="save()">Salva</button>
+    <div class="inline-flex min-w-48 items-center gap-2 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-2 text-[color:var(--text-2)] shadow-[var(--shadow-soft)]">
+      <input class="w-full bg-transparent text-sm text-[color:var(--text-1)] outline-none placeholder:text-[color:var(--text-3)]" [(ngModel)]="draft" [placeholder]="placeholder" />
+      <button type="button" class="text-xs font-medium text-[color:var(--text-2)] transition hover:text-[color:var(--accent-1)]" (click)="save()">Salva</button>
     </div>
   `
 })

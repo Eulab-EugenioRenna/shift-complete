@@ -6,7 +6,7 @@
       <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ detail()?.user?.email }}</p>
     </div>
     <div class="flex items-center gap-3">
-      <button class="rounded-md bg-[#4979e6] px-4 py-2 text-sm font-medium text-white dark:text-slate-950" (click)="requestCredentials()">Rigenera credenziali</button>
+      <button class="rounded-md bg-[#4979e6] px-4 py-2 text-sm font-medium text-white dark:text-white" (click)="requestCredentials()">Rigenera credenziali</button>
       <button class="rounded-md px-4 py-2 text-sm font-medium" [ngClass]="detail()?.user?.suspended ? 'border border-slate-300 text-slate-700 dark:border-slate-600 dark:text-slate-200' : 'bg-red-600 text-white'" (click)="toggleSuspend()">{{ detail()?.user?.suspended ? 'Riattiva account' : 'Sospendi account' }}</button>
       <a routerLink="/admin/users" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-600 dark:text-slate-200">Torna alla lista</a>
     </div>
@@ -70,11 +70,11 @@
   <p-dialog [visible]="confirmVisible()" (visibleChange)="confirmVisible.set($event)" [modal]="true" [appendTo]="'body'" [baseZIndex]="1200" [blockScroll]="true" [dismissableMask]="true" [closeOnEscape]="true" [focusOnShow]="false" [showHeader]="false" [closable]="false" [style]="{ width: '34rem', maxWidth: '94vw', maxHeight: '90vh' }" [contentStyle]="{ background: 'transparent', padding: '0', overflow: 'hidden' }" [draggable]="false" [resizable]="false">
     <ui-dialog-shell title="Conferma azione" eyebrow="User detail" subtitle="Questa operazione aggiorna immediatamente lo stato dell'account." [icon]="confirmConfig()?.icon || 'pi pi-user-edit'" [tone]="confirmConfig()?.tone || 'warn'" [hasFooter]="true" (closeRequested)="closeConfirm()">
       <div *ngIf="confirmConfig() as config" class="grid gap-4">
-        <p class="text-sm font-semibold text-slate-900">{{ config.title }}</p>
-        <p class="text-sm text-slate-600">{{ config.message }}</p>
+        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ config.title }}</p>
+        <p class="text-sm text-slate-600 dark:text-slate-300">{{ config.message }}</p>
       </div>
       <div dialog-footer class="flex items-center justify-end gap-3">
-        <button class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700" (click)="closeConfirm()">Annulla</button>
+        <button class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-600 dark:text-slate-200" (click)="closeConfirm()">Annulla</button>
         <button class="rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white" (click)="confirmAction()">Conferma</button>
       </div>
     </ui-dialog-shell>
@@ -83,17 +83,17 @@
   <p-dialog [visible]="credentialsVisible()" (visibleChange)="credentialsVisible.set($event)" [modal]="true" [appendTo]="'body'" [baseZIndex]="1200" [blockScroll]="true" [dismissableMask]="true" [closeOnEscape]="true" [focusOnShow]="false" [showHeader]="false" [closable]="false" [style]="{ width: '36rem', maxWidth: '94vw', maxHeight: '90vh' }" [contentStyle]="{ background: 'transparent', padding: '0', overflow: 'hidden' }" [draggable]="false" [resizable]="false">
     <ui-dialog-shell title="Credenziali generate" eyebrow="User detail" subtitle="Questa password temporanea viene mostrata una sola volta in questo flusso." icon="pi pi-key" tone="success" [hasFooter]="true" (closeRequested)="closeCredentialsModal()">
       <div *ngIf="generatedCredentials() as credentials" class="grid gap-4">
-        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/70 dark:bg-emerald-950/30">
           <p class="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-700">Utente</p>
-          <p class="mt-2 text-sm font-medium text-slate-900">{{ credentials.email }}</p>
+          <p class="mt-2 text-sm font-medium text-slate-900 dark:text-slate-100">{{ credentials.email }}</p>
         </div>
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Password temporanea</p>
-          <p class="mt-2 font-mono text-lg text-slate-900">{{ credentials.password }}</p>
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/70">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">Password temporanea</p>
+          <p class="mt-2 font-mono text-lg text-slate-900 dark:text-slate-100">{{ credentials.password }}</p>
         </div>
       </div>
       <div dialog-footer class="flex items-center justify-end gap-3">
-        <button class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700" (click)="copyGeneratedPassword()">Copia password</button>
+        <button class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-600 dark:text-slate-200" (click)="copyGeneratedPassword()">Copia password</button>
         <button class="rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white" (click)="closeCredentialsModal()">Chiudi</button>
       </div>
     </ui-dialog-shell>

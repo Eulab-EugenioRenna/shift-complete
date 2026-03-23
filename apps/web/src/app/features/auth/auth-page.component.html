@@ -43,7 +43,7 @@
             </button>
           </div>
           <ui-select *ngIf="mode() === 'register'" label="Team richiesto" [options]="teamOptions()" [value]="teamId" (valueChange)="teamId = castString($event)"></ui-select>
-          <p class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700" *ngIf="mode() === 'register'">
+          <p class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-200" *ngIf="mode() === 'register'">
             Se selezioni un team, la richiesta dovra essere approvata da leader o amministratore prima del login.
           </p>
         </div>
@@ -60,7 +60,7 @@
           </button>
         </div>
 
-        <p class="text-center text-sm font-medium" [class.text-red-600]="statusType() === 'error'" [class.text-green-600]="statusType() === 'success'" *ngIf="statusMessage()">
+        <p class="rounded-xl border px-4 py-3 text-center text-sm font-medium" [ngClass]="statusType() === 'error' ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200' : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-200'" *ngIf="statusMessage()">
           {{ statusMessage() }}
         </p>
         <p class="text-center text-xs text-[color:var(--text-3)]" *ngIf="requestHint()">{{ requestHint() }}</p>

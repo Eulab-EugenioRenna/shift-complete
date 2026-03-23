@@ -95,6 +95,8 @@ services:
     depends_on:
       api:
         condition: service_started
+    volumes:
+      - ./dist/apps/web/browser:/usr/share/nginx/html
 
 volumes:
   postgres_data:

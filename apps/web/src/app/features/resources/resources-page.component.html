@@ -48,7 +48,7 @@
                 <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">{{ group.label }}</h3>
                 <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ group.items.length }} documenti disponibili</p>
               </div>
-              <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ group.items.length }}</span>
+              <span class="app-chip app-chip-neutral">{{ group.items.length }}</span>
             </div>
           </div>
           <div class="overflow-x-auto">
@@ -161,7 +161,7 @@
             <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">Numeri per team</p>
             <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Spazio usato, disponibile, file e cartelle per libreria globale e team accessibili.</p>
           </div>
-          <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">{{ summary.teamCount }} team</span>
+          <span class="app-chip app-chip-neutral">{{ summary.teamCount }} team</span>
         </div>
         <div class="mt-4 grid gap-3">
           <article *ngFor="let team of summary.teams" class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/70">
@@ -171,22 +171,16 @@
                 <p class="mt-1 text-xs text-slate-500">{{ team.fileCount }} file · {{ team.folderCount }} cartella</p>
               </div>
               <div class="flex flex-col items-end gap-2">
-                <span class="rounded-full px-2.5 py-1 text-[11px] font-medium"
-                  [class.bg-blue-50]="!team.isGlobal"
-                  [class.text-blue-700]="!team.isGlobal"
-                  [class.bg-slate-200]="team.isGlobal"
-                  [class.text-slate-700]="team.isGlobal">
+                <span class="app-chip"
+                  [class.app-chip-info]="!team.isGlobal"
+                  [class.app-chip-neutral]="team.isGlobal">
                   {{ team.isGlobal ? 'Globale' : 'Team' }}
                 </span>
-                <span class="rounded-full px-2.5 py-1 text-[11px] font-medium"
-                  [class.bg-slate-200]="usageStatus(team.usageRatio) === 'neutral'"
-                  [class.text-slate-700]="usageStatus(team.usageRatio) === 'neutral'"
-                  [class.bg-emerald-50]="usageStatus(team.usageRatio) === 'healthy'"
-                  [class.text-emerald-700]="usageStatus(team.usageRatio) === 'healthy'"
-                  [class.bg-amber-50]="usageStatus(team.usageRatio) === 'warning'"
-                  [class.text-amber-700]="usageStatus(team.usageRatio) === 'warning'"
-                  [class.bg-red-50]="usageStatus(team.usageRatio) === 'critical'"
-                  [class.text-red-700]="usageStatus(team.usageRatio) === 'critical'">
+                <span class="app-chip"
+                  [class.app-chip-neutral]="usageStatus(team.usageRatio) === 'neutral'"
+                  [class.app-chip-success]="usageStatus(team.usageRatio) === 'healthy'"
+                  [class.app-chip-warn]="usageStatus(team.usageRatio) === 'warning'"
+                  [class.app-chip-danger]="usageStatus(team.usageRatio) === 'critical'">
                   {{ usageLabel(team.usageRatio) }}
                 </span>
               </div>

@@ -720,6 +720,16 @@ export class CalendarViewPageComponent {
     return type ?? 'Evento';
   }
 
+  protected eventTypeTone(type: string | undefined): 'neutral' | 'info' | 'success' | 'warn' {
+    if (type === 'recurring') {
+      return 'success';
+    }
+    if (type === 'single') {
+      return 'neutral';
+    }
+    return 'neutral';
+  }
+
   protected replacementStatusLabel(status: ReplacementItem['status']): string {
     if (status === 'APPROVED') {
       return 'Approvata';

@@ -9,7 +9,7 @@ import { DropdownModule } from 'primeng/dropdown';
   imports: [CommonModule, FormsModule, DropdownModule],
   template: `
     <div class="grid gap-2">
-      <label *ngIf="label" class="text-sm font-medium text-slate-700 dark:text-slate-200">{{ label }}</label>
+      <label *ngIf="label" class="text-sm font-medium text-[color:var(--text-2)]">{{ label }}</label>
       <p-dropdown
         [options]="options"
         [optionLabel]="optionLabel"

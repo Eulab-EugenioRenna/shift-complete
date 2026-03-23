@@ -33,29 +33,29 @@
     <ui-card title="Gestione disponibilita" subtitle="Creazione, modifica inline e collegamento al team" surfaceClass="p-5 min-h-[34rem] max-h-[42rem]" bodyClass="overflow-y-auto pr-1">
       <div class="grid gap-4 md:grid-cols-2">
         <div class="grid gap-2 md:col-span-2" *ngIf="canManageOthers()">
-          <label class="text-sm font-medium text-slate-700">Persona</label>
+          <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Persona</label>
           <ui-select [options]="personOptions()" [value]="selectedUserId()" (valueChange)="onUserChange($event)"></ui-select>
         </div>
         <div class="grid gap-2">
-          <label class="text-sm font-medium text-slate-700">Tipo</label>
+          <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Tipo</label>
           <ui-select [options]="typeOptions" [value]="form.type" (valueChange)="form.type = castType($event)"></ui-select>
         </div>
         <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <ui-toggle label="Disponibile" [value]="form.type === 'AVAILABLE'" (valueChange)="form.type = $event ? 'AVAILABLE' : 'UNAVAILABLE'"></ui-toggle>
         </div>
-        <ui-date-picker label="Inizio" [(value)]="form.startsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1400" inputStyleClass="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none"></ui-date-picker>
-        <ui-date-picker label="Fine" [(value)]="form.endsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1400" inputStyleClass="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none"></ui-date-picker>
+        <ui-date-picker label="Inizio" [(value)]="form.startsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1400" inputStyleClass="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"></ui-date-picker>
+        <ui-date-picker label="Fine" [(value)]="form.endsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1400" inputStyleClass="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"></ui-date-picker>
         <div class="grid gap-2 md:col-span-2">
-          <label class="text-sm font-medium text-slate-700">Motivo</label>
-          <input class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none" [(ngModel)]="form.reason" placeholder="Es. lavoro, ferie, preferenza personale" />
+          <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Motivo</label>
+          <input class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500" [(ngModel)]="form.reason" placeholder="Es. lavoro, ferie, preferenza personale" />
         </div>
         <div class="grid gap-2 md:col-span-2">
-          <label class="text-sm font-medium text-slate-700">Team collegato</label>
+          <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Team collegato</label>
           <ui-select [options]="teamOptions()" [value]="form.teamId" (valueChange)="form.teamId = castNullable($event)"></ui-select>
         </div>
       </div>
       <div class="mt-4 flex justify-end gap-2">
-        <button type="button" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600" (click)="resetForm()">Reset</button>
+        <button type="button" class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300" (click)="resetForm()">Reset</button>
         <button type="button" class="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white disabled:opacity-60" (click)="saveAvailability()" [disabled]="!canSave() || savingAvailability()">
           {{ savingAvailability() ? 'Salvataggio...' : (editingAvailabilityId() ? 'Aggiorna disponibilita' : 'Salva disponibilita') }}
         </button>
@@ -64,7 +64,7 @@
       <div class="mt-6">
         <ui-table-shell title="Storico disponibilita">
           <table class="min-w-full text-sm">
-            <thead class="bg-slate-50 text-left text-slate-500">
+            <thead class="bg-slate-50 text-left text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
               <tr>
                 <th class="px-4 py-3">Tipo</th>
                 <th class="px-4 py-3">Inizio</th>
@@ -74,13 +74,13 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let item of availability()" class="border-t border-slate-100">
+              <tr *ngFor="let item of availability()" class="border-t border-slate-100 dark:border-slate-800">
                 <td class="px-4 py-3"><ui-label [tone]="item.type === 'AVAILABLE' ? 'success' : 'warn'">{{ item.type }}</ui-label></td>
                 <td class="px-4 py-3">{{ item.startsAt | date:'short' }}</td>
                 <td class="px-4 py-3">{{ item.endsAt | date:'short' }}</td>
                 <td class="px-4 py-3">{{ item.reason || '-' }}</td>
                 <td class="px-4 py-3">
-                  <button type="button" class="mr-3 text-sm text-slate-700" (click)="editAvailability(item)">Modifica</button>
+                  <button type="button" class="mr-3 text-sm text-slate-700 dark:text-slate-200" (click)="editAvailability(item)">Modifica</button>
                   <button type="button" class="text-sm text-red-600" (click)="removeAvailability(item.id)">Elimina</button>
                 </td>
               </tr>

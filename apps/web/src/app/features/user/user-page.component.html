@@ -58,18 +58,18 @@
       <ui-card title="Credenziali" subtitle="Cambio password con verifica della password attuale" surfaceClass="p-5 min-h-[22rem] max-h-[28rem]" bodyClass="overflow-y-auto pr-1">
         <div class="grid gap-4 md:grid-cols-2">
           <div class="grid gap-2 md:col-span-2">
-            <label class="text-sm font-medium text-slate-700">Password attuale</label>
+            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Password attuale</label>
             <div class="relative">
-          <input class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-11 text-sm outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [type]="showCurrentPassword() ? 'text' : 'password'" [(ngModel)]="passwordForm.currentPassword" placeholder="Inserisci la password attuale" />
+          <input class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-11 text-sm text-slate-800 outline-none placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500" [type]="showCurrentPassword() ? 'text' : 'password'" [(ngModel)]="passwordForm.currentPassword" placeholder="Inserisci la password attuale" />
           <button type="button" class="absolute inset-y-0 right-0 px-4 text-slate-400 hover:text-[#4979e6] dark:text-slate-500" (click)="showCurrentPassword.set(!showCurrentPassword())">
                 <i class="pi" [class.pi-eye]="!showCurrentPassword()" [class.pi-eye-slash]="showCurrentPassword()"></i>
               </button>
             </div>
           </div>
           <div class="grid gap-2 md:col-span-2">
-            <label class="text-sm font-medium text-slate-700">Nuova password</label>
+            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Nuova password</label>
             <div class="relative">
-          <input class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-11 text-sm outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [type]="showNewPassword() ? 'text' : 'password'" [(ngModel)]="passwordForm.newPassword" placeholder="Almeno 6 caratteri" />
+          <input class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-11 text-sm text-slate-800 outline-none placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500" [type]="showNewPassword() ? 'text' : 'password'" [(ngModel)]="passwordForm.newPassword" placeholder="Almeno 6 caratteri" />
           <button type="button" class="absolute inset-y-0 right-0 px-4 text-slate-400 hover:text-[#4979e6] dark:text-slate-500" (click)="showNewPassword.set(!showNewPassword())">
                 <i class="pi" [class.pi-eye]="!showNewPassword()" [class.pi-eye-slash]="showNewPassword()"></i>
               </button>
@@ -78,7 +78,7 @@
         </div>
         <div class="mt-4 flex items-center justify-between gap-3">
           <p class="text-xs text-slate-500 dark:text-slate-400">Dopo il cambio password la sessione resta valida e il nuovo accesso usa subito la credenziale aggiornata.</p>
-          <button type="button" class="rounded-2xl border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700 disabled:opacity-60 dark:border-slate-600 dark:text-slate-200" (click)="changePassword()" [disabled]="savingPassword()">{{ savingPassword() ? 'Aggiornamento...' : 'Aggiorna password' }}</button>
+          <button type="button" class="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200" (click)="changePassword()" [disabled]="savingPassword()">{{ savingPassword() ? 'Aggiornamento...' : 'Aggiorna password' }}</button>
         </div>
       </ui-card>
     </div>

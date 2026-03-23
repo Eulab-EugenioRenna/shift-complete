@@ -92,39 +92,304 @@ body {
   border-radius: 999px !important; /* Pill shape */
   font-weight: 500 !important;
   padding: 0.25rem 0.75rem !important;
+  border: 0 !important;
+  color: #ffffff !important;
 }
 
 .p-tag-success {
-  background-color: #dcfce7 !important;
-  color: #166534 !important;
+  background-color: #059669 !important;
 }
 .app-dark .p-tag-success {
-  background-color: rgba(6, 78, 59, 0.72) !important;
-  color: #d1fae5 !important;
+  background-color: #059669 !important;
 }
 .p-tag-warn {
-  background-color: #fef9c3 !important;
-  color: #854d0e !important;
+  background-color: #d97706 !important;
 }
 .app-dark .p-tag-warn {
-  background-color: rgba(120, 53, 15, 0.72) !important;
-  color: #fde68a !important;
+  background-color: #d97706 !important;
 }
 .p-tag-info {
-  background-color: #dbeafe !important;
-  color: #1e40af !important;
+  background-color: var(--accent-1) !important;
 }
 .app-dark .p-tag-info {
-  background-color: rgba(30, 64, 175, 0.55) !important;
-  color: #dbeafe !important;
+  background-color: var(--accent-1) !important;
+}
+.p-tag-danger {
+  background-color: #dc2626 !important;
 }
 .p-tag-contrast {
-  background-color: color-mix(in srgb, var(--surface-3) 85%, transparent) !important;
-  color: var(--text-2) !important;
+  background-color: #334155 !important;
 }
 .app-dark .p-tag-danger {
-  background-color: rgba(127, 29, 29, 0.7) !important;
+  background-color: #dc2626 !important;
+}
+
+.app-dark .p-tag-contrast {
+  background-color: #334155 !important;
+}
+
+.app-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  color: #ffffff;
+}
+
+.app-chip-neutral {
+  background: #334155;
+}
+
+.app-chip-info {
+  background: var(--accent-1);
+}
+
+.app-chip-success {
+  background: #059669;
+}
+
+.app-chip-warn {
+  background: #d97706;
+}
+
+.app-chip-danger {
+  background: #dc2626;
+}
+
+.app-chip-dot {
+  height: 0.5rem;
+  width: 0.5rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  flex-shrink: 0;
+}
+
+.app-event-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  border-radius: 999px;
+  padding: 0.42rem 0.95rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.app-event-chip-neutral {
+  background: linear-gradient(180deg, #475569 0%, #334155 100%);
+}
+
+.app-event-chip-info {
+  background: linear-gradient(180deg, #5b8cff 0%, #4979e6 100%);
+}
+
+.app-event-chip-success {
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+}
+
+.app-event-chip-warn {
+  background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+}
+
+.app-event-chip-dot {
+  height: 0.52rem;
+  width: 0.52rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  flex-shrink: 0;
+}
+
+.app-dark .bg-white {
+  background-color: var(--surface-1) !important;
+}
+
+.app-dark .bg-slate-50 {
+  background-color: var(--surface-2) !important;
+}
+
+.app-dark .bg-slate-100 {
+  background-color: var(--surface-3) !important;
+}
+
+.app-dark .bg-slate-200 {
+  background-color: color-mix(in srgb, var(--surface-3) 88%, var(--border-soft)) !important;
+}
+
+.app-dark .border-slate-100,
+.app-dark .border-slate-200,
+.app-dark .border-slate-300,
+.app-dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border-soft) !important;
+}
+
+.app-dark .divide-slate-100 {
+  border-color: var(--border-soft) !important;
+}
+
+.app-dark .ring-slate-200 {
+  --tw-ring-color: var(--border-soft) !important;
+}
+
+.app-dark .text-slate-900,
+.app-dark .text-slate-800,
+.app-dark .text-slate-700 {
+  color: var(--text-1) !important;
+}
+
+.app-dark .text-slate-600,
+.app-dark .text-slate-500 {
+  color: var(--text-2) !important;
+}
+
+.app-dark .text-slate-400,
+.app-dark .text-slate-300 {
+  color: var(--text-3) !important;
+}
+
+.app-dark .hover\:bg-white:hover,
+.app-dark .hover\:bg-slate-50:hover {
+  background-color: var(--surface-2) !important;
+}
+
+.app-dark .hover\:text-slate-900:hover,
+.app-dark .hover\:text-slate-700:hover,
+.app-dark .hover\:text-slate-600:hover {
+  color: var(--text-1) !important;
+}
+
+.app-dark .hover\:border-slate-300:hover {
+  border-color: var(--border-strong) !important;
+}
+
+.app-dark .focus\:ring-blue-200:focus,
+.app-dark .focus-within\:ring-blue-200:focus-within,
+.app-dark .hover\:ring-blue-100:hover {
+  --tw-ring-color: color-mix(in srgb, var(--accent-1) 45%, transparent) !important;
+}
+
+.app-dark .bg-blue-50 {
+  background-color: rgba(30, 64, 175, 0.18) !important;
+}
+
+.app-dark .bg-blue-100 {
+  background-color: rgba(30, 64, 175, 0.3) !important;
+}
+
+.app-dark .border-blue-100,
+.app-dark .border-blue-200,
+.app-dark .border-blue-300 {
+  border-color: rgba(96, 165, 250, 0.28) !important;
+}
+
+.app-dark .text-blue-600,
+.app-dark .text-blue-700 {
+  color: #bfdbfe !important;
+}
+
+.app-dark .text-blue-800 {
+  color: #dbeafe !important;
+}
+
+.app-dark .bg-emerald-50 {
+  background-color: rgba(6, 95, 70, 0.24) !important;
+}
+
+.app-dark .bg-emerald-100 {
+  background-color: rgba(6, 95, 70, 0.34) !important;
+}
+
+.app-dark .border-emerald-200,
+.app-dark .border-emerald-300 {
+  border-color: rgba(52, 211, 153, 0.3) !important;
+}
+
+.app-dark .text-emerald-600,
+.app-dark .text-emerald-700 {
+  color: #a7f3d0 !important;
+}
+
+.app-dark .text-emerald-800 {
+  color: #d1fae5 !important;
+}
+
+.app-dark .bg-amber-50,
+.app-dark .bg-orange-50 {
+  background-color: rgba(146, 64, 14, 0.24) !important;
+}
+
+.app-dark .bg-amber-100,
+.app-dark .bg-orange-100 {
+  background-color: rgba(146, 64, 14, 0.34) !important;
+}
+
+.app-dark .border-amber-200,
+.app-dark .border-amber-300,
+.app-dark .border-orange-200,
+.app-dark .border-orange-300 {
+  border-color: rgba(251, 191, 36, 0.28) !important;
+}
+
+.app-dark .text-amber-600,
+.app-dark .text-amber-700,
+.app-dark .text-amber-800,
+.app-dark .text-orange-700,
+.app-dark .text-orange-800,
+.app-dark .text-orange-600 {
+  color: #fcd34d !important;
+}
+
+.app-dark .bg-red-50 {
+  background-color: rgba(127, 29, 29, 0.26) !important;
+}
+
+.app-dark .bg-red-100 {
+  background-color: rgba(127, 29, 29, 0.34) !important;
+}
+
+.app-dark .border-red-200,
+.app-dark .border-red-300 {
+  border-color: rgba(248, 113, 113, 0.3) !important;
+}
+
+.app-dark .text-red-600 {
+  color: #fca5a5 !important;
+}
+
+.app-dark .text-red-700 {
   color: #fecaca !important;
+}
+
+.app-dark .text-red-800 {
+  color: #fee2e2 !important;
+}
+
+.app-dark .hover\:bg-blue-100:hover,
+.app-dark .hover\:bg-blue-50:hover {
+  background-color: rgba(30, 64, 175, 0.24) !important;
+}
+
+.app-dark .hover\:bg-emerald-100:hover,
+.app-dark .hover\:bg-emerald-50:hover {
+  background-color: rgba(6, 95, 70, 0.3) !important;
+}
+
+.app-dark .hover\:bg-amber-100:hover,
+.app-dark .hover\:bg-amber-50:hover,
+.app-dark .hover\:bg-orange-100:hover,
+.app-dark .hover\:bg-orange-50:hover {
+  background-color: rgba(146, 64, 14, 0.3) !important;
+}
+
+.app-dark .hover\:bg-red-100:hover,
+.app-dark .hover\:bg-red-50:hover {
+  background-color: rgba(127, 29, 29, 0.3) !important;
 }
 
 .p-dialog {
@@ -178,6 +443,37 @@ body {
 .p-autocomplete-option:hover,
 .p-datepicker table td > span:hover {
   background: var(--surface-3) !important;
+}
+
+.p-datatable .p-datatable-thead > tr > th {
+  background: var(--surface-2) !important;
+  color: var(--text-2) !important;
+  border-color: var(--border-soft) !important;
+}
+
+.p-datatable .p-datatable-tbody > tr > td,
+.p-datatable .p-datatable-tbody > tr {
+  background: var(--surface-1) !important;
+  color: var(--text-1) !important;
+  border-color: var(--border-soft) !important;
+}
+
+.p-datatable .p-datatable-tbody > tr:hover > td {
+  background: var(--surface-2) !important;
+}
+
+.p-button.p-button-outlined.p-button-secondary,
+.p-button.p-button-outlined.p-button-contrast {
+  color: var(--text-2) !important;
+  border-color: var(--border-soft) !important;
+  background: var(--surface-1) !important;
+}
+
+.p-button.p-button-outlined.p-button-secondary:hover,
+.p-button.p-button-outlined.p-button-contrast:hover {
+  color: var(--text-1) !important;
+  border-color: var(--border-strong) !important;
+  background: var(--surface-2) !important;
 }
 
 .app-panel-soft {

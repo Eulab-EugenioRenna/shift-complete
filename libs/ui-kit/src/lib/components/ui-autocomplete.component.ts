@@ -9,7 +9,7 @@ import { AutoCompleteCompleteEvent, AutoCompleteModule } from 'primeng/autocompl
   imports: [CommonModule, FormsModule, AutoCompleteModule],
   template: `
     <div class="grid gap-2">
-      <label *ngIf="label" class="text-sm font-medium text-slate-700">{{ label }}</label>
+      <label *ngIf="label" class="text-sm font-medium text-[color:var(--text-2)]">{{ label }}</label>
       <p-autoComplete
         [suggestions]="filteredOptions"
         [field]="field"

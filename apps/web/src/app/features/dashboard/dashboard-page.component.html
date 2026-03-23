@@ -50,7 +50,7 @@
               </div>
               <div class="mt-3 flex items-center gap-2">
                 <p-tag [severity]="(item.assignments?.length || 0) > 0 ? 'success' : 'warn'" [value]="(item.assignments?.length || 0) > 0 ? 'Coperto' : 'Assenza'"></p-tag>
-                <span class="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ eventTypeLabel(item.type) }}</span>
+                <span class="app-event-chip" [class.app-event-chip-success]="item.type === 'recurring'" [class.app-event-chip-neutral]="item.type === 'single' || (item.type !== 'recurring' && item.type !== 'single')">{{ eventTypeLabel(item.type) }}</span>
                 <span class="ml-auto text-xs font-medium text-[color:var(--text-2)]">{{ item.slots?.length || 0 }} ruoli operativi</span>
               </div>
             </button>
