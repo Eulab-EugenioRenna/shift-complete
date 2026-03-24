@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { UiButtonComponent, UiConfirmDialogComponent, UiLabelComponent, UiPageHeaderComponent, UiSelectComponent, UiStatCardComponent, UiSurfaceComponent } from '@shift-complete/ui-kit';
 import { ApiErrorService } from '../../core/services/api-error.service';
 import { GlobalTeamScopeService } from '../../core/services/global-team-scope.service';
 import { ResourceTransferQueueService } from '../../core/services/resource-transfer-queue.service';
@@ -44,7 +45,7 @@ type ResourceSummary = {
 @Component({
   selector: 'app-resources-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, TeamScopeChipsComponent],
+  imports: [CommonModule, FormsModule, UiButtonComponent, UiConfirmDialogComponent, UiLabelComponent, UiPageHeaderComponent, UiSelectComponent, UiStatCardComponent, UiSurfaceComponent, TeamScopeChipsComponent],
   templateUrl: './resources-page.component.html',
   styles: [`
     :host ::ng-deep .resource-row-highlight {
@@ -84,9 +85,15 @@ export class ResourcesPageComponent {
   protected readonly selectedResource = signal<ResourceItem | null>(null);
   protected readonly highlightedResourceId = signal<string | null>(null);
   protected readonly summary = signal<ResourceSummary | null>(null);
+  protected readonly confirmVisible = signal(false);
+  protected readonly pendingDelete = signal<ResourceItem | null>(null);
   private highlightResetTimer?: ReturnType<typeof setTimeout>;
 
   protected readonly teamOptions = computed(() => this.teams());
+  protected readonly uploadTeamOptions = computed(() => [
+    { label: this.canManageGlobal() ? 'Libreria globale' : 'Seleziona team', value: '' },
+    ...this.teamOptions(),
+  ]);
   protected readonly canManageResources = computed(() => this.session.hasAnyRole('administrator', 'service_leader'));
   protected readonly filteredResources = computed(() => {
     const query = this.searchQuery.trim().toLowerCase();
@@ -252,17 +259,34 @@ export class ResourcesPageComponent {
     if (!this.canManageResources()) {
       return;
     }
-    this.api.deleteResource(id).subscribe({
+
+    this.pendingDelete.set(this.resources().find((resource) => resource.id === id) ?? null);
+    this.confirmVisible.set(true);
+  }
+
+  protected confirmDeleteResource(): void {
+    const pending = this.pendingDelete();
+    if (!pending) {
+      return;
+    }
+
+    this.api.deleteResource(pending.id).subscribe({
       next: () => {
-        const nextSelectedId = this.selectedResource()?.id === id ? undefined : this.selectedResource()?.id;
-        if (this.selectedResource()?.id === id) {
+        const nextSelectedId = this.selectedResource()?.id === pending.id ? undefined : this.selectedResource()?.id;
+        if (this.selectedResource()?.id === pending.id) {
           this.selectedResource.set(null);
         }
+        this.closeDeleteConfirm();
         this.loadResources(nextSelectedId);
         this.feedback.success('File eliminato');
       },
       error: (error) => this.feedback.error('Eliminazione non riuscita', this.apiError.message(error, 'Impossibile eliminare il file.'))
     });
+  }
+
+  protected closeDeleteConfirm(): void {
+    this.confirmVisible.set(false);
+    this.pendingDelete.set(null);
   }
 
   protected canManageGlobal(): boolean {

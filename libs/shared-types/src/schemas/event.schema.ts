@@ -18,6 +18,10 @@ export const CreateEventSchema = z.object({
   endsAt: z.string().datetime(),
   recurrenceRule: z.string().optional(),
   recurrenceTz: z.string().optional(),
+  recurrenceUntil: z.string().datetime().optional(),
+  recurrenceDurationMonths: z.number().int().min(1).max(60).optional(),
+  recurrenceAutoRenew: z.boolean().optional(),
+  recurrenceRenewMonths: z.number().int().min(1).max(60).optional(),
   slots: z.array(CreateEventSlotSchema).default([]),
 });
 export type CreateEventDto = z.infer<typeof CreateEventSchema>;

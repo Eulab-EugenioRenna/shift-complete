@@ -1,8 +1,6 @@
 <div class="pointer-events-none fixed right-4 top-4 z-50 flex w-full max-w-sm flex-col gap-3">
   <div class="pointer-events-auto flex justify-end" *ngIf="feedback.items().length > 1">
-    <button type="button" class="app-chip app-chip-neutral shadow-[var(--shadow-soft)] transition hover:brightness-110" (click)="feedback.clearAll()">
-      Pulisci tutto
-    </button>
+    <ui-chip tone="neutral" class="shadow-[var(--shadow-soft)]" (chipClick)="feedback.clearAll()">Pulisci tutto</ui-chip>
   </div>
   <article
     *ngFor="let item of feedback.items()"

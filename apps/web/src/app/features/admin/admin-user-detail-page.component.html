@@ -1,101 +1,102 @@
-<section class="mx-auto flex max-w-6xl flex-col gap-6 text-slate-800 dark:text-slate-100">
-  <div class="flex items-center justify-between gap-4">
-    <div>
-      <p class="text-sm font-semibold uppercase tracking-widest text-rose-600">Superuser</p>
-      <h2 class="mt-1 text-2xl font-semibold tracking-tight text-slate-800 dark:text-slate-100">{{ detail()?.user?.fullName || 'Dettaglio utente' }}</h2>
-      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ detail()?.user?.email }}</p>
+<section class="mx-auto flex max-w-6xl flex-col gap-6 text-[color:var(--text-1)]">
+  <ui-page-header
+    eyebrow="Superuser"
+    eyebrowClass="text-rose-600"
+    [title]="detail()?.user?.fullName || 'Dettaglio utente'"
+    [subtitle]="detail()?.user?.email"
+    [hasActions]="true"
+  >
+    <div page-actions class="flex items-center gap-3">
+      <ui-button tone="info" (buttonClick)="requestCredentials()">Rigenera credenziali</ui-button>
+      <ui-button [tone]="detail()?.user?.suspended ? 'success' : 'danger'" (buttonClick)="toggleSuspend()">{{ detail()?.user?.suspended ? 'Riattiva account' : 'Sospendi account' }}</ui-button>
+      <a routerLink="/admin/users" class="ui-button ui-button--outlined ui-button--md ui-tone-neutral">Torna alla lista</a>
     </div>
-    <div class="flex items-center gap-3">
-      <button class="rounded-md bg-[#4979e6] px-4 py-2 text-sm font-medium text-white dark:text-white" (click)="requestCredentials()">Rigenera credenziali</button>
-      <button class="rounded-md px-4 py-2 text-sm font-medium" [ngClass]="detail()?.user?.suspended ? 'border border-slate-300 text-slate-700 dark:border-slate-600 dark:text-slate-200' : 'bg-red-600 text-white'" (click)="toggleSuspend()">{{ detail()?.user?.suspended ? 'Riattiva account' : 'Sospendi account' }}</button>
-      <a routerLink="/admin/users" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-600 dark:text-slate-200">Torna alla lista</a>
-    </div>
-  </div>
+  </ui-page-header>
 
   <div class="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]" *ngIf="detail() as userDetail">
-    <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
-      <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">Profilo</h3>
-      <div class="mt-4 grid gap-3 text-sm text-slate-600 dark:text-slate-300">
-        <p><span class="font-medium text-slate-900 dark:text-slate-100">Ruolo:</span> {{ userDetail.user.role }}</p>
-        <p><span class="font-medium text-slate-900 dark:text-slate-100">Account:</span> {{ userDetail.user.suspended ? 'Sospeso' : 'Attivo' }}</p>
-        <p><span class="font-medium text-slate-900 dark:text-slate-100">Onboarding:</span> {{ userDetail.user.onboardingCompleted ? 'Completo' : 'In corso' }}</p>
-        <p><span class="font-medium text-slate-900 dark:text-slate-100">Phone:</span> {{ userDetail.user.phone || '—' }}</p>
-        <p><span class="font-medium text-slate-900 dark:text-slate-100">Address:</span> {{ userDetail.user.address || '—' }}</p>
+    <ui-surface surfaceClass="p-5">
+      <h3 class="text-base font-semibold text-[color:var(--text-1)]">Profilo</h3>
+      <div class="mt-4 grid gap-3 text-sm text-[color:var(--text-2)]">
+        <p><span class="font-medium text-[color:var(--text-1)]">Ruolo:</span> {{ userDetail.user.role }}</p>
+        <p><span class="font-medium text-[color:var(--text-1)]">Account:</span> {{ userDetail.user.suspended ? 'Sospeso' : 'Attivo' }}</p>
+        <p><span class="font-medium text-[color:var(--text-1)]">Onboarding:</span> {{ userDetail.user.onboardingCompleted ? 'Completo' : 'In corso' }}</p>
+        <p><span class="font-medium text-[color:var(--text-1)]">Phone:</span> {{ userDetail.user.phone || '—' }}</p>
+        <p><span class="font-medium text-[color:var(--text-1)]">Address:</span> {{ userDetail.user.address || '—' }}</p>
       </div>
-    </div>
+    </ui-surface>
 
     <div class="grid gap-6">
-      <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
-        <div class="border-b border-slate-100 px-5 py-4 dark:border-slate-700"><h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">Timeline unificata</h3></div>
-        <div class="divide-y divide-slate-100 dark:divide-slate-800">
+      <ui-surface surfaceClass="overflow-hidden">
+        <div class="border-b border-[color:var(--border-soft)] px-5 py-4"><h3 class="text-base font-semibold text-[color:var(--text-1)]">Timeline unificata</h3></div>
+        <div class="divide-y divide-[color:var(--border-soft)]">
           <div *ngFor="let item of timeline()" class="px-5 py-4">
             <div class="flex items-start justify-between gap-4">
               <div>
-                <p class="text-sm font-medium text-slate-900 dark:text-slate-100">{{ item.title }}</p>
-                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ item.type }} · {{ item.at | date:'short' }}</p>
-                <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">{{ item.description }}</p>
-                <p class="mt-1 text-xs text-slate-400 dark:text-slate-500" *ngIf="item.meta">{{ item.meta }}</p>
+                <p class="text-sm font-medium text-[color:var(--text-1)]">{{ item.title }}</p>
+                <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ item.type }} · {{ item.at | date:'short' }}</p>
+                <p class="mt-2 text-sm text-[color:var(--text-2)]">{{ item.description }}</p>
+                <p class="mt-1 text-xs text-[color:var(--text-3)]" *ngIf="item.meta">{{ item.meta }}</p>
               </div>
             </div>
           </div>
-          <div *ngIf="!timeline().length" class="px-5 py-8 text-sm text-slate-400 dark:text-slate-500">Nessun evento di timeline disponibile.</div>
+          <div *ngIf="!timeline().length" class="px-5 py-8 text-sm text-[color:var(--text-3)]">Nessun evento di timeline disponibile.</div>
         </div>
-      </div>
+      </ui-surface>
 
-      <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
-        <div class="border-b border-slate-100 px-5 py-4 dark:border-slate-700"><h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">Notifiche e delivery</h3></div>
-        <div class="divide-y divide-slate-100 dark:divide-slate-800">
+      <ui-surface surfaceClass="overflow-hidden">
+        <div class="border-b border-[color:var(--border-soft)] px-5 py-4"><h3 class="text-base font-semibold text-[color:var(--text-1)]">Notifiche e delivery</h3></div>
+        <div class="divide-y divide-[color:var(--border-soft)]">
           <div *ngFor="let item of userDetail.deliveries" class="px-5 py-4">
-            <p class="text-sm font-medium text-slate-900 dark:text-slate-100">{{ item.channel }} · {{ item.status }}</p>
-            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ item.notification?.subject }} · {{ item.createdAt | date:'short' }}</p>
+            <p class="text-sm font-medium text-[color:var(--text-1)]">{{ item.channel }} · {{ item.status }}</p>
+            <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ item.notification?.subject }} · {{ item.createdAt | date:'short' }}</p>
             <p class="mt-1 text-xs text-red-500" *ngIf="item.lastError">{{ item.lastError }}</p>
           </div>
-          <div *ngIf="!userDetail.deliveries.length" class="px-5 py-8 text-sm text-slate-400 dark:text-slate-500">Nessuna delivery disponibile.</div>
+          <div *ngIf="!userDetail.deliveries.length" class="px-5 py-8 text-sm text-[color:var(--text-3)]">Nessuna delivery disponibile.</div>
         </div>
-      </div>
+      </ui-surface>
 
-      <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
-        <div class="border-b border-slate-100 px-5 py-4 dark:border-slate-700"><h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">Audit timeline</h3></div>
-        <div class="divide-y divide-slate-100 dark:divide-slate-800">
+      <ui-surface surfaceClass="overflow-hidden">
+        <div class="border-b border-[color:var(--border-soft)] px-5 py-4"><h3 class="text-base font-semibold text-[color:var(--text-1)]">Audit timeline</h3></div>
+        <div class="divide-y divide-[color:var(--border-soft)]">
           <div *ngFor="let item of userDetail.audits" class="px-5 py-4">
-            <p class="text-sm font-medium text-slate-900 dark:text-slate-100">{{ item.action }}</p>
-            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ item.createdAt | date:'short' }} · {{ item.entityType }} · {{ item.entityId }}</p>
+            <p class="text-sm font-medium text-[color:var(--text-1)]">{{ item.action }}</p>
+            <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ item.createdAt | date:'short' }} · {{ item.entityType }} · {{ item.entityId }}</p>
           </div>
-          <div *ngIf="!userDetail.audits.length" class="px-5 py-8 text-sm text-slate-400 dark:text-slate-500">Nessun audit disponibile.</div>
+          <div *ngIf="!userDetail.audits.length" class="px-5 py-8 text-sm text-[color:var(--text-3)]">Nessun audit disponibile.</div>
         </div>
-      </div>
+      </ui-surface>
     </div>
   </div>
 
-  <p-dialog [visible]="confirmVisible()" (visibleChange)="confirmVisible.set($event)" [modal]="true" [appendTo]="'body'" [baseZIndex]="1200" [blockScroll]="true" [dismissableMask]="true" [closeOnEscape]="true" [focusOnShow]="false" [showHeader]="false" [closable]="false" [style]="{ width: '34rem', maxWidth: '94vw', maxHeight: '90vh' }" [contentStyle]="{ background: 'transparent', padding: '0', overflow: 'hidden' }" [draggable]="false" [resizable]="false">
-    <ui-dialog-shell title="Conferma azione" eyebrow="User detail" subtitle="Questa operazione aggiorna immediatamente lo stato dell'account." [icon]="confirmConfig()?.icon || 'pi pi-user-edit'" [tone]="confirmConfig()?.tone || 'warn'" [hasFooter]="true" (closeRequested)="closeConfirm()">
-      <div *ngIf="confirmConfig() as config" class="grid gap-4">
-        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ config.title }}</p>
-        <p class="text-sm text-slate-600 dark:text-slate-300">{{ config.message }}</p>
-      </div>
-      <div dialog-footer class="flex items-center justify-end gap-3">
-        <button class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-600 dark:text-slate-200" (click)="closeConfirm()">Annulla</button>
-        <button class="rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white" (click)="confirmAction()">Conferma</button>
-      </div>
-    </ui-dialog-shell>
-  </p-dialog>
+  <ui-confirm-dialog
+    [visible]="confirmVisible()"
+    (visibleChange)="confirmVisible.set($event)"
+    [title]="confirmConfig()?.title || 'Confermare azione?'"
+    eyebrow="User detail"
+    subtitle="Questa operazione aggiorna immediatamente lo stato dell account."
+    [message]="confirmConfig()?.message || ''"
+    [detail]="confirmConfig()?.detail"
+    [tone]="confirmConfig()?.tone || 'confirm'"
+    [icon]="confirmConfig()?.icon"
+    [confirmLabel]="confirmConfig()?.confirmLabel || 'Conferma'"
+    (cancel)="closeConfirm()"
+    (confirm)="confirmAction()"
+  ></ui-confirm-dialog>
 
-  <p-dialog [visible]="credentialsVisible()" (visibleChange)="credentialsVisible.set($event)" [modal]="true" [appendTo]="'body'" [baseZIndex]="1200" [blockScroll]="true" [dismissableMask]="true" [closeOnEscape]="true" [focusOnShow]="false" [showHeader]="false" [closable]="false" [style]="{ width: '36rem', maxWidth: '94vw', maxHeight: '90vh' }" [contentStyle]="{ background: 'transparent', padding: '0', overflow: 'hidden' }" [draggable]="false" [resizable]="false">
-    <ui-dialog-shell title="Credenziali generate" eyebrow="User detail" subtitle="Questa password temporanea viene mostrata una sola volta in questo flusso." icon="pi pi-key" tone="success" [hasFooter]="true" (closeRequested)="closeCredentialsModal()">
+  <ui-modal [visible]="credentialsVisible()" (visibleChange)="credentialsVisible.set($event)" title="Credenziali generate" eyebrow="User detail" subtitle="Questa password temporanea viene mostrata una sola volta in questo flusso." icon="pi pi-key" tone="success" [hasFooter]="true" width="36rem" maxWidth="94vw" (closeRequested)="closeCredentialsModal()">
       <div *ngIf="generatedCredentials() as credentials" class="grid gap-4">
-        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/70 dark:bg-emerald-950/30">
+        <ui-surface surfaceClass="border-emerald-200 bg-emerald-50 p-4">
           <p class="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-700">Utente</p>
-          <p class="mt-2 text-sm font-medium text-slate-900 dark:text-slate-100">{{ credentials.email }}</p>
-        </div>
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/70">
-          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">Password temporanea</p>
-          <p class="mt-2 font-mono text-lg text-slate-900 dark:text-slate-100">{{ credentials.password }}</p>
-        </div>
+          <p class="mt-2 text-sm font-medium text-[color:var(--text-1)]">{{ credentials.email }}</p>
+        </ui-surface>
+        <ui-surface surfaceClass="bg-[color:var(--surface-2)] p-4">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Password temporanea</p>
+          <p class="mt-2 font-mono text-lg text-[color:var(--text-1)]">{{ credentials.password }}</p>
+        </ui-surface>
       </div>
       <div dialog-footer class="flex items-center justify-end gap-3">
-        <button class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-600 dark:text-slate-200" (click)="copyGeneratedPassword()">Copia password</button>
-        <button class="rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white" (click)="closeCredentialsModal()">Chiudi</button>
+        <ui-button tone="neutral" variant="outlined" (buttonClick)="copyGeneratedPassword()">Copia password</ui-button>
+        <ui-button tone="info" (buttonClick)="closeCredentialsModal()">Chiudi</ui-button>
       </div>
-    </ui-dialog-shell>
-  </p-dialog>
+  </ui-modal>
 </section>

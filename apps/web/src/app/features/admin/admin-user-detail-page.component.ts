@@ -1,16 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { DialogModule } from 'primeng/dialog';
 import { ApiErrorService } from '../../core/services/api-error.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
-import { UiDialogShellComponent } from '@shift-complete/ui-kit';
+import { UiButtonComponent, UiConfirmDialogComponent, UiModalComponent, UiPageHeaderComponent, UiSurfaceComponent } from '@shift-complete/ui-kit';
 import { AppApiService } from '../../shared/services/app-api.service';
 
 @Component({
   selector: 'app-admin-user-detail-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, DialogModule, UiDialogShellComponent],
+  imports: [CommonModule, RouterLink, UiButtonComponent, UiConfirmDialogComponent, UiModalComponent, UiPageHeaderComponent, UiSurfaceComponent],
   templateUrl: './admin-user-detail-page.component.html',
 })
 export class AdminUserDetailPageComponent {
@@ -21,7 +20,7 @@ export class AdminUserDetailPageComponent {
 
   protected readonly detail = signal<any | null>(null);
   protected readonly timeline = computed(() => this.detail()?.timeline ?? []);
-  protected readonly confirmConfig = signal<{ title: string; message: string; run: () => void; tone: 'warn' | 'danger' | 'success'; icon: string } | null>(null);
+  protected readonly confirmConfig = signal<{ title: string; message: string; detail?: string; run: () => void; tone: 'confirm' | 'danger'; icon: string; confirmLabel: string } | null>(null);
   protected readonly generatedCredentials = signal<{ email: string; password: string } | null>(null);
   protected readonly confirmVisible = signal(false);
   protected readonly credentialsVisible = signal(false);
@@ -38,8 +37,10 @@ export class AdminUserDetailPageComponent {
     this.confirmConfig.set({
       title: 'Rigenerare credenziali?',
       message: 'VerrA generata una nuova password temporanea e le sessioni attive verranno revocate.',
-      tone: 'warn',
+      detail: 'L utente dovra usare la nuova password temporanea al prossimo accesso.',
+      tone: 'confirm',
       icon: 'pi pi-key',
+      confirmLabel: 'Rigenera credenziali',
       run: () => this.api.sendUserCredentials(this.userId as string).subscribe({
         next: (result) => {
           this.closeConfirm();
@@ -61,8 +62,10 @@ export class AdminUserDetailPageComponent {
     this.confirmConfig.set({
       title: suspended ? 'Riattivare account?' : 'Sospendere account?',
       message: suspended ? 'L’utente potra nuovamente autenticarsi.' : 'L’utente perdera accesso immediato e le sessioni verranno invalidate.',
-      tone: suspended ? 'success' : 'danger',
+      detail: suspended ? 'L account torna disponibile nei flussi di accesso.' : 'La sospensione blocca subito le sessioni attive dell utente.',
+      tone: suspended ? 'confirm' : 'danger',
       icon: suspended ? 'pi pi-refresh' : 'pi pi-ban',
+      confirmLabel: suspended ? 'Riattiva account' : 'Sospendi account',
       run: () => (suspended ? this.api.resumeManagedUser(this.userId as string) : this.api.suspendManagedUser(this.userId as string)).subscribe({
         next: () => {
           this.closeConfirm();

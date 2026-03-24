@@ -4,12 +4,14 @@ import { toJsonValue } from '../../common/utils/json.util';
 import { PrismaService } from '../../database/prisma.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { GenerateScheduleDto } from './dto/generate-schedule.dto';
+import { EventsService } from '../events/events.service';
 
 @Injectable()
 export class SchedulingService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly realtimeGateway: RealtimeGateway
+    private readonly realtimeGateway: RealtimeGateway,
+    private readonly eventsService: EventsService
   ) {}
 
   async generatePreview(payload: GenerateScheduleDto, actorId: string, actorRole: Role) {
@@ -30,25 +32,15 @@ export class SchedulingService {
       }
     }
 
-    const slots = await this.prisma.eventSlot.findMany({
-      where: {
-        startsAt: {
-          gte: new Date(payload.from),
-          lte: new Date(payload.to)
-        },
-        teamId: payload.teamId ?? undefined
-      },
-      include: {
-        assignments: true,
-        team: {
-          select: { name: true }
-        },
-        duty: {
-          select: { id: true, name: true }
-        }
-      },
-      orderBy: { startsAt: 'asc' }
-    });
+    const slots = await this.eventsService.prepareSlotsForScheduling(payload) as unknown as Array<{
+      id: string;
+      teamId: string;
+      startsAt: Date;
+      endsAt: Date;
+      assignments: Array<{ assigneeId: string | null }>;
+      duty: { id: string; name: string };
+      team: { name: string };
+    }>;
 
     const suggestions: Array<{
       slotId: string;
@@ -191,7 +183,7 @@ export class SchedulingService {
           }
         }
       }
-    });
+    } as any) as any[];
 
     const eligible: Array<{ id: string; fullName: string; score: number; reasons: string[] }> = [];
 
@@ -206,7 +198,7 @@ export class SchedulingService {
         continue;
       }
 
-      const unavailable = await this.prisma.availability.findFirst({
+      const unavailable = await (this.prisma as any).availability.findFirst({
         where: {
           userId: candidate.id,
           type: 'UNAVAILABLE',

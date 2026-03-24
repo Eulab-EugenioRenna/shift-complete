@@ -1,0 +1,4 @@
+- task:
+    - in eventi rimuovi assistant e blocca i dettaggli nello schermo durante lo scroll per evere sempre a vista i dettaggli, inserisci un scroll nei dettagli
+    - fixe serie e occorrenze
+    - fix auto assignment

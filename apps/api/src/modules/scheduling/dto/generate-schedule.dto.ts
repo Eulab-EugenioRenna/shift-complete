@@ -5,6 +5,18 @@ export class GenerateScheduleDto {
   @IsString()
   teamId?: string;
 
+  @IsOptional()
+  @IsString()
+  eventId?: string;
+
+  @IsOptional()
+  @IsString()
+  occurrenceStart?: string;
+
+  @IsOptional()
+  @IsString()
+  scope?: 'single' | 'series' | 'range';
+
   @IsDateString()
   from!: string;
 

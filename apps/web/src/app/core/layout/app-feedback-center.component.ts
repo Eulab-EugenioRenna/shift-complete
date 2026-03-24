@@ -1,12 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
+import { UiChipComponent } from '@shift-complete/ui-kit';
 import { UiFeedbackService } from '../services/ui-feedback.service';
 import { ActionFeedbackItem } from '@shift-complete/shared-types';
 
 @Component({
   selector: 'app-feedback-center',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, UiChipComponent],
   templateUrl: './app-feedback-center.component.html'
 })
 export class AppFeedbackCenterComponent {

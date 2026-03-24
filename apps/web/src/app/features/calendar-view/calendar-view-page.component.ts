@@ -2,10 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { ButtonModule } from 'primeng/button';
-import { DialogModule } from 'primeng/dialog';
 import { TableModule } from 'primeng/table';
-import { TagModule } from 'primeng/tag';
 import { ReplacementItem } from '@shift-complete/shared-types';
 import { map, of, switchMap, tap } from 'rxjs';
 import { ApiErrorService } from '../../core/services/api-error.service';
@@ -17,10 +14,21 @@ import { AppApiService, DutyListItem } from '../../shared/services/app-api.servi
 import { LiveNotificationsService } from '../../core/services/live-notifications.service';
 import { TeamScopeChipsComponent } from '../../shared/components/team-scope-chips.component';
 import {
-  UiDialogShellComponent,
+  UiBadgeComponent,
+  UiBoardColumnComponent,
+  UiBoardTileComponent,
+  UiButtonComponent,
+  UiChipComponent,
+  UiConfirmDialogComponent,
+  UiInputComponent,
   UiLabelComponent,
+  UiModalComponent,
+  UiPageHeaderComponent,
+  UiReplacementTimelineCardComponent,
   UiSelectComponent,
+  UiSegmentedControlComponent,
   UiSidebarPanelComponent,
+  UiSurfaceComponent,
   UiTableShellComponent,
 } from '@shift-complete/ui-kit';
 
@@ -35,6 +43,11 @@ type CalendarEvent = {
   endsAt: string;
   type: string;
   recurrenceRule?: string | null;
+  recurrenceTz?: string | null;
+  recurrenceUntil?: string | null;
+  recurrenceDurationMonths?: number | null;
+  recurrenceAutoRenew?: boolean | null;
+  recurrenceRenewMonths?: number | null;
   occurrenceStart?: string;
   isOccurrence?: boolean;
   isVirtualOccurrence?: boolean;
@@ -49,7 +62,19 @@ type CalendarEvent = {
   assignments?: Array<{ id: string; eventId: string; slotId: string; roleName?: string; team?: string; assignee?: string | null; status: string }>;
 };
 
+type RecurrenceDurationOption = 3 | 6 | 12 | 24;
+
 type AssignmentRecord = NonNullable<NonNullable<CalendarEvent['slots']>[number]['assignments']>[number];
+
+type PendingConfirmAction = {
+  title: string;
+  message: string;
+  detail?: string;
+  tone: 'confirm' | 'danger';
+  confirmLabel: string;
+  icon?: string;
+  run: () => void;
+};
 
 type TeamOption = {
   id: string;
@@ -75,13 +100,21 @@ type TeamOption = {
   imports: [
     CommonModule,
     FormsModule,
-    ButtonModule,
-    DialogModule,
     TableModule,
-    TagModule,
-    UiDialogShellComponent,
+    UiBadgeComponent,
+    UiBoardColumnComponent,
+    UiBoardTileComponent,
+    UiButtonComponent,
+    UiChipComponent,
+    UiConfirmDialogComponent,
+    UiInputComponent,
     UiSidebarPanelComponent,
+    UiModalComponent,
+    UiPageHeaderComponent,
+    UiReplacementTimelineCardComponent,
     UiSelectComponent,
+    UiSegmentedControlComponent,
+    UiSurfaceComponent,
     UiTableShellComponent,
     UiLabelComponent,
     TeamScopeChipsComponent,
@@ -95,6 +128,7 @@ export class CalendarViewPageComponent {
   protected readonly live = inject(LiveNotificationsService);
   private readonly feedback = inject(UiFeedbackService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly session = inject(SessionService);
   protected readonly teamScope = inject(GlobalTeamScopeService);
 
@@ -112,12 +146,14 @@ export class CalendarViewPageComponent {
   protected readonly scheduling = signal(false);
   protected readonly selectedDutyOption = signal<Record<string, unknown> | null>(null);
   protected readonly locallyReservedSuggestionIds = signal<string[]>([]);
+  protected readonly confirmVisible = signal(false);
+  protected readonly pendingConfirm = signal<PendingConfirmAction | null>(null);
   protected readonly currentView = signal('month');
   protected readonly calendarCursor = signal(this.startOfDay(new Date()));
   protected previewVisible = false;
   protected assignmentBoardVisible = false;
   protected eventDialogVisible = false;
-  protected eventForm = { title: '', startsAt: null as Date | null, endsAt: null as Date | null, teamId: null as string | null, dutyId: '', isRecurring: false, recurrenceFrequency: 'WEEKLY' as 'WEEKLY' | 'MONTHLY' | 'YEARLY' };
+  protected eventForm = { title: '', startsAt: null as Date | null, endsAt: null as Date | null, teamId: null as string | null, dutyId: '', isRecurring: false, recurrenceFrequency: 'WEEKLY' as 'WEEKLY' | 'MONTHLY' | 'YEARLY', recurrenceDurationMonths: 12 as RecurrenceDurationOption, recurrenceAutoRenew: true, recurrenceRenewMonths: 12 as RecurrenceDurationOption };
   protected replacementReason = '';
   protected readonly replacementAssigneeId = signal<string | null>(null);
   protected readonly draggedVolunteerId = signal<string | null>(null);
@@ -137,6 +173,12 @@ export class CalendarViewPageComponent {
     { label: 'Settimanale', value: 'WEEKLY' },
     { label: 'Mensile', value: 'MONTHLY' },
     { label: 'Annuale', value: 'YEARLY' },
+  ];
+  protected readonly recurrenceDurationOptions = [
+    { label: '3 mesi', value: 3 },
+    { label: '6 mesi', value: 6 },
+    { label: '1 anno', value: 12 },
+    { label: '2 anni', value: 24 },
   ];
 
   protected readonly teamOptions = computed(() => this.teams().map((team) => ({ label: team.name, value: team.id })));
@@ -259,6 +301,10 @@ export class CalendarViewPageComponent {
     this.occurrenceView.set('all');
   }
 
+  protected navigateToEvents(): void {
+    void this.router.navigate(['/events']);
+  }
+
   protected navigateCalendar(direction: -1 | 1): void {
     if (this.currentView() === 'month') {
       this.calendarCursor.update((current) => this.addMonths(current, direction));
@@ -364,6 +410,9 @@ export class CalendarViewPageComponent {
       dutyId: '',
       isRecurring: false,
       recurrenceFrequency: 'WEEKLY',
+      recurrenceDurationMonths: 12,
+      recurrenceAutoRenew: true,
+      recurrenceRenewMonths: 12,
     };
     this.selectedDutyOption.set(null);
     if (firstTeam) {
@@ -401,6 +450,9 @@ export class CalendarViewPageComponent {
       endsAt: toIsoDateTime(this.eventForm.endsAt),
       recurrenceRule: this.eventForm.isRecurring ? `FREQ=${this.eventForm.recurrenceFrequency}` : undefined,
       recurrenceTz: this.eventForm.isRecurring ? 'Europe/Rome' : undefined,
+      recurrenceDurationMonths: this.eventForm.isRecurring ? this.eventForm.recurrenceDurationMonths : undefined,
+      recurrenceAutoRenew: this.eventForm.isRecurring ? this.eventForm.recurrenceAutoRenew : undefined,
+      recurrenceRenewMonths: this.eventForm.isRecurring ? this.eventForm.recurrenceRenewMonths : undefined,
       slots: [
         {
           teamId: this.eventForm.teamId!,
@@ -438,12 +490,21 @@ export class CalendarViewPageComponent {
   }
 
   deleteEvent(eventId: string): void {
-    this.api.deleteEvent(eventId).subscribe({
-      next: () => {
-        this.loadData();
-        this.feedback.success('Evento eliminato');
-      },
-      error: (error) => this.feedback.error('Eliminazione non riuscita', this.apiError.message(error, 'Impossibile eliminare l\'evento.'))
+    const event = this.events().find((item) => item.id === eventId);
+    this.openConfirm({
+      title: 'Eliminare evento?',
+      message: `L evento ${event?.title || 'selezionato'} verra rimosso dal calendario.`,
+      detail: event ? `Data: ${event.startsAt}` : 'Usa danger per eliminazioni definitive nel calendario.',
+      tone: 'danger',
+      confirmLabel: 'Elimina evento',
+      icon: 'pi pi-trash',
+      run: () => this.api.deleteEvent(eventId).subscribe({
+        next: () => {
+          this.loadData();
+          this.feedback.success('Evento eliminato');
+        },
+        error: (error) => this.feedback.error('Eliminazione non riuscita', this.apiError.message(error, 'Impossibile eliminare l\'evento.'))
+      })
     });
   }
 
@@ -553,12 +614,23 @@ export class CalendarViewPageComponent {
   }
 
   autoAssign(): void {
-    const selectedTeamId = this.selectedEvent()?.slots?.[0]?.teamId ?? this.eventForm.teamId ?? undefined;
+    const selected = this.selectedEvent();
+    if (!selected) {
+      this.feedback.error('Seleziona un evento', 'Auto assegna funziona solo sull evento attualmente selezionato.');
+      return;
+    }
+
+    const selectedTeamId = selected.slots?.[0]?.teamId ?? undefined;
     this.scheduling.set(true);
-    const now = new Date();
-    const to = new Date(now);
-    to.setDate(to.getDate() + 30);
-    this.api.generateSchedulePreview({ from: now.toISOString(), to: to.toISOString(), teamId: selectedTeamId ?? undefined, apply: true }).subscribe({
+    this.api.generateSchedulePreview({
+      from: selected.startsAt,
+      to: selected.endsAt,
+      teamId: selectedTeamId ?? undefined,
+      eventId: selected.seriesId ?? selected.id,
+      occurrenceStart: selected.isOccurrence ? (selected.occurrenceStart ?? selected.startsAt) : undefined,
+      scope: selected.isOccurrence ? 'single' : selected.type === 'recurring' ? 'series' : 'single',
+      apply: true,
+    }).subscribe({
       next: (result) => {
         this.previewSuggestions.set(result.suggestions ?? []);
         this.previewVisible = true;
@@ -644,21 +716,29 @@ export class CalendarViewPageComponent {
       this.feedback.error('Selezione mancante', 'Seleziona un sostituto prima di approvare la richiesta.');
       return;
     }
-    this.api.resolveReplacement(replacementId, { status: 'APPROVED', replacementAssigneeId: assigneeId || null }).subscribe({
-      next: () => {
-        const replacement = this.replacements().find((item) => item.id === replacementId) ?? null;
-        const replacementAssignee = assigneeId ? this.findMemberById(assigneeId) : null;
-        if (assigneeId) {
-          this.locallyReservedSuggestionIds.update((ids) => Array.from(new Set([...ids, assigneeId])));
-        }
-        this.patchReplacementState(replacementId, 'APPROVED', assigneeId, replacementAssignee);
-        if (replacement?.assignmentId && assigneeId) {
-          this.patchAssignmentAssignee(replacement.assignmentId, assigneeId, replacementAssignee?.fullName ?? replacement.replacementAssignee?.fullName ?? 'Sostituto');
-        }
-        this.replacementAssigneeId.set(null);
-        this.feedback.success('Sostituzione confermata');
-      },
-      error: (error) => this.feedback.error('Conferma non riuscita', this.apiError.message(error, 'Impossibile confermare il sostituto.'))
+    const replacement = this.replacements().find((item) => item.id === replacementId) ?? null;
+    const replacementAssignee = assigneeId ? this.findMemberById(assigneeId) : null;
+    this.openConfirm({
+      title: 'Confermare sostituto?',
+      message: `La sostituzione verra confermata${replacementAssignee?.fullName ? ` con ${replacementAssignee.fullName}` : ''}.`,
+      detail: `Evento: ${replacement?.assignment?.slot?.event?.title || 'Sostituzione'} · Team: ${replacement?.assignment?.slot?.team?.name || 'Team'}`,
+      tone: 'confirm',
+      confirmLabel: 'Conferma sostituto',
+      icon: 'pi pi-check-circle',
+      run: () => this.api.resolveReplacement(replacementId, { status: 'APPROVED', replacementAssigneeId: assigneeId || null }).subscribe({
+        next: () => {
+          if (assigneeId) {
+            this.locallyReservedSuggestionIds.update((ids) => Array.from(new Set([...ids, assigneeId])));
+          }
+          this.patchReplacementState(replacementId, 'APPROVED', assigneeId, replacementAssignee);
+          if (replacement?.assignmentId && assigneeId) {
+            this.patchAssignmentAssignee(replacement.assignmentId, assigneeId, replacementAssignee?.fullName ?? replacement.replacementAssignee?.fullName ?? 'Sostituto');
+          }
+          this.replacementAssigneeId.set(null);
+          this.feedback.success('Sostituzione confermata');
+        },
+        error: (error) => this.feedback.error('Conferma non riuscita', this.apiError.message(error, 'Impossibile confermare il sostituto.'))
+      })
     });
   }
 
@@ -667,15 +747,43 @@ export class CalendarViewPageComponent {
       return;
     }
 
-    this.api.resolveReplacement(replacement.id, { status: 'APPROVED', replacementAssigneeId: replacement.suggestedReplacement.id }).subscribe({
-      next: () => {
-        this.locallyReservedSuggestionIds.update((ids) => Array.from(new Set([...ids, replacement.suggestedReplacement!.id])));
-        this.patchReplacementState(replacement.id, 'APPROVED', replacement.suggestedReplacement!.id, replacement.suggestedReplacement);
-        this.patchAssignmentAssignee(replacement.assignmentId, replacement.suggestedReplacement!.id, replacement.suggestedReplacement!.fullName);
-        this.feedback.success('Sostituzione approvata con suggerito');
-      },
-      error: (error) => this.feedback.error('Conferma non riuscita', this.apiError.message(error, 'Impossibile approvare con il sostituto suggerito.'))
+    this.openConfirm({
+      title: 'Approvare con suggerito?',
+      message: `La copertura verra approvata con ${replacement.suggestedReplacement.fullName}.`,
+      detail: `Score suggerito: ${replacement.suggestedReplacement.score} · ${replacement.assignment?.slot?.event?.title || 'Sostituzione'}`,
+      tone: 'confirm',
+      confirmLabel: 'Approva con suggerito',
+      icon: 'pi pi-sparkles',
+      run: () => this.api.resolveReplacement(replacement.id, { status: 'APPROVED', replacementAssigneeId: replacement.suggestedReplacement!.id }).subscribe({
+        next: () => {
+          this.locallyReservedSuggestionIds.update((ids) => Array.from(new Set([...ids, replacement.suggestedReplacement!.id])));
+          this.patchReplacementState(replacement.id, 'APPROVED', replacement.suggestedReplacement!.id, replacement.suggestedReplacement);
+          this.patchAssignmentAssignee(replacement.assignmentId, replacement.suggestedReplacement!.id, replacement.suggestedReplacement!.fullName);
+          this.feedback.success('Sostituzione approvata con suggerito');
+        },
+        error: (error) => this.feedback.error('Conferma non riuscita', this.apiError.message(error, 'Impossibile approvare con il sostituto suggerito.'))
+      })
     });
+  }
+
+  protected confirmPendingAction(): void {
+    const action = this.pendingConfirm();
+    if (!action) {
+      return;
+    }
+
+    this.confirmVisible.set(false);
+    action.run();
+  }
+
+  protected closeConfirm(): void {
+    this.confirmVisible.set(false);
+    this.pendingConfirm.set(null);
+  }
+
+  private openConfirm(config: PendingConfirmAction): void {
+    this.pendingConfirm.set(config);
+    this.confirmVisible.set(true);
   }
 
   protected openReplacementAssistant(replacement: ReplacementItem): void {
@@ -1038,5 +1146,15 @@ export class CalendarViewPageComponent {
       }),
       map((events) => events.find((item: CalendarEvent) => item.seriesId === event.seriesId && item.occurrenceStart === event.occurrenceStart && !item.isVirtualOccurrence) ?? event)
     );
+  }
+
+  protected updateRecurrenceDuration(value: unknown): void {
+    const numeric = Number(value);
+    this.eventForm.recurrenceDurationMonths = [3, 6, 12, 24].includes(numeric) ? numeric as RecurrenceDurationOption : 12;
+  }
+
+  protected updateRecurrenceRenewDuration(value: unknown): void {
+    const numeric = Number(value);
+    this.eventForm.recurrenceRenewMonths = [3, 6, 12, 24].includes(numeric) ? numeric as RecurrenceDurationOption : 12;
   }
 }

@@ -2,7 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { UiSelectComponent } from '@shift-complete/ui-kit';
+import { UiButtonComponent, UiInputComponent, UiLabelComponent, UiSelectComponent } from '@shift-complete/ui-kit';
+import { finalize } from 'rxjs';
 import { AppApiService } from '../../shared/services/app-api.service';
 import { AuthApiService } from '../../core/services/auth-api.service';
 import { SessionService } from '../../core/services/session.service';
@@ -11,7 +12,7 @@ import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 @Component({
   selector: 'app-auth-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiSelectComponent],
+  imports: [CommonModule, FormsModule, UiButtonComponent, UiInputComponent, UiLabelComponent, UiSelectComponent],
   templateUrl: './auth-page.component.html',
 })
 export class AuthPageComponent {
@@ -37,6 +38,8 @@ export class AuthPageComponent {
     this.authApi.availableTeams().subscribe({
       next: (teams) => this.teamOptions.set(teams.map((team) => ({ label: team.name, value: team.id }))),
     });
+
+    this.restoreValidSession();
   }
 
   protected castString(value: unknown): string {
@@ -64,7 +67,8 @@ export class AuthPageComponent {
         this.session.setSession(response.user, response.accessToken);
         this.session.setRefreshToken(response.refreshToken ?? null);
         this.feedback.success('Accesso completato', `Bentornato ${response.user.fullName}.`);
-        void this.router.navigateByUrl('/dashboard');
+        const redirectUrl = this.session.consumeRedirectUrl() ?? '/dashboard';
+        void this.router.navigateByUrl(redirectUrl);
       },
       error: (error: { message?: string }) => {
         this.statusType.set('error');
@@ -126,5 +130,38 @@ export class AuthPageComponent {
       return 'La password deve avere almeno 6 caratteri.';
     }
     return null;
+  }
+
+  private restoreValidSession(): void {
+    if (!this.session.getAccessToken()) {
+      return;
+    }
+
+    if (this.session.isAuthenticated() && !this.session.needsValidation()) {
+      const redirectUrl = this.session.consumeRedirectUrl() ?? '/dashboard';
+      void this.router.navigateByUrl(redirectUrl);
+      return;
+    }
+
+    this.loading.set(true);
+    this.api.me()
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: (profile) => {
+          const token = this.session.getAccessToken();
+          if (!token) {
+            this.session.signOut();
+            return;
+          }
+
+          this.session.setSession(profile, token);
+          const redirectUrl = this.session.consumeRedirectUrl() ?? '/dashboard';
+          void this.router.navigateByUrl(redirectUrl);
+        },
+        error: () => {
+          this.session.signOut();
+          void this.router.navigateByUrl('/auth');
+        }
+      });
   }
 }

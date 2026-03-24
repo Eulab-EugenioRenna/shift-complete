@@ -2,9 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { DialogModule } from 'primeng/dialog';
 import { ReplacementItem, TeamListItem } from '@shift-complete/shared-types';
-import { UiCardComponent, UiDialogShellComponent, UiLabelComponent, UiSelectComponent, UiSidebarPanelComponent, UiTableShellComponent } from '@shift-complete/ui-kit';
+import { UiButtonComponent, UiCardComponent, UiConfirmDialogComponent, UiFieldComponent, UiInputComponent, UiLabelComponent, UiModalComponent, UiPageHeaderComponent, UiSelectComponent, UiSidebarPanelComponent, UiSurfaceComponent, UiTableShellComponent } from '@shift-complete/ui-kit';
 import { ApiErrorService } from '../../core/services/api-error.service';
 import { GlobalTeamScopeService } from '../../core/services/global-team-scope.service';
 import { SpotlightSearchService } from '../../core/services/spotlight-search.service';
@@ -16,7 +15,7 @@ import { SessionService } from '../../core/services/session.service';
 @Component({
   selector: 'app-replacements-history-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, DialogModule, UiCardComponent, UiDialogShellComponent, UiLabelComponent, UiSelectComponent, UiSidebarPanelComponent, UiTableShellComponent, TeamScopeChipsComponent],
+  imports: [CommonModule, FormsModule, UiButtonComponent, UiCardComponent, UiConfirmDialogComponent, UiFieldComponent, UiInputComponent, UiLabelComponent, UiModalComponent, UiPageHeaderComponent, UiSelectComponent, UiSidebarPanelComponent, UiSurfaceComponent, UiTableShellComponent, TeamScopeChipsComponent],
   templateUrl: './replacements-history-page.component.html',
 })
 export class ReplacementsHistoryPageComponent {
@@ -40,6 +39,16 @@ export class ReplacementsHistoryPageComponent {
   protected readonly bulkReplacementAssigneeId = signal<string | null>(null);
   protected readonly bulkActionStatus = signal<'APPROVED' | 'DECLINED'>('APPROVED');
   protected bulkDialogVisible = false;
+  protected readonly confirmVisible = signal(false);
+  protected readonly pendingConfirm = signal<{
+    title: string;
+    message: string;
+    detail?: string;
+    tone: 'confirm' | 'danger';
+    confirmLabel: string;
+    icon?: string;
+    run: () => void;
+  } | null>(null);
   protected readonly filters = {
     status: signal(''),
     person: signal(''),
@@ -315,6 +324,29 @@ export class ReplacementsHistoryPageComponent {
       return;
     }
 
+    const replacement = this.replacements().find((item) => item.id === replacementId);
+    const label = status === 'APPROVED' ? 'Approvare sostituzione?' : 'Rifiutare sostituzione?';
+    const message = status === 'APPROVED'
+      ? `La richiesta verra approvata${replacementAssignee?.fullName ? ` con ${replacementAssignee.fullName}` : ''}.`
+      : 'La richiesta di sostituzione verra chiusa senza approvazione.';
+    const detail = status === 'APPROVED'
+      ? `Evento: ${replacement?.assignment?.slot?.event?.title || 'Sostituzione'} · Team: ${replacement?.assignment?.slot?.team?.name || 'Team'}`
+      : 'La copertura restera da riallineare manualmente.';
+    this.openConfirm({
+      title: label,
+      message,
+      detail,
+      tone: status === 'APPROVED' ? 'confirm' : 'danger',
+      confirmLabel: status === 'APPROVED' ? 'Approva sostituzione' : 'Rifiuta sostituzione',
+      icon: status === 'APPROVED' ? 'pi pi-check-circle' : 'pi pi-times-circle',
+      run: () => this.performResolveReplacement(replacementId, status),
+    });
+  }
+
+  private performResolveReplacement(replacementId: string, status: 'APPROVED' | 'DECLINED'): void {
+    const replacementAssigneeId = status === 'APPROVED' ? this.replacementSelection[replacementId] || undefined : null;
+    const replacementAssignee = replacementAssigneeId ? this.findMemberById(replacementAssigneeId) : null;
+
     this.api.resolveReplacement(replacementId, {
       status,
       replacementAssigneeId,
@@ -412,8 +444,19 @@ export class ReplacementsHistoryPageComponent {
     if (!this.canManageReplacements()) {
       return;
     }
+    const status = this.bulkActionStatus();
     this.bulkDialogVisible = false;
-    this.resolveSelected(this.bulkActionStatus());
+    this.openConfirm({
+      title: status === 'APPROVED' ? 'Approvare richieste selezionate?' : 'Rifiutare richieste selezionate?',
+      message: `Stai per ${status === 'APPROVED' ? 'approvare' : 'rifiutare'} ${this.selectedReplacementIds().length} richieste selezionate.`,
+      detail: status === 'APPROVED' && this.bulkReplacementAssigneeId()
+        ? 'Il sostituto bulk verra applicato dove compatibile.'
+        : 'L operazione verra eseguita su tutte le richieste ancora in attesa.',
+      tone: status === 'APPROVED' ? 'confirm' : 'danger',
+      confirmLabel: status === 'APPROVED' ? 'Approva selezionate' : 'Rifiuta selezionate',
+      icon: status === 'APPROVED' ? 'pi pi-check-square' : 'pi pi-times-circle',
+      run: () => this.resolveSelected(status),
+    });
   }
 
   protected resolveSelected(status: 'APPROVED' | 'DECLINED'): void {
@@ -437,22 +480,70 @@ export class ReplacementsHistoryPageComponent {
       return;
     }
 
-    this.replacementSelection[replacement.id] = suggestedId;
-    this.resolveReplacement(replacement.id, 'APPROVED');
+    this.openConfirm({
+      title: 'Approvare con suggerito?',
+      message: `La copertura verra approvata con ${replacement.suggestedReplacement?.fullName || 'il suggerito disponibile'}.`,
+      detail: `Score suggerito: ${replacement.suggestedReplacement?.score ?? '-'} · ${replacement.assignment?.slot?.event?.title || 'Sostituzione'}`,
+      tone: 'confirm',
+      confirmLabel: 'Approva con suggerito',
+      icon: 'pi pi-sparkles',
+      run: () => {
+        this.replacementSelection[replacement.id] = suggestedId;
+        this.performResolveReplacement(replacement.id, 'APPROVED');
+      },
+    });
   }
 
   protected approveAllWithSuggested(): void {
     if (!this.canManageReplacements()) {
       return;
     }
-    for (const replacement of this.selectedPendingReplacements()) {
-      const suggestedId = this.suggestedReplacementAssigneeId(replacement);
-      if (!suggestedId) {
-        continue;
-      }
+    this.openConfirm({
+      title: 'Approvare tutte con suggerito?',
+      message: `Verranno approvate ${this.selectedPendingReplacements().length} richieste usando il miglior suggerito disponibile.`,
+      detail: 'Usa confirm per approvazioni rapide a basso attrito ma con impatto operativo immediato.',
+      tone: 'confirm',
+      confirmLabel: 'Approva tutte',
+      icon: 'pi pi-bolt',
+      run: () => {
+        for (const replacement of this.selectedPendingReplacements()) {
+          const suggestedId = this.suggestedReplacementAssigneeId(replacement);
+          if (!suggestedId) {
+            continue;
+          }
 
-      this.replacementSelection[replacement.id] = suggestedId;
-      this.resolveReplacement(replacement.id, 'APPROVED');
+          this.replacementSelection[replacement.id] = suggestedId;
+          this.performResolveReplacement(replacement.id, 'APPROVED');
+        }
+      },
+    });
+  }
+
+  protected confirmPendingAction(): void {
+    const action = this.pendingConfirm();
+    if (!action) {
+      return;
     }
+
+    this.confirmVisible.set(false);
+    action.run();
+  }
+
+  protected closeConfirm(): void {
+    this.confirmVisible.set(false);
+    this.pendingConfirm.set(null);
+  }
+
+  private openConfirm(config: {
+    title: string;
+    message: string;
+    detail?: string;
+    tone: 'confirm' | 'danger';
+    confirmLabel: string;
+    icon?: string;
+    run: () => void;
+  }): void {
+    this.pendingConfirm.set(config);
+    this.confirmVisible.set(true);
   }
 }

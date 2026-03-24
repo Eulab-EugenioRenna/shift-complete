@@ -210,6 +210,10 @@ model Event {
   endsAt            DateTime
   recurrenceRule    String?
   recurrenceTz      String?
+  recurrenceUntil   DateTime?
+  recurrenceDurationMonths Int?
+  recurrenceAutoRenew Boolean     @default(true)
+  recurrenceRenewMonths Int?
   parentEventId     String?
   historicalSnapshot Json?
   createdById       String?

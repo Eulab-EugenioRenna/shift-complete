@@ -1,60 +1,86 @@
-<section class="space-y-8">
+<section class="mx-auto max-w-[1680px] space-y-8 px-4 py-8 sm:px-6 lg:px-10 xl:px-12">
   <header class="rounded-[28px] border border-[color:var(--border-soft)] bg-[linear-gradient(180deg,var(--surface-1)_0%,var(--surface-2)_100%)] px-6 py-6 shadow-[var(--shadow-soft)]">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-      <div class="max-w-3xl">
-        <p class="text-[11px] uppercase tracking-[0.32em] text-[color:var(--text-3)]">UI Manual</p>
-        <h1 class="mt-2 text-3xl font-semibold tracking-tight text-[color:var(--text-1)]">Primitive visuali e severity condivise</h1>
-        <p class="mt-3 text-sm leading-6 text-[color:var(--text-2)]">
-          Route manuale interna per definire differenza tra button, semantic tag, filter chip, badge quantitativi e notifiche.
-          Nessun link in navigazione: serve come playground prima del rollout sulle pagine operative.
-        </p>
-      </div>
-      <div class="flex flex-wrap items-center gap-3">
+    <ui-page-header
+      eyebrow="UI Manual"
+      title="Primitive visuali, tipografia e form condivisi"
+      subtitle="Route interna per definire gerarchie testuali, differenza tra button, semantic tag, filter chip, badge quantitativi, form e notifiche."
+      [hasActions]="true"
+    >
+      <div page-actions class="flex flex-wrap items-center gap-3">
         <ui-label tone="info">PrimeNG base</ui-label>
         <ui-label tone="success">ui-kit primitive</ui-label>
         <ui-label tone="warn">review in app</ui-label>
       </div>
-    </div>
+    </ui-page-header>
   </header>
 
-  <div class="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.9fr)]">
-    <div class="space-y-6">
-      <ui-card title="Buttons" subtitle="PrimeNG button con severity unica e varianti solid, outlined, text." surfaceClass="p-6" bodyClass="space-y-5">
+  <div class="grid auto-rows-[10px] grid-cols-[repeat(auto-fit,minmax(400px,1fr))] items-start gap-6">
+      <div #masonryItem data-key="index" [style.grid-row]="'span ' + masonrySpan('index')" class="transition duration-700 ease-out" [class.opacity-0]="!cardVisible('index')" [class.translate-y-8]="!cardVisible('index')" [class.opacity-100]="cardVisible('index')" [class.translate-y-0]="cardVisible('index')">
+      <ui-card title="Indice" subtitle="Ordine consigliato di consultazione del sistema." surfaceClass="h-fit min-w-0 p-6" bodyClass="space-y-2 text-sm text-[color:var(--text-2)]">
+        <p><span class="font-medium text-[color:var(--text-1)]">1.</span> Foundations</p>
+        <p><span class="font-medium text-[color:var(--text-1)]">2.</span> Actions</p>
+        <p><span class="font-medium text-[color:var(--text-1)]">3.</span> Semantic states</p>
+        <p><span class="font-medium text-[color:var(--text-1)]">4.</span> Forms</p>
+        <p><span class="font-medium text-[color:var(--text-1)]">5.</span> Layout shells</p>
+        <p><span class="font-medium text-[color:var(--text-1)]">6.</span> Feedback</p>
+      </ui-card>
+      </div>
+
+      <div #masonryItem data-key="foundations" [style.grid-row]="'span ' + masonrySpan('foundations')" class="transition duration-700 ease-out" [class.opacity-0]="!cardVisible('foundations')" [class.translate-y-8]="!cardVisible('foundations')" [class.opacity-100]="cardVisible('foundations')" [class.translate-y-0]="cardVisible('foundations')">
+      <ui-card title="Foundations" subtitle="Base visuale condivisa: tipografia, superfici e semantica colori." surfaceClass="h-fit min-w-0 p-6" bodyClass="space-y-5">
+        <div class="grid gap-4 xl:grid-cols-2">
+          <div class="space-y-3">
+            <p class="ui-eyebrow">Eyebrow</p>
+            <h2 class="ui-page-title">Titolo pagina condiviso</h2>
+            <p class="ui-page-subtitle">Sottotitolo operativo con contesto, tono neutro e larghezza leggibile.</p>
+          </div>
+          <ui-surface surfaceClass="bg-[color:var(--surface-2)] p-4">
+            <h3 class="ui-section-title">Titolo sezione</h3>
+            <p class="ui-section-subtitle">Usato dentro card, pannelli, shell e blocchi di supporto.</p>
+          </ui-surface>
+        </div>
+      </ui-card>
+      </div>
+
+      <div #masonryItem data-key="actions" [style.grid-row]="'span ' + masonrySpan('actions')" class="transition duration-700 ease-out" [class.opacity-0]="!cardVisible('actions')" [class.translate-y-8]="!cardVisible('actions')" [class.opacity-100]="cardVisible('actions')" [class.translate-y-0]="cardVisible('actions')">
+      <ui-card title="Actions" subtitle="Azioni principali e secondarie. Prima i bottoni, poi i controlli di selezione compatta." surfaceClass="h-fit min-w-0 p-6" bodyClass="space-y-5">
         <div class="space-y-3">
           <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Solid</p>
           <div class="flex flex-wrap gap-3">
-            <p-button label="Secondary" severity="secondary"></p-button>
-            <p-button label="Info" severity="info"></p-button>
-            <p-button label="Success" severity="success"></p-button>
-            <p-button label="Warn" severity="warn"></p-button>
-            <p-button label="Danger" severity="danger"></p-button>
+            <ui-button tone="neutral">Secondary</ui-button>
+            <ui-button tone="info">Info</ui-button>
+            <ui-button tone="success">Success</ui-button>
+            <ui-button tone="warn">Warn</ui-button>
+            <ui-button tone="danger">Danger</ui-button>
           </div>
         </div>
 
         <div class="space-y-3">
           <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Outlined</p>
           <div class="flex flex-wrap gap-3">
-            <p-button label="Secondary" severity="secondary" variant="outlined"></p-button>
-            <p-button label="Info" severity="info" variant="outlined"></p-button>
-            <p-button label="Success" severity="success" variant="outlined"></p-button>
-            <p-button label="Warn" severity="warn" variant="outlined"></p-button>
-            <p-button label="Danger" severity="danger" variant="outlined"></p-button>
+            <ui-button tone="neutral" variant="outlined">Secondary</ui-button>
+            <ui-button tone="info" variant="outlined">Info</ui-button>
+            <ui-button tone="success" variant="outlined">Success</ui-button>
+            <ui-button tone="warn" variant="outlined">Warn</ui-button>
+            <ui-button tone="danger" variant="outlined">Danger</ui-button>
           </div>
         </div>
 
         <div class="space-y-3">
           <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Text</p>
           <div class="flex flex-wrap gap-3">
-            <p-button label="Secondary" severity="secondary" variant="text"></p-button>
-            <p-button label="Info" severity="info" variant="text"></p-button>
-            <p-button label="Success" severity="success" variant="text"></p-button>
-            <p-button label="Warn" severity="warn" variant="text"></p-button>
-            <p-button label="Danger" severity="danger" variant="text"></p-button>
+            <ui-button tone="neutral" variant="text">Secondary</ui-button>
+            <ui-button tone="info" variant="text">Info</ui-button>
+            <ui-button tone="success" variant="text">Success</ui-button>
+            <ui-button tone="warn" variant="text">Warn</ui-button>
+            <ui-button tone="danger" variant="text">Danger</ui-button>
           </div>
         </div>
       </ui-card>
+      </div>
 
-      <ui-card title="Semantic Tag" subtitle="Tag = stato, classificazione, esito. Non selezione filtro." surfaceClass="p-6" bodyClass="space-y-5">
+      <div #masonryItem data-key="semantic" [style.grid-row]="'span ' + masonrySpan('semantic')" class="transition duration-700 ease-out" [class.opacity-0]="!cardVisible('semantic')" [class.translate-y-8]="!cardVisible('semantic')" [class.opacity-100]="cardVisible('semantic')" [class.translate-y-0]="cardVisible('semantic')">
+      <ui-card title="Semantic States" subtitle="Stati, classificazioni e selezioni. Ogni pattern ha un ruolo diverso." surfaceClass="h-fit min-w-0 p-6" bodyClass="space-y-6">
         <div class="space-y-3">
           <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">ui-label</p>
           <div class="flex flex-wrap gap-3">
@@ -67,20 +93,7 @@
         </div>
 
         <div class="space-y-3">
-          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Prime p-tag</p>
-          <div class="flex flex-wrap gap-3">
-            <p-tag severity="contrast" value="Offline"></p-tag>
-            <p-tag severity="info" value="In evidenza"></p-tag>
-            <p-tag severity="success" value="Coperto"></p-tag>
-            <p-tag severity="warn" value="Parziale"></p-tag>
-            <p-tag severity="danger" value="Bloccato"></p-tag>
-          </div>
-        </div>
-      </ui-card>
-
-      <ui-card title="Filter Chip" subtitle="Chip = selezione, filtro, segmentazione. Visivamente diverso dai tag di stato." surfaceClass="p-6" bodyClass="space-y-5">
-        <div class="space-y-3">
-          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Filtro stato</p>
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">ui-chip</p>
           <div class="flex flex-wrap gap-3">
             <ui-chip
               *ngFor="let tone of tones"
@@ -95,17 +108,7 @@
         </div>
 
         <div class="space-y-3">
-          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Segmentazione</p>
-          <div class="flex flex-wrap gap-3">
-            <ui-chip tone="neutral" [selected]="activeSegment() === 'tag'" (chipClick)="setSegment('tag')">Semantic tag</ui-chip>
-            <ui-chip tone="info" [selected]="activeSegment() === 'filter'" (chipClick)="setSegment('filter')">Filter chip</ui-chip>
-            <ui-chip tone="success" [selected]="activeSegment() === 'feedback'" (chipClick)="setSegment('feedback')">Feedback toast</ui-chip>
-          </div>
-        </div>
-      </ui-card>
-
-      <div class="grid gap-6 xl:grid-cols-2">
-        <ui-card title="Badge" subtitle="Badge = contatore o numero sintetico." surfaceClass="p-6" bodyClass="space-y-4">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">ui-badge</p>
           <div class="flex flex-wrap items-center gap-3">
             <ui-badge tone="neutral">12</ui-badge>
             <ui-badge tone="info">4</ui-badge>
@@ -113,83 +116,164 @@
             <ui-badge tone="warn">7</ui-badge>
             <ui-badge tone="danger">2</ui-badge>
           </div>
-        </ui-card>
+        </div>
 
-        <ui-card title="Notification Feedback" subtitle="Le notifiche usano la stessa severity ma restano un pattern separato." surfaceClass="p-6" bodyClass="space-y-4">
+        <div class="space-y-3">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Quando usarli</p>
           <div class="flex flex-wrap gap-3">
-            <p-button label="Neutral info" severity="secondary" (onClick)="triggerFeedback('neutral')"></p-button>
-            <p-button label="Info" severity="info" (onClick)="triggerFeedback('info')"></p-button>
-            <p-button label="Success" severity="success" (onClick)="triggerFeedback('success')"></p-button>
-            <p-button label="Warn" severity="warn" variant="outlined" (onClick)="triggerFeedback('warn')"></p-button>
-            <p-button label="Danger" severity="danger" (onClick)="triggerFeedback('danger')"></p-button>
+            <ui-chip tone="neutral" [selected]="activeSegment() === 'tag'" (chipClick)="setSegment('tag')">Semantic tag</ui-chip>
+            <ui-chip tone="info" [selected]="activeSegment() === 'filter'" (chipClick)="setSegment('filter')">Filter chip</ui-chip>
+            <ui-chip tone="success" [selected]="activeSegment() === 'feedback'" (chipClick)="setSegment('feedback')">Feedback toast</ui-chip>
           </div>
-          <p class="text-sm text-[color:var(--text-2)]">I toast reali sono quelli in alto a destra, generati dal feedback center condiviso.</p>
-        </ui-card>
+        </div>
+      </ui-card>
       </div>
-    </div>
 
-    <div class="space-y-6">
-      <ui-sidebar-panel title="Regole" eyebrow="Semantica">
-        <div class="grid gap-3 text-sm">
-          <div class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-4">
-            <p class="font-semibold text-[color:var(--text-1)]">Info</p>
-            <p class="mt-1 text-[color:var(--text-2)]">Suggerimenti, focus, step primari, elementi evidenziati.</p>
+      <div #masonryItem data-key="forms" [style.grid-row]="'span ' + masonrySpan('forms')" class="transition duration-700 ease-out" [class.opacity-0]="!cardVisible('forms')" [class.translate-y-8]="!cardVisible('forms')" [class.opacity-100]="cardVisible('forms')" [class.translate-y-0]="cardVisible('forms')">
+      <ui-card title="Forms" subtitle="Campi, wrapper e sezioni formali da riusare per ogni form che compare almeno due volte." surfaceClass="h-fit min-w-0 p-6" bodyClass="space-y-5">
+        <ui-form-section title="Profilo operatore" subtitle="Titolo e struttura del form sono parte del design system.">
+          <div class="grid gap-4 md:grid-cols-2">
+            <ui-field label="Nome completo">
+              <ui-input value="Mario Rossi"></ui-input>
+            </ui-field>
+            <ui-field label="Email">
+              <ui-input value="mario@shift.local"></ui-input>
+            </ui-field>
+            <ui-field label="Ruolo">
+              <ui-input value="Volontario"></ui-input>
+            </ui-field>
+            <ui-field label="Team">
+              <ui-input value="Accoglienza"></ui-input>
+            </ui-field>
           </div>
-          <div class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-4">
-            <p class="font-semibold text-[color:var(--text-1)]">Success</p>
-            <p class="mt-1 text-[color:var(--text-2)]">Conferme, stati coperti, approvazioni, esito positivo.</p>
-          </div>
-          <div class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-4">
-            <p class="font-semibold text-[color:var(--text-1)]">Warn</p>
-            <p class="mt-1 text-[color:var(--text-2)]">Attenzione operativa, review, incompletezza. Non errore definitivo.</p>
-          </div>
-          <div class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-4">
-            <p class="font-semibold text-[color:var(--text-1)]">Danger</p>
-            <p class="mt-1 text-[color:var(--text-2)]">Errori, rifiuti, azioni distruttive, stato bloccante.</p>
-          </div>
-        </div>
-      </ui-sidebar-panel>
+          <ui-field label="Note operative">
+            <ui-textarea value="Preferisce turni serali e accoglienza front desk." [rows]="4"></ui-textarea>
+          </ui-field>
+        </ui-form-section>
+      </ui-card>
+      </div>
 
-      <ui-table-shell title="Preview layout">
-        <table class="min-w-full divide-y divide-[color:var(--border-soft)] text-sm">
-          <thead class="bg-[color:var(--surface-2)] text-left text-xs uppercase tracking-[0.18em] text-[color:var(--text-3)]">
-            <tr>
-              <th class="px-4 py-3">Elemento</th>
-              <th class="px-4 py-3">Uso corretto</th>
-              <th class="px-4 py-3">Primitive</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-[color:var(--border-soft)] text-[color:var(--text-2)]">
-            <tr>
-              <td class="px-4 py-3 font-medium text-[color:var(--text-1)]">Filtro tabella</td>
-              <td class="px-4 py-3">Selezione attiva, switch di vista, segmenti.</td>
-              <td class="px-4 py-3"><ui-chip tone="info" [selected]="true">Attivo</ui-chip></td>
-            </tr>
-            <tr>
-              <td class="px-4 py-3 font-medium text-[color:var(--text-1)]">Stato richiesta</td>
-              <td class="px-4 py-3">Esito, stato di workflow, classificazione.</td>
-              <td class="px-4 py-3"><ui-label tone="success">Approvata</ui-label></td>
-            </tr>
-            <tr>
-              <td class="px-4 py-3 font-medium text-[color:var(--text-1)]">Contatore</td>
-              <td class="px-4 py-3">Numeri sintetici, KPI rapidi, count unread.</td>
-              <td class="px-4 py-3"><ui-badge tone="warn">9</ui-badge></td>
-            </tr>
-          </tbody>
-        </table>
-      </ui-table-shell>
+      <div #masonryItem data-key="layout-shells" [style.grid-row]="'span ' + masonrySpan('layout-shells')" class="transition duration-700 ease-out" [class.opacity-0]="!cardVisible('layout-shells')" [class.translate-y-8]="!cardVisible('layout-shells')" [class.opacity-100]="cardVisible('layout-shells')" [class.translate-y-0]="cardVisible('layout-shells')">
+      <ui-card title="Layout Shells" subtitle="Contenitori condivisi per pagine, pannelli e tabelle." surfaceClass="h-fit min-w-0 p-6" bodyClass="grid gap-6">
+        <ui-surface surfaceClass="p-4">
+          <p class="ui-section-title">ui-surface</p>
+          <p class="ui-section-subtitle">Base per pannelli neutrali, sidebar, empty state e blocchi informativi.</p>
+        </ui-surface>
 
-      <ui-dialog-shell title="Dialog Shell" eyebrow="Container" subtitle="Anche il modale eredita la stessa grammatica di severity." icon="pi pi-palette" tone="info">
+        <ui-table-shell title="Preview layout">
+          <table class="min-w-full divide-y divide-[color:var(--border-soft)] text-sm">
+            <thead class="bg-[color:var(--surface-2)] text-left text-xs uppercase tracking-[0.18em] text-[color:var(--text-3)]">
+              <tr>
+                <th class="px-4 py-3">Elemento</th>
+                <th class="px-4 py-3">Uso corretto</th>
+                <th class="px-4 py-3">Primitive</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[color:var(--border-soft)] text-[color:var(--text-2)]">
+              <tr>
+                <td class="px-4 py-3 font-medium text-[color:var(--text-1)]">Filtro tabella</td>
+                <td class="px-4 py-3">Selezione attiva, switch di vista, segmenti.</td>
+                <td class="px-4 py-3"><ui-chip tone="info" [selected]="true">Attivo</ui-chip></td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 font-medium text-[color:var(--text-1)]">Stato richiesta</td>
+                <td class="px-4 py-3">Esito, stato di workflow, classificazione.</td>
+                <td class="px-4 py-3"><ui-label tone="success">Approvata</ui-label></td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 font-medium text-[color:var(--text-1)]">Contatore</td>
+                <td class="px-4 py-3">Numeri sintetici, KPI rapidi, count unread.</td>
+                <td class="px-4 py-3"><ui-badge tone="warn">9</ui-badge></td>
+              </tr>
+            </tbody>
+          </table>
+        </ui-table-shell>
+      </ui-card>
+      </div>
+
+      <div #masonryItem data-key="modal-shell" [style.grid-row]="'span ' + masonrySpan('modal-shell')" class="transition duration-700 ease-out" [class.opacity-0]="!cardVisible('modal-shell')" [class.translate-y-8]="!cardVisible('modal-shell')" [class.opacity-100]="cardVisible('modal-shell')" [class.translate-y-0]="cardVisible('modal-shell')">
+      <ui-card title="Modal Shell" subtitle="Il contenitore del modale vive come pattern autonomo, non affiancato agli altri shell." surfaceClass="h-fit min-w-0 p-6" bodyClass="space-y-4">
+        <ui-dialog-shell title="Dialog Shell" eyebrow="Container" subtitle="Header e tono del modale ereditano la stessa grammatica." icon="pi pi-palette" tone="info">
+          <div class="flex flex-wrap gap-3">
+            <ui-label tone="info">Titolo e contesto</ui-label>
+            <ui-label tone="success">Azione confermata</ui-label>
+            <ui-label tone="warn">Revisione</ui-label>
+            <ui-label tone="danger">Azione distruttiva</ui-label>
+          </div>
+          <p class="mt-4 text-sm text-[color:var(--text-2)]">Preview statica del contenitore modale condiviso.</p>
+        </ui-dialog-shell>
+      </ui-card>
+      </div>
+
+      <div #masonryItem data-key="confirm-dialog" [style.grid-row]="'span ' + masonrySpan('confirm-dialog')" class="transition duration-700 ease-out" [class.opacity-0]="!cardVisible('confirm-dialog')" [class.translate-y-8]="!cardVisible('confirm-dialog')" [class.opacity-100]="cardVisible('confirm-dialog')" [class.translate-y-0]="cardVisible('confirm-dialog')">
+      <ui-card title="Confirm Dialog" subtitle="Primitive dedicata alle richieste di conferma, con tono conferma o danger." surfaceClass="h-fit min-w-0 p-6" bodyClass="grid gap-5">
+        <ui-confirm-dialog
+          [visible]="true"
+          title="Confermare approvazione?"
+          eyebrow="Tema confirm"
+          subtitle="Usalo per azioni positive o irreversibili ma non distruttive."
+          message="Stai per approvare la richiesta e notificare subito la persona coinvolta."
+          detail="Il tono confirm usa semantica positiva e CTA primaria verde."
+          tone="confirm"
+          confirmLabel="Approva"
+          cancelLabel="Torna indietro"
+        ></ui-confirm-dialog>
+
+        <ui-confirm-dialog
+          [visible]="true"
+          title="Eliminare elemento?"
+          eyebrow="Tema danger"
+          subtitle="Riservato a eliminazioni, rifiuti e azioni distruttive."
+          message="L elemento verra rimosso definitivamente dal workflow operativo."
+          detail="Il tono danger segnala un esito distruttivo con header e CTA coerenti."
+          tone="danger"
+          confirmLabel="Elimina"
+          cancelLabel="Annulla"
+        ></ui-confirm-dialog>
+      </ui-card>
+      </div>
+
+      <div #masonryItem data-key="semantic-colors" [style.grid-row]="'span ' + masonrySpan('semantic-colors')" class="transition duration-700 ease-out" [class.opacity-0]="!cardVisible('semantic-colors')" [class.translate-y-8]="!cardVisible('semantic-colors')" [class.opacity-100]="cardVisible('semantic-colors')" [class.translate-y-0]="cardVisible('semantic-colors')">
+      <ui-card title="Semantica Colori" subtitle="Mappa tono → significato operativo da non reinterpretare localmente." surfaceClass="h-fit min-w-0 p-6" bodyClass="grid gap-3 text-sm">
+        <ui-surface surfaceClass="bg-[color:var(--surface-2)] p-4">
+          <p class="font-semibold text-[color:var(--text-1)]">Info</p>
+          <p class="mt-1 text-[color:var(--text-2)]">Suggerimenti, focus, step primari, elementi evidenziati.</p>
+        </ui-surface>
+        <ui-surface surfaceClass="bg-[color:var(--surface-2)] p-4">
+          <p class="font-semibold text-[color:var(--text-1)]">Success</p>
+          <p class="mt-1 text-[color:var(--text-2)]">Conferme, stati coperti, approvazioni, esito positivo.</p>
+        </ui-surface>
+        <ui-surface surfaceClass="bg-[color:var(--surface-2)] p-4">
+          <p class="font-semibold text-[color:var(--text-1)]">Warn</p>
+          <p class="mt-1 text-[color:var(--text-2)]">Attenzione operativa, review, incompletezza. Non errore definitivo.</p>
+        </ui-surface>
+        <ui-surface surfaceClass="bg-[color:var(--surface-2)] p-4">
+          <p class="font-semibold text-[color:var(--text-1)]">Danger</p>
+          <p class="mt-1 text-[color:var(--text-2)]">Errori, rifiuti, azioni distruttive, stato bloccante.</p>
+        </ui-surface>
+      </ui-card>
+      </div>
+
+      <div #masonryItem data-key="feedback" [style.grid-row]="'span ' + masonrySpan('feedback')" class="transition duration-700 ease-out" [class.opacity-0]="!cardVisible('feedback')" [class.translate-y-8]="!cardVisible('feedback')" [class.opacity-100]="cardVisible('feedback')" [class.translate-y-0]="cardVisible('feedback')">
+      <ui-card title="Feedback" subtitle="Notifiche e messaggi usano le stesse severity ma restano un pattern separato da chip e tag." surfaceClass="h-fit min-w-0 p-6" bodyClass="space-y-4">
         <div class="flex flex-wrap gap-3">
-          <ui-label tone="info">Titolo e contesto</ui-label>
-          <ui-label tone="success">Azione confermata</ui-label>
-          <ui-label tone="warn">Revisione</ui-label>
-          <ui-label tone="danger">Azione distruttiva</ui-label>
+          <ui-button tone="neutral" (buttonClick)="triggerFeedback('neutral')">Neutral info</ui-button>
+          <ui-button tone="info" (buttonClick)="triggerFeedback('info')">Info</ui-button>
+          <ui-button tone="success" (buttonClick)="triggerFeedback('success')">Success</ui-button>
+          <ui-button tone="warn" variant="outlined" (buttonClick)="triggerFeedback('warn')">Warn</ui-button>
+          <ui-button tone="danger" (buttonClick)="triggerFeedback('danger')">Danger</ui-button>
         </div>
-        <p class="mt-4 text-sm text-[color:var(--text-2)]">
-          Questa e una preview statica del contenitore per verificare il rapporto tra header, tag e pulsanti prima della diffusione nelle pagine.
-        </p>
-      </ui-dialog-shell>
-    </div>
+        <p class="text-sm text-[color:var(--text-2)]">I toast reali sono quelli in alto a destra, generati dal feedback center condiviso.</p>
+      </ui-card>
+      </div>
+
+      <div #masonryItem data-key="checklist" [style.grid-row]="'span ' + masonrySpan('checklist')" class="transition duration-700 ease-out" [class.opacity-0]="!cardVisible('checklist')" [class.translate-y-8]="!cardVisible('checklist')" [class.opacity-100]="cardVisible('checklist')" [class.translate-y-0]="cardVisible('checklist')">
+      <ui-card title="Checklist" subtitle="Regole pratiche di diffusione del design system nell'app." surfaceClass="h-fit min-w-0 p-6" bodyClass="grid gap-2 text-sm text-[color:var(--text-2)]">
+        <p>Ogni pattern usato 2 volte deve uscire dal template locale.</p>
+        <p>Tag, chip, badge, button e input non devono essere reinterpretati pagina per pagina.</p>
+        <p>Le shell di layout devono usare `ui-surface`, `ui-card`, `ui-sidebar-panel`, `ui-dialog-shell`.</p>
+        <p>I pattern operativi complessi vanno promossi a primitive dedicate solo quando sono davvero stabili.</p>
+      </ui-card>
+      </div>
   </div>
 </section>

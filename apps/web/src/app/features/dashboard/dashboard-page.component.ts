@@ -2,10 +2,9 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import type { NotificationItem, ReplacementItem, Role, UserProfile } from '@shift-complete/shared-types';
-import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { ProgressBarModule } from 'primeng/progressbar';
-import { TagModule } from 'primeng/tag';
+import { UiButtonComponent, UiChipComponent, UiLabelComponent, UiPageHeaderComponent, UiStatCardComponent, UiSurfaceComponent } from '@shift-complete/ui-kit';
 import { GlobalTeamScopeService } from '../../core/services/global-team-scope.service';
 import { AppApiService } from '../../shared/services/app-api.service';
 import { ApiErrorService } from '../../core/services/api-error.service';
@@ -23,7 +22,7 @@ const ROLES = {
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, CardModule, TagModule, ButtonModule, ProgressBarModule, TeamScopeChipsComponent],
+  imports: [CommonModule, RouterLink, CardModule, ProgressBarModule, UiButtonComponent, UiChipComponent, UiLabelComponent, UiPageHeaderComponent, UiStatCardComponent, UiSurfaceComponent, TeamScopeChipsComponent],
   templateUrl: './dashboard-page.component.html',
 })
 export class DashboardPageComponent {

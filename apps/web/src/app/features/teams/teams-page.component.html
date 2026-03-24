@@ -1,23 +1,21 @@
     <section class="flex flex-col gap-6 text-[color:var(--text-1)]">
-      <header class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between py-2">
-        <div>
-          <p class="text-sm font-semibold uppercase tracking-widest text-orange-500 dark:text-orange-300">Team e mansioni</p>
-          <h2 class="mt-1 text-2xl font-semibold tracking-tight text-[color:var(--text-1)]">Workspace team, duty inline e richieste di sostituzione in arrivo.</h2>
+      <ui-page-header
+        eyebrow="Team e mansioni"
+        eyebrowClass="text-orange-500"
+        title="Workspace team, duty inline e richieste di sostituzione in arrivo."
+        [hasActions]="canManageTeams()"
+        headerClass="py-2"
+      >
+        <div page-actions class="flex gap-2 flex-wrap" *ngIf="canManageTeams()">
+          <ui-button icon="pi pi-plus" (buttonClick)="openTeamDialog()">Nuovo team</ui-button>
+          <ui-button tone="neutral" variant="outlined" icon="pi pi-briefcase" (buttonClick)="openDutyDialog()">Nuova mansione</ui-button>
         </div>
-        <div class="flex gap-2 flex-wrap" *ngIf="canManageTeams()">
-          <button type="button" class="rounded-md bg-[#4979e6] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 transition flex items-center gap-2" (click)="openTeamDialog()">
-            <i class="pi pi-plus text-xs"></i> Nuovo team
-          </button>
-          <button type="button" class="rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-4 py-2 text-sm font-medium text-[color:var(--text-2)] transition hover:bg-[color:var(--surface-2)] hover:text-[color:var(--text-1)] flex items-center gap-2" (click)="openDutyDialog()">
-            <i class="pi pi-briefcase text-xs"></i> Nuova mansione
-          </button>
-        </div>
-      </header>
+      </ui-page-header>
 
       <app-team-scope-chips [teams]="teams()"></app-team-scope-chips>
       <div class="grid gap-4 xl:grid-cols-[1.4fr_0.6fr]">
         <!-- LEFT COLUMN: Team list -->
-        <div class="overflow-hidden rounded-lg border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] shadow-[var(--shadow-soft)]">
+        <ui-surface surfaceClass="overflow-hidden">
           <div class="border-b border-[color:var(--border-soft)] px-5 py-4">
             <h3 class="text-base font-semibold text-[color:var(--text-1)]">Team attivi</h3>
             <p class="mt-0.5 text-sm text-[color:var(--text-2)]">{{ visibleTeams().length }} team con mansioni e leadership assegnata</p>
@@ -33,19 +31,17 @@
                   <p class="text-xs text-[color:var(--text-2)] mt-0.5">Leader: {{ team.leader?.fullName || 'Da nominare' }}</p>
                   <p class="text-xs text-[color:var(--text-3)] mt-0.5" *ngIf="team.description">{{ team.description }}</p>
                   <div class="mt-3 flex flex-wrap items-center gap-2">
-                    <span class="app-event-chip app-event-chip-info"><span class="app-event-chip-dot"></span>{{ team.memberCount || 0 }} volontari</span>
-                    <span *ngFor="let duty of (team.duties || []).slice(0, 3)"
-                      class="app-event-chip app-event-chip-neutral"><span class="app-event-chip-dot"></span>{{ duty.name }}</span>
-                    <span *ngIf="(team.duties || []).length > 3"
-                      class="app-event-chip app-event-chip-neutral"><span class="app-event-chip-dot"></span>+{{ (team.duties || []).length - 3 }} altri</span>
-                    <span *ngIf="!(team.duties || []).length" class="inline-flex items-center rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-2 py-0.5 text-xs italic text-[color:var(--text-3)]">Nessuna mansione</span>
+                    <ui-chip tone="info" [interactive]="false" [dot]="true">{{ team.memberCount || 0 }} volontari</ui-chip>
+                    <ui-chip *ngFor="let duty of (team.duties || []).slice(0, 3)" tone="neutral" [interactive]="false" [dot]="true">{{ duty.name }}</ui-chip>
+                    <ui-chip *ngIf="(team.duties || []).length > 3" tone="neutral" [interactive]="false" [dot]="true">+{{ (team.duties || []).length - 3 }} altri</ui-chip>
+                    <ui-chip *ngIf="!(team.duties || []).length" tone="neutral" [interactive]="false">Nessuna mansione</ui-chip>
                   </div>
                 </div>
                 <div class="flex items-center gap-1 shrink-0" *ngIf="canEditTeams()">
-                  <button type="button" class="p-1.5 rounded-md text-[color:var(--text-3)] hover:text-[#4979e6] hover:bg-blue-50 dark:hover:bg-blue-950/50 transition" title="Modifica" (click)="editTeam(team); $event.stopPropagation()">
+                  <button type="button" class="p-1.5 rounded-md text-[color:var(--text-3)] transition hover:bg-[color:var(--surface-2)] hover:text-[#4979e6]" title="Modifica" (click)="editTeam(team); $event.stopPropagation()">
                     <i class="pi pi-pencil text-xs"></i>
                   </button>
-                  <button type="button" class="p-1.5 rounded-md text-[color:var(--text-3)] hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition" title="Elimina" (click)="deleteTeam(team.id); $event.stopPropagation()">
+                  <button type="button" class="p-1.5 rounded-md text-[color:var(--text-3)] transition hover:bg-[color:var(--surface-2)] hover:text-red-600" title="Elimina" (click)="deleteTeam(team.id); $event.stopPropagation()">
                     <i class="pi pi-trash text-xs"></i>
                   </button>
                 </div>
@@ -56,10 +52,10 @@
               Nessun team ancora creato.
             </div>
           </div>
-        </div>
+        </ui-surface>
 
         <!-- RIGHT COLUMN: Team management panel -->
-        <div class="sticky top-4 self-start overflow-hidden rounded-lg border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] shadow-[var(--shadow-soft)]">
+        <ui-surface surfaceClass="sticky top-4 self-start overflow-hidden">
           <ng-container *ngIf="selectedTeam() as team; else noTeam">
             <!-- Panel header -->
             <div class="border-b border-[color:var(--border-soft)] px-5 py-4 flex items-center justify-between">
@@ -77,17 +73,11 @@
               <div class="px-5 py-4 border-b border-[color:var(--border-soft)]" *ngIf="canManageTeams()">
               <div class="flex items-center justify-between mb-3">
                 <p class="text-sm font-semibold text-[color:var(--text-1)]">Persone nel team</p>
-                <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100 dark:border-blue-900 dark:bg-blue-950/50 dark:text-blue-200">
-                  {{ team.members?.length || 0 }} membri
-                </span>
+                <ui-badge tone="info">{{ team.members?.length || 0 }}</ui-badge>
               </div>
               <p class="text-xs text-[color:var(--text-2)] mb-2">Aggiungi persone disponibili al workspace del team.</p>
               <div class="flex gap-2">
-                <select class="flex-1 rounded-md border border-[color:var(--border-soft)] px-3 py-1.5 text-sm bg-[color:var(--surface-1)] text-[color:var(--text-1)] focus:border-[#4979e6] focus:outline-none focus:ring-1 focus:ring-[#4979e6] transition"
-                  (change)="selectedMemberOption.set({ value: $any($event.target).value, label: '' })">
-                  <option value="">— seleziona utente —</option>
-                  <option *ngFor="let opt of availableUserOptions(team.id)" [value]="opt['value']">{{ opt['label'] }}</option>
-                </select>
+                <ui-select class="flex-1" [options]="availableUserOptions(team.id)" [value]="selectedMemberUserId()" placeholder="Seleziona utente" (valueChange)="selectedMemberOption.set({ value: castString($event), label: '' })"></ui-select>
                 <button type="button" class="rounded-md bg-[#4979e6] px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 transition disabled:opacity-50"
                   (click)="addMemberToSelectedTeam()" [disabled]="!selectedMemberUserId()">
                   <i class="pi pi-user-plus"></i>
@@ -96,8 +86,8 @@
               <!-- Member chips -->
               <div class="mt-3 flex flex-wrap gap-1.5">
                 <div *ngFor="let member of team.members || []"
-                  class="group inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-[color:var(--surface-2)] text-[color:var(--text-2)] border border-[color:var(--border-soft)]">
-                  <span>{{ member.fullName }}</span>
+                  class="group inline-flex items-center gap-1.5">
+                  <ui-chip tone="neutral" [interactive]="false">{{ member.fullName }}</ui-chip>
                   <button *ngIf="canManageTeams()" type="button" class="text-[color:var(--text-3)] hover:text-red-600 transition rounded-full p-0.5" (click)="removeMemberFromSelectedTeam(member.id)" title="Rimuovi">
                     <i class="pi pi-times text-[9px]"></i>
                   </button>
@@ -112,34 +102,31 @@
                 <span class="text-xs text-[color:var(--text-3)]">Assegna competenze operative per team</span>
               </div>
               <div class="grid gap-3" *ngIf="team.members?.length; else noMemberDutyMatrix">
-                <div *ngFor="let member of team.members || []" class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-4">
+                <ui-surface *ngFor="let member of team.members || []" surfaceClass="bg-[color:var(--surface-2)] p-4">
                   <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div>
                       <p class="text-sm font-medium text-[color:var(--text-1)]">{{ member.fullName }}</p>
                       <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ member.role }} · {{ memberAssignedDutyNames(member) }}</p>
                     </div>
-                      <button *ngIf="canManageTeams()" type="button" class="rounded-md border border-[#4979e6] px-3 py-1.5 text-xs font-medium text-[#4979e6] hover:bg-blue-50 dark:hover:bg-blue-950/50 transition" (click)="saveMemberDuties(member.id)">
+                      <button *ngIf="canManageTeams()" type="button" class="rounded-md border border-[#4979e6] px-3 py-1.5 text-xs font-medium text-[#4979e6] transition hover:bg-[color:var(--surface-1)]" (click)="saveMemberDuties(member.id)">
                       Salva mansioni
                     </button>
                   </div>
 
                   <div class="mt-3 flex flex-wrap gap-2" *ngIf="team.duties?.length; else noTeamDutiesAvailable">
-                    <button
+                    <ui-chip
                       *ngFor="let duty of team.duties || []"
-                      type="button"
-                      class="rounded-full border px-3 py-1.5 text-xs font-medium transition"
-                      [ngClass]="selectedDutyIdsForMember(member).includes(duty.id)
-                        ? 'bg-[#4979e6] border-[#4979e6] text-white'
-                        : 'bg-[color:var(--surface-1)] border-[color:var(--border-soft)] text-[color:var(--text-2)]'"
-                      (click)="toggleMemberDuty(member.id, duty.id)">
+                      tone="info"
+                      [selected]="selectedDutyIdsForMember(member).includes(duty.id)"
+                      (chipClick)="toggleMemberDuty(member.id, duty.id)">
                       {{ duty.name }}
-                    </button>
+                    </ui-chip>
                   </div>
 
                   <ng-template #noTeamDutiesAvailable>
                     <p class="mt-3 text-xs text-[color:var(--text-3)]">Crea prima almeno una mansione di team.</p>
                   </ng-template>
-                </div>
+                </ui-surface>
               </div>
               <ng-template #noMemberDutyMatrix>
                 <p class="text-xs text-[color:var(--text-3)]">Aggiungi membri al team per assegnare mansioni.</p>
@@ -183,11 +170,7 @@
                 <p class="text-sm font-semibold text-[color:var(--text-1)]">Invita utente nel team</p>
                 <p class="text-xs text-[color:var(--text-2)] mt-0.5 mb-2">Richiedi che un utente del workspace entri nel team.</p>
               <div class="flex gap-2">
-                <select class="flex-1 rounded-md border border-[color:var(--border-soft)] px-3 py-1.5 text-sm bg-[color:var(--surface-1)] text-[color:var(--text-1)] focus:border-[#4979e6] focus:outline-none focus:ring-1 focus:ring-[#4979e6] transition"
-                  (change)="selectedJoinRequestOption.set({ value: $any($event.target).value, label: '' })">
-                  <option value="">— seleziona utente —</option>
-                  <option *ngFor="let opt of availableUserOptions(team.id)" [value]="opt['value']">{{ opt['label'] }}</option>
-                </select>
+                <ui-select class="flex-1" [options]="availableUserOptions(team.id)" [value]="selectedJoinRequestUserId()" placeholder="Seleziona utente" (valueChange)="selectedJoinRequestOption.set({ value: castString($event), label: '' })"></ui-select>
                 <button type="button" class="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 transition disabled:opacity-50"
                   (click)="requestJoinForSelectedTeam()" [disabled]="!selectedJoinRequestUserId()">
                   <i class="pi pi-send"></i>
@@ -203,38 +186,24 @@
               <p class="text-xs mt-1">Seleziona un team per gestirne le mansioni e i membri.</p>
             </div>
           </ng-template>
-        </div>
+        </ui-surface>
       </div>
 
       <div class="grid gap-6 md:grid-cols-3">
-        <div class="rounded-lg border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] p-4 shadow-[var(--shadow-soft)]">
-          <p class="text-sm font-semibold text-[color:var(--text-1)]">Replacement pending</p>
-          <p class="mt-3 text-3xl font-light tracking-tight text-[color:var(--text-1)]">{{ pendingReplacements() }}</p>
-          <p class="mt-1 text-xs text-[color:var(--text-2)]">richieste che aspettano una decisione</p>
-        </div>
-        <div class="rounded-lg border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] p-4 shadow-[var(--shadow-soft)]">
-          <p class="text-sm font-semibold text-[color:var(--text-1)]">Coperture recuperate</p>
-          <p class="mt-3 text-3xl font-light tracking-tight text-emerald-700">{{ recoveredReplacements() }}</p>
-          <p class="mt-1 text-xs text-[color:var(--text-2)]">replacement approvate con sostituto assegnato</p>
-        </div>
-        <div class="rounded-lg border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] p-4 shadow-[var(--shadow-soft)]">
-          <p class="text-sm font-semibold text-[color:var(--text-1)]">Azioni team aperte</p>
-          <p class="mt-3 text-3xl font-light tracking-tight text-orange-600">{{ pendingReplacements() + pendingTeamRequests() }}</p>
-          <p class="mt-1 text-xs text-[color:var(--text-2)]">somma tra richieste team e sostituzioni aperte</p>
-        </div>
+        <ui-stat-card label="Replacement pending" [value]="pendingReplacements()" detail="richieste che aspettano una decisione"></ui-stat-card>
+        <ui-stat-card label="Coperture recuperate" [value]="recoveredReplacements()" detail="replacement approvate con sostituto assegnato" valueClass="text-emerald-700"></ui-stat-card>
+        <ui-stat-card label="Azioni team aperte" [value]="pendingReplacements() + pendingTeamRequests()" detail="somma tra richieste team e sostituzioni aperte" valueClass="text-orange-600"></ui-stat-card>
       </div>
 
       <ui-card title="Richieste sostituzione" subtitle="Workflow operativo per team leader e amministratore" surfaceClass="p-5 h-max" bodyClass="pr-1">
         <div class="mb-4 flex justify-end" *ngIf="assistantReplacement() || locallyReservedSuggestionIds().length">
-          <button type="button" class="rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-1.5 text-xs font-medium text-[color:var(--text-2)] transition hover:border-[color:var(--border-strong)] hover:text-[color:var(--text-1)]" (click)="clearReplacementCard()">
-            Pulisci tutto
-          </button>
+          <ui-button tone="neutral" variant="outlined" size="sm" (buttonClick)="clearReplacementCard()">Pulisci tutto</ui-button>
         </div>
         <div class="mb-4 overflow-hidden rounded-[20px] border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-4 py-3">
           <div class="flex flex-wrap gap-2">
-            <span class="app-event-chip app-event-chip-info"><span class="app-event-chip-dot"></span> Suggerimento automatico</span>
-            <span class="app-event-chip app-event-chip-success"><span class="app-event-chip-dot"></span> Approvazione rapida</span>
-            <span class="app-event-chip app-event-chip-neutral"><span class="app-event-chip-dot"></span> Workflow team leader</span>
+            <ui-chip tone="info" [interactive]="false" [dot]="true">Suggerimento automatico</ui-chip>
+            <ui-chip tone="success" [interactive]="false" [dot]="true">Approvazione rapida</ui-chip>
+            <ui-chip tone="neutral" [interactive]="false" [dot]="true">Workflow team leader</ui-chip>
           </div>
         </div>
         <div class="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -288,11 +257,11 @@
                   <ui-label tone="neutral">{{ assistantCoverageLabel(replacement) }}</ui-label>
                 </div>
               </div>
-              <div class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-4">
+              <ui-surface surfaceClass="bg-[color:var(--surface-2)] p-4">
                 <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Prossima azione consigliata</p>
                 <p class="mt-2 text-sm text-[color:var(--text-1)]">{{ assistantRecommendation(replacement) }}</p>
-              </div>
-              <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/70 dark:bg-blue-950/30" *ngIf="replacement.suggestedReplacement as suggested">
+              </ui-surface>
+              <ui-surface surfaceClass="border-blue-200 bg-blue-50 p-4" *ngIf="replacement.suggestedReplacement as suggested">
                 <div class="flex items-center justify-between gap-2">
                   <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#4979e6]">Miglior candidato</p>
                   <ui-label [tone]="assistantScoreTone(suggested.score)">score {{ suggested.score }}</ui-label>
@@ -301,10 +270,10 @@
                 <div class="mt-3 flex flex-wrap gap-1.5">
                   <ui-label *ngFor="let reason of suggested.reasons" tone="neutral">{{ reason }}</ui-label>
                 </div>
-              </div>
+              </ui-surface>
               <div class="grid gap-2" *ngIf="replacement.suggestedCandidates?.length">
                 <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Top candidati</p>
-                <div class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-3" *ngFor="let candidate of replacement.suggestedCandidates | slice:0:3">
+                <ui-surface surfaceClass="bg-[color:var(--surface-2)] p-3" *ngFor="let candidate of replacement.suggestedCandidates | slice:0:3">
                   <div class="flex items-center justify-between gap-2">
                     <span class="font-medium text-[color:var(--text-1)]">{{ candidate.fullName }}</span>
                     <ui-label [tone]="assistantScoreTone(candidate.score)">score {{ candidate.score }}</ui-label>
@@ -312,7 +281,7 @@
                   <div class="mt-2 flex flex-wrap gap-1.5">
                     <ui-label *ngFor="let reason of candidate.reasons" tone="neutral">{{ reason }}</ui-label>
                   </div>
-                </div>
+                </ui-surface>
               </div>
               <div class="flex gap-2" *ngIf="replacement.status === 'PENDING' && canManageRequests()">
                 <button type="button" class="rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white" (click)="approveReplacementWithSuggestion(replacement)" [disabled]="!replacement.suggestedReplacement?.id || locallyReservedSuggestionIds().includes(replacement.suggestedReplacement.id)">Approva con suggerito</button>
@@ -330,15 +299,13 @@
 
       <ui-card #teamRequestsSection title="Richieste team" subtitle="Approvazioni signup e inserimenti nel team" surfaceClass="p-5 h-max" bodyClass="pr-1">
         <div class="mb-4 flex justify-end" *ngIf="selectedJoinRequestOption() || highlightedTab() === 'requests' || assistantTeamRequest()">
-          <button type="button" class="rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-1.5 text-xs font-medium text-[color:var(--text-2)] transition hover:border-[color:var(--border-strong)] hover:text-[color:var(--text-1)]" (click)="clearTeamRequestsCard()">
-            Pulisci tutto
-          </button>
+          <ui-button tone="neutral" variant="outlined" size="sm" (buttonClick)="clearTeamRequestsCard()">Pulisci tutto</ui-button>
         </div>
         <div class="mb-4 overflow-hidden rounded-[20px] border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-4 py-3">
           <div class="flex flex-wrap gap-2">
-            <span class="app-event-chip app-event-chip-warn"><span class="app-event-chip-dot"></span> Signup workspace</span>
-            <span class="app-event-chip app-event-chip-info"><span class="app-event-chip-dot"></span> Ingresso nel team</span>
-            <span class="app-event-chip app-event-chip-neutral"><span class="app-event-chip-dot"></span> Revisione amministratore o leader</span>
+            <ui-chip tone="warn" [interactive]="false" [dot]="true">Signup workspace</ui-chip>
+            <ui-chip tone="info" [interactive]="false" [dot]="true">Ingresso nel team</ui-chip>
+            <ui-chip tone="neutral" [interactive]="false" [dot]="true">Revisione amministratore o leader</ui-chip>
           </div>
         </div>
         <div class="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -390,11 +357,11 @@
                   <ui-label tone="neutral">{{ teamRequestStatusLabel(request.status) }}</ui-label>
                 </div>
               </div>
-              <div class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-4">
+              <ui-surface surfaceClass="bg-[color:var(--surface-2)] p-4">
                 <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Prossima azione consigliata</p>
                 <p class="mt-2 text-sm text-[color:var(--text-1)]">{{ teamRequestAssistantRecommendation(request) }}</p>
-              </div>
-              <div class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-4 text-sm text-[color:var(--text-2)]">
+              </ui-surface>
+              <ui-surface surfaceClass="bg-[color:var(--surface-2)] p-4 text-sm text-[color:var(--text-2)]">
                 <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Contesto richiesta</p>
                 <div class="mt-3 grid gap-2">
                   <div class="flex items-center justify-between gap-3"><span>Persona</span><span class="font-medium text-[color:var(--text-1)]">{{ teamRequestAssistantSubject(request) }}</span></div>
@@ -402,7 +369,7 @@
                   <div class="flex items-center justify-between gap-3"><span>Creata</span><span class="font-medium text-[color:var(--text-1)]">{{ request.createdAt | date:'short' }}</span></div>
                   <div class="flex items-center justify-between gap-3" *ngIf="request.reviewedAt"><span>Revisionata</span><span class="font-medium text-[color:var(--text-1)]">{{ request.reviewedAt | date:'short' }}</span></div>
                 </div>
-              </div>
+              </ui-surface>
               <div class="flex gap-2" *ngIf="request.status === 'PENDING' && canManageRequests()">
                 <button type="button" class="rounded-md border border-emerald-300 bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700" (click)="approveTeamRequest(request)">Approva</button>
                 <button type="button" class="rounded-md border border-red-300 bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700" (click)="declineTeamRequest(request)">Rifiuta</button>
@@ -418,53 +385,58 @@
         </div>
       </ui-card>
 
-      <p-dialog [(visible)]="teamDialogVisible" [modal]="true" [appendTo]="'body'" [baseZIndex]="1200" [blockScroll]="true" [dismissableMask]="true" [closeOnEscape]="true" [focusOnShow]="false" [showHeader]="false" [closable]="false" [style]="{ width: '38rem', maxWidth: '95vw', maxHeight: '90vh' }" [contentStyle]="{ background: 'transparent', padding: '0', overflow: 'hidden' }" [draggable]="false" [resizable]="false">
-        <ui-dialog-shell title="Team" eyebrow="Configurazione spazio" subtitle="Configura identita, descrizione e responsabilita del team." icon="pi pi-users" tone="info" [hasFooter]="true" (closeRequested)="teamDialogVisible = false">
-          <div class="grid gap-4">
-            <div class="grid gap-2">
-              <label class="text-sm font-medium text-slate-700">Nome team</label>
-              <input class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none" [(ngModel)]="teamForm.name" placeholder="Nome team" />
-            </div>
-            <div class="grid gap-2">
-              <label class="text-sm font-medium text-slate-700">Descrizione</label>
-              <textarea class="min-h-28 rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none" [(ngModel)]="teamForm.description" placeholder="Descrizione"></textarea>
-            </div>
-            <ui-select label="Leader servizio" [options]="leaderOptions()" [value]="teamForm.leaderId" (valueChange)="teamForm.leaderId = castNullable($event)"></ui-select>
-          </div>
-          <div dialog-footer class="flex justify-end gap-2">
-            <button pButton type="button" label="Annulla" [text]="true" (click)="teamDialogVisible = false"></button>
-            <button pButton type="button" [label]="editingTeamId() ? 'Salva' : 'Crea'" (click)="saveTeam()" [disabled]="!teamForm.name.trim()"></button>
-          </div>
-        </ui-dialog-shell>
-      </p-dialog>
+      <ui-modal [(visible)]="teamDialogVisible" title="Team" eyebrow="Configurazione spazio" subtitle="Configura identita, descrizione e responsabilita del team." icon="pi pi-users" tone="info" [hasFooter]="true" width="38rem" maxWidth="95vw" (closeRequested)="teamDialogVisible = false">
+        <div class="grid gap-4">
+          <ui-field label="Nome team">
+            <ui-input [value]="teamForm.name" (valueChange)="teamForm.name = $event" placeholder="Nome team"></ui-input>
+          </ui-field>
+          <ui-field label="Descrizione">
+            <ui-textarea [value]="teamForm.description" (valueChange)="teamForm.description = $event" placeholder="Descrizione" [rows]="5"></ui-textarea>
+          </ui-field>
+          <ui-select label="Leader servizio" [options]="leaderOptions()" [value]="teamForm.leaderId" (valueChange)="teamForm.leaderId = castNullable($event)"></ui-select>
+        </div>
+        <div dialog-footer class="flex justify-end gap-2">
+          <ui-button tone="neutral" variant="outlined" (buttonClick)="teamDialogVisible = false">Annulla</ui-button>
+          <ui-button tone="info" [disabled]="!teamForm.name.trim()" (buttonClick)="saveTeam()">{{ editingTeamId() ? 'Salva' : 'Crea' }}</ui-button>
+        </div>
+      </ui-modal>
 
-      <p-dialog [(visible)]="dutyDialogVisible" [modal]="true" [appendTo]="'body'" [baseZIndex]="1200" [blockScroll]="true" [dismissableMask]="true" [closeOnEscape]="true" [focusOnShow]="false" [showHeader]="false" [closable]="false" [style]="{ width: '40rem', maxWidth: '95vw', maxHeight: '90vh' }" [contentStyle]="{ background: 'transparent', padding: '0', overflow: 'hidden' }" [draggable]="false" [resizable]="false">
-        <ui-dialog-shell title="Mansione team" eyebrow="Gestione mansioni" subtitle="Definisci ruolo operativo, colore e semantica visiva della mansione." icon="pi pi-briefcase" tone="info" [hasFooter]="true" (closeRequested)="dutyDialogVisible = false">
-          <div class="grid gap-4">
-            <ui-select label="Team" [options]="teamOptions()" [value]="dutyForm.teamId" (valueChange)="dutyForm.teamId = castString($event)"></ui-select>
-            <div class="grid gap-2">
-              <label class="text-sm font-medium text-slate-700">Nome mansione</label>
-              <input class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none" [(ngModel)]="dutyForm.name" placeholder="Es. Audio, Luci, Accoglienza" />
-            </div>
-            <div class="grid gap-2">
-              <label class="text-sm font-medium text-slate-700">Descrizione</label>
-              <input class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none" [(ngModel)]="dutyForm.description" placeholder="Descrizione operativa" />
-            </div>
-            <div class="grid gap-4 md:grid-cols-2">
-              <div class="grid gap-2">
-                <label class="text-sm font-medium text-slate-700">Colore</label>
-                <input class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none" [(ngModel)]="dutyForm.color" placeholder="#0f766e" />
-              </div>
-              <div class="grid gap-2">
-                <label class="text-sm font-medium text-slate-700">Icona</label>
-                <input class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none" [(ngModel)]="dutyForm.icon" placeholder="pi pi-volume-up" />
-              </div>
-            </div>
+      <ui-modal [(visible)]="dutyDialogVisible" title="Mansione team" eyebrow="Gestione mansioni" subtitle="Definisci ruolo operativo, colore e semantica visiva della mansione." icon="pi pi-briefcase" tone="info" [hasFooter]="true" width="40rem" maxWidth="95vw" (closeRequested)="dutyDialogVisible = false">
+        <div class="grid gap-4">
+          <ui-select label="Team" [options]="teamOptions()" [value]="dutyForm.teamId" (valueChange)="dutyForm.teamId = castString($event)"></ui-select>
+          <ui-field label="Nome mansione">
+            <ui-input [value]="dutyForm.name" (valueChange)="dutyForm.name = $event" placeholder="Es. Audio, Luci, Accoglienza"></ui-input>
+          </ui-field>
+          <ui-field label="Descrizione">
+            <ui-input [value]="dutyForm.description" (valueChange)="dutyForm.description = $event" placeholder="Descrizione operativa"></ui-input>
+          </ui-field>
+          <div class="grid gap-4 md:grid-cols-2">
+            <ui-field label="Colore">
+              <ui-input [value]="dutyForm.color" (valueChange)="dutyForm.color = $event" placeholder="#0f766e"></ui-input>
+            </ui-field>
+            <ui-field label="Icona">
+              <ui-input [value]="dutyForm.icon" (valueChange)="dutyForm.icon = $event" placeholder="pi pi-volume-up"></ui-input>
+            </ui-field>
           </div>
-          <div dialog-footer class="flex justify-end gap-2">
-            <button pButton type="button" label="Annulla" [text]="true" (click)="dutyDialogVisible = false"></button>
-            <button pButton type="button" [label]="editingDutyId() ? 'Salva mansione' : 'Crea mansione'" (click)="saveDuty()" [disabled]="!dutyForm.teamId || !dutyForm.name.trim()"></button>
-          </div>
-        </ui-dialog-shell>
-      </p-dialog>
+        </div>
+        <div dialog-footer class="flex justify-end gap-2">
+          <ui-button tone="neutral" variant="outlined" (buttonClick)="dutyDialogVisible = false">Annulla</ui-button>
+          <ui-button tone="info" [disabled]="!dutyForm.teamId || !dutyForm.name.trim()" (buttonClick)="saveDuty()">{{ editingDutyId() ? 'Salva mansione' : 'Crea mansione' }}</ui-button>
+        </div>
+      </ui-modal>
+
+      <ui-confirm-dialog
+        [visible]="confirmVisible()"
+        (visibleChange)="confirmVisible.set($event)"
+        [title]="pendingConfirm()?.title || 'Confermare azione?'"
+        eyebrow="Workspace team"
+        subtitle="Controlla l impatto operativo prima di procedere."
+        [message]="pendingConfirm()?.message || ''"
+        [detail]="pendingConfirm()?.detail"
+        [tone]="pendingConfirm()?.tone || 'confirm'"
+        [icon]="pendingConfirm()?.icon"
+        [confirmLabel]="pendingConfirm()?.confirmLabel || 'Conferma'"
+        (cancel)="closeConfirm()"
+        (confirm)="confirmPendingAction()"
+      ></ui-confirm-dialog>
     </section>

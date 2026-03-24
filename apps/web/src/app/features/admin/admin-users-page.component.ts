@@ -1,9 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DialogModule } from 'primeng/dialog';
 import { RouterLink } from '@angular/router';
-import { UiDialogShellComponent } from '@shift-complete/ui-kit';
+import { UiButtonComponent, UiConfirmDialogComponent, UiFieldComponent, UiModalComponent, UiMultiSelectComponent, UiPageHeaderComponent, UiSelectComponent, UiSurfaceComponent } from '@shift-complete/ui-kit';
 import { GlobalTeamScopeService } from '../../core/services/global-team-scope.service';
 import { SpotlightSearchService } from '../../core/services/spotlight-search.service';
 import { EditableUserProfileForm, UserProfileEditorComponent } from '../../shared/components/user-profile-editor.component';
@@ -23,7 +22,7 @@ type ManagedUserCreateResponse = UserProfile & { generatedPassword?: string };
 @Component({
   selector: 'app-admin-users-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, DialogModule, RouterLink, UiDialogShellComponent, UserProfileEditorComponent, TeamScopeChipsComponent],
+  imports: [CommonModule, FormsModule, RouterLink, UiButtonComponent, UiConfirmDialogComponent, UiFieldComponent, UiModalComponent, UiMultiSelectComponent, UiPageHeaderComponent, UiSelectComponent, UiSurfaceComponent, UserProfileEditorComponent, TeamScopeChipsComponent],
   templateUrl: './admin-users-page.component.html',
 })
 
@@ -41,7 +40,7 @@ export class AdminUsersPageComponent {
   protected readonly selectedUser = signal<UserProfile | null>(null);
   protected readonly formOpen = signal(false);
   protected readonly editingId = signal<string | null>(null);
-  protected readonly pendingAction = signal<{ title: string; message: string; run: () => void; tone: 'warn' | 'danger' | 'info'; icon: string } | null>(null);
+  protected readonly pendingAction = signal<{ title: string; message: string; detail?: string; run: () => void; tone: 'confirm' | 'danger'; icon: string; confirmLabel: string } | null>(null);
   protected readonly generatedCredentials = signal<{ email: string; password: string } | null>(null);
   protected readonly confirmVisible = signal(false);
   protected readonly credentialsVisible = signal(false);
@@ -61,6 +60,17 @@ export class AdminUsersPageComponent {
   });
   protected readonly preferredTeamOptions = computed(() => this.teams().map((team) => ({ label: team.name, value: team.id })));
   protected readonly preferredDutyOptions = computed(() => this.duties().map((duty) => ({ label: duty.name, value: duty.id })));
+  protected readonly roleOptions = [
+    { label: 'Tutti i ruoli', value: '' },
+    { label: 'Amministratore', value: 'administrator' },
+    { label: 'Leader', value: 'service_leader' },
+    { label: 'Volontario', value: 'volunteer' },
+  ];
+  protected readonly accountRoleOptions = [
+    { label: 'Volontario', value: 'volunteer' },
+    { label: 'Leader', value: 'service_leader' },
+    { label: 'Amministratore', value: 'administrator' },
+  ];
 
   constructor() {
     this.loadTeams();
@@ -142,8 +152,10 @@ export class AdminUsersPageComponent {
     this.pendingAction.set({
       title: 'Eliminare utente?',
       message: 'L’utente verra rimosso definitivamente e perdera accesso ai flussi applicativi.',
+      detail: 'Questa azione elimina l account gestito e il suo accesso operativo.',
       tone: 'danger',
       icon: 'pi pi-trash',
+      confirmLabel: 'Elimina utente',
       run: () => this.api.deleteManagedUser(userId).subscribe({
       next: () => {
         this.pendingAction.set(null);
@@ -163,8 +175,10 @@ export class AdminUsersPageComponent {
     this.pendingAction.set({
       title: 'Rigenerare e inviare credenziali?',
       message: 'VerrA generata una nuova password temporanea e verra inviata via notifiche, email e webhook se configurati.',
-      tone: 'warn',
+      detail: 'Le credenziali precedenti non saranno piu valide per l accesso corrente.',
+      tone: 'confirm',
       icon: 'pi pi-key',
+      confirmLabel: 'Invia credenziali',
       run: () => this.api.sendUserCredentials(userId).subscribe({
       next: (result) => {
         this.pendingAction.set(null);

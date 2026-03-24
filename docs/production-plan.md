@@ -335,11 +335,22 @@ Il principio guida e questo: meno demo, piu workspace.
 
 ### Da fare
 - typography sobria ma non generica
-- fondo chiaro con profondita leggera
+- fondo chiaro/scuro con profondita viva, costruito con gradienti ambientali coerenti col brand
+- movimento di sfondo molto lento e organico, tipo lava soft o parallasse leggera, mai invasivo
 - accento cromatico deciso ma controllato
 - bordi sottili e componenti compatti
 - icone funzionali
 - densita desktop alta, mobile semplificato
+- superfici glass o overlay traslucidi solo dove aiutano la gerarchia visiva
+
+### Background e motion
+- lo sfondo applicativo deve vivere a livello globale, non come texture isolata di singole pagine
+- usare 2-3 masse sfumate con blur ampio e colori derivati dagli accenti prodotto e dai neutri del tema
+- aggiungere solo se utile una grana molto sottile o texture soft-light per evitare fondi troppo digitali o piatti
+- light theme: atmosfera ariosa, blu polverosi e bianchi freddi; dark theme: profondita blu notte, senza nero piatto
+- le animazioni devono essere lente, continue e quasi impercettibili; lo scroll puo spostare leggermente i layer per un effetto di profondita
+- quando serve piu fluidita, usare GSAP per interpolare il movimento ambientale e evitare scatti da aggiornamenti diretti su scroll
+- rispettare `prefers-reduced-motion` disattivando le animazioni non essenziali
 
 ### Da evitare
 - hero sections da marketing

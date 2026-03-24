@@ -1,82 +1,36 @@
-<section class="grid gap-6 text-slate-800 dark:text-slate-100 xl:grid-cols-[1.4fr_0.6fr]">
+<section class="grid gap-6 text-[color:var(--text-1)] xl:grid-cols-[1.4fr_0.6fr]">
   <div class="flex flex-col gap-6">
-  <header class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-    <div>
-      <p class="text-sm font-semibold uppercase tracking-widest text-teal-600 dark:text-teal-300">Inventario</p>
-      <h2 class="mt-1 text-2xl font-semibold tracking-tight text-slate-800 dark:text-slate-100">Dotazioni e manutenzioni organizzate per team operativo.</h2>
+  <ui-page-header
+    eyebrow="Inventario"
+    eyebrowClass="text-teal-600"
+    title="Dotazioni e manutenzioni organizzate per team operativo."
+    [hasActions]="canManage()"
+  >
+    <div page-actions class="flex items-center gap-2" *ngIf="canManage()">
+      <ui-select [options]="teamSelectOptions()" [value]="form.teamId" placeholder="Seleziona team" (valueChange)="form.teamId = $any($event)"></ui-select>
+      <ui-button icon="pi pi-plus" (buttonClick)="openForm()">Aggiungi dotazione</ui-button>
     </div>
-    <div class="flex items-center gap-2" *ngIf="canManage()">
-      <select class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [(ngModel)]="form.teamId">
-        <option value="">Seleziona team</option>
-        <option *ngFor="let team of teamOptions()" [value]="team.id">{{ team.name }}</option>
-      </select>
-      <button class="rounded-md bg-[#4979e6] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700" (click)="openForm()">
-        <i class="pi pi-plus mr-2 text-xs"></i>Aggiungi dotazione
-      </button>
-    </div>
-  </header>
+  </ui-page-header>
 
   <app-team-scope-chips [teams]="teams()"></app-team-scope-chips>
 
-  <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
+  <ui-surface surfaceClass="px-4 py-3">
     <div class="flex flex-col gap-3">
       <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <button type="button" class="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800" (click)="openSpotlight()">
-          <i class="pi pi-search text-xs"></i>
-          Cerca dotazioni
-        </button>
-        <p class="text-xs text-slate-500 dark:text-slate-400">{{ filteredItems().length }} dotazioni visibili</p>
+        <ui-button tone="neutral" variant="outlined" icon="pi pi-search" (buttonClick)="openSpotlight()">Cerca dotazioni</ui-button>
+        <p class="text-xs text-[color:var(--text-3)]">{{ filteredItems().length }} dotazioni visibili</p>
       </div>
     </div>
-  </div>
-
-  <div class="overflow-hidden rounded-lg border border-[#4979e6] bg-white shadow-sm dark:bg-slate-900/85" *ngIf="formOpen() && canManage()">
-    <div class="border-b border-slate-100 px-5 py-4 flex items-center justify-between dark:border-slate-700">
-      <h3 class="text-base font-semibold text-slate-800 dark:text-slate-100">{{ editingId() ? 'Modifica dotazione' : 'Nuova dotazione' }}</h3>
-      <button class="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-200" (click)="formOpen.set(false)"><i class="pi pi-times"></i></button>
-    </div>
-    <div class="grid gap-4 px-5 py-4 md:grid-cols-2 lg:grid-cols-5">
-      <div class="grid gap-1">
-        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Team *</label>
-        <select class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [(ngModel)]="form.teamId">
-          <option value="">Seleziona team</option>
-          <option *ngFor="let team of teamOptions()" [value]="team.id">{{ team.name }}</option>
-        </select>
-      </div>
-      <div class="grid gap-1">
-        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Nome *</label>
-        <input class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [(ngModel)]="form.name" placeholder="Es. Radio portatile" />
-      </div>
-      <div class="grid gap-1">
-        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Numero seriale</label>
-        <input class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [(ngModel)]="form.serialNumber" placeholder="Es. RAD-001" />
-      </div>
-      <div class="grid gap-1">
-        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Stato</label>
-        <select class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [(ngModel)]="form.status">
-          <option value="available">Disponibile</option>
-          <option value="checked_out">In prestito</option>
-          <option value="maintenance">In manutenzione</option>
-        </select>
-      </div>
-      <div class="grid gap-1">
-        <ui-date-picker label="Manutenzione entro" [value]="form.maintenanceDueAt" (valueChange)="onMaintenanceDateChange($event)" dateFormat="dd/mm/yy" [baseZIndex]="1400" inputStyleClass="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"></ui-date-picker>
-      </div>
-    </div>
-    <div class="px-5 pb-4 flex items-center gap-3">
-      <button class="rounded-md bg-[#4979e6] px-4 py-2 text-sm font-medium text-white disabled:opacity-60" (click)="saveItem()" [disabled]="!canSaveItem() || saving()">{{ saving() ? 'Salvo...' : editingId() ? 'Salva modifiche' : 'Crea dotazione' }}</button>
-        <button class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200" (click)="formOpen.set(false)">Annulla</button>
-    </div>
-  </div>
+  </ui-surface>
 
   <div class="grid gap-4" *ngIf="groupedItems().length; else noItems">
-    <article *ngFor="let group of groupedItems()" class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
-      <div class="border-b border-slate-100 px-5 py-4 flex items-center justify-between gap-3 dark:border-slate-700">
+    <ui-surface *ngFor="let group of groupedItems()" surfaceClass="overflow-hidden">
+      <div class="flex items-center justify-between gap-3 border-b border-[color:var(--border-soft)] px-5 py-4">
         <div>
-          <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">{{ group.label }}</h3>
-          <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ group.items.length }} dotazioni in questo team</p>
+          <h3 class="text-base font-semibold text-[color:var(--text-1)]">{{ group.label }}</h3>
+          <p class="mt-1 text-sm text-[color:var(--text-3)]">{{ group.items.length }} dotazioni in questo team</p>
         </div>
-        <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+        <div class="flex items-center gap-2 text-xs text-[color:var(--text-3)]">
           <span>{{ checkedOutCount(group.items) }} in prestito</span>
           <span>·</span>
           <span>{{ maintenanceCount(group.items) }} da revisionare</span>
@@ -84,7 +38,7 @@
       </div>
       <div class="overflow-x-auto">
         <table class="min-w-full text-sm">
-          <thead class="bg-slate-50 text-left text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
+          <thead class="bg-[color:var(--surface-2)] text-left text-[color:var(--text-3)]">
             <tr>
               <th class="px-5 py-3">Nome</th>
               <th class="px-5 py-3">Seriale</th>
@@ -94,13 +48,13 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let item of group.items" class="border-t border-slate-100 cursor-pointer hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60" [ngClass]="selectedItem()?.id === item.id ? 'bg-blue-50 dark:bg-[#12233f]' : ''" [class.ring-1]="selectedItem()?.id === item.id" [class.ring-inset]="selectedItem()?.id === item.id" [class.ring-blue-200]="selectedItem()?.id === item.id" (click)="openItemDetail(item)">
-              <td class="px-5 py-3 font-medium text-slate-900 dark:text-slate-100">{{ item.name }}</td>
-              <td class="px-5 py-3 text-xs font-mono text-slate-500 dark:text-slate-400">{{ item.serialNumber || '—' }}</td>
+            <tr *ngFor="let item of group.items" class="cursor-pointer border-t border-[color:var(--border-soft)] hover:bg-[color:var(--surface-2)]" [ngClass]="selectedItem()?.id === item.id ? 'bg-blue-50' : ''" [class.ring-1]="selectedItem()?.id === item.id" [class.ring-inset]="selectedItem()?.id === item.id" [class.ring-blue-200]="selectedItem()?.id === item.id" (click)="openItemDetail(item)">
+              <td class="px-5 py-3 font-medium text-[color:var(--text-1)]">{{ item.name }}</td>
+              <td class="px-5 py-3 text-xs font-mono text-[color:var(--text-3)]">{{ item.serialNumber || '—' }}</td>
               <td class="px-5 py-3">
-                <p-tag [severity]="tagSeverity(item.status)" [value]="statusLabel(item.status)"></p-tag>
+                <ui-label [tone]="tagSeverity(item.status) === 'success' ? 'success' : (tagSeverity(item.status) === 'warn' ? 'warn' : (tagSeverity(item.status) === 'danger' ? 'danger' : 'info'))">{{ statusLabel(item.status) }}</ui-label>
               </td>
-              <td class="px-5 py-3 text-slate-500 dark:text-slate-400">{{ item.maintenanceDueAt ? (item.maintenanceDueAt | date:'shortDate') : 'ok' }}</td>
+              <td class="px-5 py-3 text-[color:var(--text-3)]">{{ item.maintenanceDueAt ? (item.maintenanceDueAt | date:'shortDate') : 'ok' }}</td>
               <td class="px-5 py-3 text-right" *ngIf="canManage()">
                 <button class="mr-3 text-sm text-[#4979e6] hover:underline" (click)="editItem(item); $event.stopPropagation()">Modifica</button>
                 <button class="text-sm text-red-600 hover:underline" (click)="deleteItem(item.id); $event.stopPropagation()">Elimina</button>
@@ -109,38 +63,77 @@
           </tbody>
         </table>
       </div>
-    </article>
+    </ui-surface>
   </div>
   <ng-template #noItems>
-    <div class="rounded-lg border border-slate-200 bg-white px-5 py-16 text-center text-slate-400 shadow-sm dark:border-slate-700 dark:bg-slate-900/85 dark:text-slate-500">Nessuna dotazione disponibile per il filtro selezionato.</div>
+    <ui-surface surfaceClass="px-5 py-16 text-center text-[color:var(--text-3)]">Nessuna dotazione disponibile per il filtro selezionato.</ui-surface>
   </ng-template>
   </div>
 
-  <aside class="sticky top-4 h-fit rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
+  <ui-surface surfaceClass="sticky top-4 h-fit p-5">
     <ng-container *ngIf="selectedItem() as item; else noItemSelected">
-      <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">Dettaglio dotazione</p>
-      <h3 class="mt-2 text-lg font-semibold text-slate-900 dark:text-slate-100">{{ item.name }}</h3>
-      <div class="mt-4 grid gap-3 text-sm text-slate-600 dark:text-slate-300">
+      <p class="text-xs font-semibold uppercase tracking-widest text-[color:var(--text-3)]">Dettaglio dotazione</p>
+      <h3 class="mt-2 text-lg font-semibold text-[color:var(--text-1)]">{{ item.name }}</h3>
+      <div class="mt-4 grid gap-3 text-sm text-[color:var(--text-2)]">
         <div>
-          <p class="text-xs uppercase tracking-widest text-slate-400 dark:text-slate-500">Team</p>
+          <p class="text-xs uppercase tracking-widest text-[color:var(--text-3)]">Team</p>
           <p class="mt-1">{{ item.team?.name || 'Senza team' }}</p>
         </div>
         <div>
-          <p class="text-xs uppercase tracking-widest text-slate-400 dark:text-slate-500">Seriale</p>
+          <p class="text-xs uppercase tracking-widest text-[color:var(--text-3)]">Seriale</p>
           <p class="mt-1 font-mono">{{ item.serialNumber || '—' }}</p>
         </div>
         <div>
-          <p class="text-xs uppercase tracking-widest text-slate-400 dark:text-slate-500">Stato</p>
-          <div class="mt-1"><p-tag [severity]="tagSeverity(item.status)" [value]="statusLabel(item.status)"></p-tag></div>
+          <p class="text-xs uppercase tracking-widest text-[color:var(--text-3)]">Stato</p>
+          <div class="mt-1"><ui-label [tone]="tagSeverity(item.status) === 'success' ? 'success' : (tagSeverity(item.status) === 'warn' ? 'warn' : (tagSeverity(item.status) === 'danger' ? 'danger' : 'info'))">{{ statusLabel(item.status) }}</ui-label></div>
         </div>
         <div>
-          <p class="text-xs uppercase tracking-widest text-slate-400 dark:text-slate-500">Manutenzione</p>
+          <p class="text-xs uppercase tracking-widest text-[color:var(--text-3)]">Manutenzione</p>
           <p class="mt-1">{{ item.maintenanceDueAt ? (item.maintenanceDueAt | date:'fullDate') : 'Nessuna manutenzione pianificata' }}</p>
         </div>
       </div>
     </ng-container>
     <ng-template #noItemSelected>
-      <p class="text-sm text-slate-500 dark:text-slate-400">Seleziona una dotazione dalla lista per visualizzare il dettaglio.</p>
+      <p class="text-sm text-[color:var(--text-2)]">Seleziona una dotazione dalla lista per visualizzare il dettaglio.</p>
     </ng-template>
-  </aside>
+  </ui-surface>
+
+  <ui-modal [visible]="formOpen()" (visibleChange)="formOpen.set($event)" [title]="editingId() ? 'Modifica dotazione' : 'Nuova dotazione'" eyebrow="Inventario" subtitle="Gestisci team, stato e manutenzione dell'asset." icon="pi pi-box" tone="info" [hasFooter]="true" width="72rem" maxWidth="96vw" (closeRequested)="formOpen.set(false)">
+      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <ui-field label="Team *">
+          <ui-select [options]="teamSelectOptions()" [value]="form.teamId" placeholder="Seleziona team" (valueChange)="form.teamId = $any($event)"></ui-select>
+        </ui-field>
+        <ui-field label="Nome *">
+          <ui-input [value]="form.name" (valueChange)="form.name = $event" placeholder="Es. Radio portatile"></ui-input>
+        </ui-field>
+        <ui-field label="Numero seriale">
+          <ui-input [value]="form.serialNumber" (valueChange)="form.serialNumber = $event" placeholder="Es. RAD-001"></ui-input>
+        </ui-field>
+        <ui-field label="Stato">
+          <ui-select [options]="statusOptions" [value]="form.status" (valueChange)="form.status = $any($event)"></ui-select>
+        </ui-field>
+        <ui-field label="Manutenzione entro">
+          <ui-date-picker [value]="form.maintenanceDueAt" (valueChange)="onMaintenanceDateChange($event)" dateFormat="dd/mm/yy" [baseZIndex]="1400" inputStyleClass="ui-input"></ui-date-picker>
+        </ui-field>
+      </div>
+      <div dialog-footer class="flex items-center justify-end gap-3">
+        <ui-button tone="neutral" variant="outlined" (buttonClick)="formOpen.set(false)">Annulla</ui-button>
+        <ui-button tone="info" (buttonClick)="saveItem()" [disabled]="!canSaveItem() || saving()">{{ saving() ? 'Salvo...' : editingId() ? 'Salva modifiche' : 'Crea dotazione' }}</ui-button>
+      </div>
+  </ui-modal>
+
+  <ui-confirm-dialog
+    [visible]="confirmVisible()"
+    (visibleChange)="confirmVisible.set($event)"
+    title="Eliminare dotazione?"
+    eyebrow="Inventario"
+    subtitle="L asset verra rimosso dal catalogo operativo."
+    [message]="pendingDelete() ? ('Stai per eliminare ' + pendingDelete()!.name + '.') : ''"
+    detail="Usa danger per eliminazioni definitive su asset e inventario team."
+    tone="danger"
+    icon="pi pi-trash"
+    confirmLabel="Elimina dotazione"
+    (cancel)="closeDeleteConfirm()"
+    (confirm)="confirmDeleteItem()"
+  ></ui-confirm-dialog>
 </section>

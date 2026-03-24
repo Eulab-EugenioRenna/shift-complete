@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { UiLabelComponent } from '@shift-complete/ui-kit';
 import type { Role } from '@shift-complete/shared-types';
 import { SpotlightSearchComponent } from '../../shared/components/spotlight-search.component';
 import { SessionService } from '../services/session.service';
@@ -16,7 +17,7 @@ const ROLES = {
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, SpotlightSearchComponent],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, SpotlightSearchComponent, UiLabelComponent],
   templateUrl: './app-shell.component.html'
 })
 export class AppShellComponent {
@@ -53,6 +54,7 @@ export class AppShellComponent {
   });
 
   protected signOut(): void {
+    this.session.rememberRedirectUrl(this.router.url);
     this.session.signOut();
     void this.router.navigateByUrl('/auth');
   }

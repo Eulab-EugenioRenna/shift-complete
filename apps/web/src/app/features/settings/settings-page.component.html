@@ -1,57 +1,59 @@
-<section class="mx-auto flex max-w-4xl flex-col gap-6 text-slate-800 dark:text-slate-100">
-  <header class="py-2">
-    <p class="text-sm font-semibold uppercase tracking-widest text-teal-600 dark:text-teal-300">Impostazioni</p>
-    <h2 class="mt-1 text-2xl font-semibold tracking-tight text-slate-800 dark:text-slate-100">Backend, AI, observability e profilo organizzati per tab di dominio.</h2>
-  </header>
+<section class="mx-auto flex max-w-4xl flex-col gap-6 text-[color:var(--text-1)]">
+  <ui-page-header
+    eyebrow="Impostazioni"
+    eyebrowClass="text-teal-600"
+    title="Backend, AI, observability e profilo organizzati per tab di dominio."
+    headerClass="py-2"
+  ></ui-page-header>
 
-  <div class="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
+  <ui-surface surfaceClass="rounded-2xl p-2">
     <div class="grid gap-2 md:grid-cols-4">
           <button *ngFor="let tab of tabs" type="button" class="rounded-xl px-4 py-3 text-sm font-medium transition"
-        [ngClass]="activeTab() === tab.id ? 'bg-[#4979e6] text-white dark:text-white' : 'bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300'"
+        [ngClass]="activeTab() === tab.id ? 'bg-[#4979e6] text-white' : 'bg-[color:var(--surface-2)] text-[color:var(--text-2)]'"
         (click)="activeTab.set(tab.id)">
         {{ tab.label }}
       </button>
     </div>
-  </div>
+  </ui-surface>
 
-  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/80" *ngIf="activeTab() === 'user'">
-    <div class="border-b border-slate-100 px-6 py-4 dark:border-slate-700">
-      <h3 class="text-base font-semibold text-slate-800 dark:text-slate-100">Utente</h3>
-      <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-300">Riepilogo accesso, tema e scorciatoie verso la gestione del profilo personale.</p>
+  <ui-surface surfaceClass="overflow-hidden" *ngIf="activeTab() === 'user'">
+    <div class="border-b border-[color:var(--border-soft)] px-6 py-4">
+      <h3 class="text-base font-semibold text-[color:var(--text-1)]">Utente</h3>
+      <p class="mt-0.5 text-sm text-[color:var(--text-2)]">Riepilogo accesso, tema e scorciatoie verso la gestione del profilo personale.</p>
     </div>
     <div class="px-6 py-5 grid gap-4 md:grid-cols-2">
-      <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/80">
-        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">Ruolo</p>
-        <p class="mt-2 text-lg font-semibold text-slate-900 dark:text-slate-100">{{ currentUserRoleLabel() }}</p>
-      </div>
-      <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/80">
-        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">Stato</p>
-        <p class="mt-2 text-lg font-semibold text-slate-900 dark:text-slate-100">{{ aiSettings()?.provider || 'Backend pronto' }}</p>
-      </div>
-      <div class="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900 md:col-span-2">
+      <ui-surface surfaceClass="rounded-2xl bg-[color:var(--surface-2)] p-4 shadow-none">
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Ruolo</p>
+        <p class="mt-2 text-lg font-semibold text-[color:var(--text-1)]">{{ currentUserRoleLabel() }}</p>
+      </ui-surface>
+      <ui-surface surfaceClass="rounded-2xl bg-[color:var(--surface-2)] p-4 shadow-none">
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Stato</p>
+        <p class="mt-2 text-lg font-semibold text-[color:var(--text-1)]">{{ aiSettings()?.provider || 'Backend pronto' }}</p>
+      </ui-surface>
+      <ui-surface surfaceClass="rounded-2xl bg-[color:var(--surface-1)] p-4 md:col-span-2 shadow-none">
         <div class="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
           <div>
-            <p class="text-sm font-medium text-slate-700 dark:text-slate-200">Tema applicazione</p>
-            <p class="mt-1 text-sm text-slate-500 dark:text-slate-300">Scegli fra tema chiaro, scuro o sincronizzazione con il sistema.</p>
+            <p class="text-sm font-medium text-[color:var(--text-2)]">Tema applicazione</p>
+            <p class="mt-1 text-sm text-[color:var(--text-2)]">Scegli fra tema chiaro, scuro o sincronizzazione con il sistema.</p>
           </div>
           <ui-select [options]="themeOptions" [value]="theme.preference()" (valueChange)="onThemePreferenceChange($event)"></ui-select>
         </div>
-      </div>
-      <div class="rounded-2xl border border-slate-200 bg-white p-4 md:col-span-2 dark:border-slate-700 dark:bg-slate-900">
-        <p class="text-sm text-slate-600 dark:text-slate-300">Le informazioni personali e il cambio credenziali ora vivono nella user page dedicata.</p>
-        <button class="mt-3 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800" (click)="goToUserPage()">Apri user page</button>
-      </div>
+      </ui-surface>
+      <ui-surface surfaceClass="rounded-2xl bg-[color:var(--surface-1)] p-4 md:col-span-2 shadow-none">
+        <p class="text-sm text-[color:var(--text-2)]">Le informazioni personali e il cambio credenziali ora vivono nella user page dedicata.</p>
+        <ui-button class="mt-3" tone="neutral" variant="outlined" (buttonClick)="goToUserPage()">Apri user page</ui-button>
+      </ui-surface>
     </div>
-  </div>
+  </ui-surface>
 
   <!-- Provider AI -->
-  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/80" *ngIf="activeTab() === 'ai'">
-    <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-700">
+  <ui-surface surfaceClass="overflow-hidden" *ngIf="activeTab() === 'ai'">
+    <div class="flex items-center justify-between border-b border-[color:var(--border-soft)] px-6 py-4">
       <div>
-        <h3 class="flex items-center gap-2 text-base font-semibold text-slate-800 dark:text-slate-100">
+        <h3 class="flex items-center gap-2 text-base font-semibold text-[color:var(--text-1)]">
           <i class="pi pi-microchip-ai text-[#4979e6]"></i> Provider AI
         </h3>
-        <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-300">Seleziona il motore AI e configura le credenziali di accesso.</p>
+        <p class="mt-0.5 text-sm text-[color:var(--text-2)]">Seleziona il motore AI e configura le credenziali di accesso.</p>
       </div>
       <!-- Connection Status Indicator -->
       <div class="flex items-center gap-2 text-sm font-medium" *ngIf="pingStatus() !== 'idle'">
@@ -60,12 +62,12 @@
           [class.bg-yellow-400]="pingStatus() === 'testing'"
           [class.bg-emerald-400]="pingStatus() === 'ok'"
           [class.bg-red-400]="pingStatus() === 'error'"
-          [class.border-slate-200]="pingStatus() === 'idle'"
+          [class.border-[color:var(--border-soft)]]="pingStatus() === 'idle'"
           [class.border-yellow-300]="pingStatus() === 'testing'"
           [class.border-emerald-300]="pingStatus() === 'ok'"
           [class.border-red-300]="pingStatus() === 'error'"
         ></span>
-        <span [class.text-slate-400]="pingStatus() === 'idle'"
+        <span [class.text-[color:var(--text-3)]]="pingStatus() === 'idle'"
               [class.text-yellow-600]="pingStatus() === 'testing'"
               [class.text-emerald-600]="pingStatus() === 'ok'"
               [class.text-red-600]="pingStatus() === 'error'">
@@ -76,13 +78,12 @@
     <div class="px-6 py-5 grid gap-5">
       <!-- Provider selector -->
       <div class="grid gap-2">
-        <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Provider</label>
         <div class="flex gap-2 flex-wrap">
           <button *ngFor="let p of providerOptions"
             type="button"
             class="px-4 py-2 rounded-md border text-sm font-medium transition"
             [class.text-white]="selectedProvider() === p.value"
-            [ngClass]="selectedProvider() === p.value ? 'bg-[#4979e6] text-white border-[#4979e6] dark:text-white' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-800'"
+            [ngClass]="selectedProvider() === p.value ? 'bg-[#4979e6] text-white border-[#4979e6]' : 'bg-[color:var(--surface-1)] text-[color:var(--text-2)] border-[color:var(--border-soft)] hover:bg-[color:var(--surface-2)]'"
             (click)="selectedProvider.set(p.value)">
             {{ p.label }}
           </button>
@@ -91,422 +92,405 @@
 
       <!-- API Key (OpenAI / Anthropic) -->
       <div class="grid gap-2" *ngIf="needsApiKey()">
-        <label class="text-sm font-medium text-slate-700 dark:text-slate-200">API Key</label>
+        <label class="text-sm font-medium text-[color:var(--text-2)]">API Key</label>
         <div class="relative">
-          <input class="w-full rounded-md border border-slate-300 px-3 py-2 pr-10 text-sm font-mono text-slate-800 placeholder-slate-400 focus:border-[#4979e6] focus:outline-none focus:ring-1 focus:ring-[#4979e6] transition"
-            [type]="showApiKey() ? 'text' : 'password'"
-            [(ngModel)]="apiKey"
-            placeholder="sk-..." />
-          <button type="button" class="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 transition hover:text-[#4979e6] dark:text-slate-500" (click)="showApiKey.set(!showApiKey())" [attr.aria-label]="showApiKey() ? 'Nascondi chiave API' : 'Mostra chiave API'">
+          <ui-input class="block" [value]="apiKey" (valueChange)="apiKey = $event" [type]="showApiKey() ? 'text' : 'password'" placeholder="sk-..." [mono]="true"></ui-input>
+          <button type="button" class="absolute inset-y-0 right-0 flex items-center px-3 text-[color:var(--text-3)] transition hover:text-[#4979e6]" (click)="showApiKey.set(!showApiKey())" [attr.aria-label]="showApiKey() ? 'Nascondi chiave API' : 'Mostra chiave API'">
             <i class="pi" [class.pi-eye]="!showApiKey()" [class.pi-eye-slash]="showApiKey()"></i>
           </button>
         </div>
-        <p class="text-xs text-slate-500 dark:text-slate-400">La chiave viene salvata lato backend e non viene riproposta in chiaro dopo il salvataggio.</p>
+        <p class="text-xs text-[color:var(--text-3)]">La chiave viene salvata lato backend e non viene riproposta in chiaro dopo il salvataggio.</p>
       </div>
 
       <!-- Ollama URL -->
       <div class="grid gap-2" *ngIf="selectedProvider() === 'ollama'">
-        <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Ollama URL</label>
-        <input class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono text-slate-800 placeholder-slate-400 focus:border-[#4979e6] focus:outline-none focus:ring-1 focus:ring-[#4979e6] transition"
-          type="text"
-          [(ngModel)]="ollamaUrl"
-          placeholder="http://localhost:11434" />
+        <label class="text-sm font-medium text-[color:var(--text-2)]">Ollama URL</label>
+        <ui-input [value]="ollamaUrl" (valueChange)="ollamaUrl = $event" type="text" placeholder="http://localhost:11434" [mono]="true"></ui-input>
       </div>
 
       <!-- Models list -->
       <div class="grid gap-2" *ngIf="selectedProvider() !== 'disabled'">
         <div class="flex items-center justify-between">
-          <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Modello</label>
+          <label class="text-sm font-medium text-[color:var(--text-2)]">Modello</label>
           <button class="text-xs text-[#4979e6] font-medium hover:underline flex items-center gap-1" (click)="fetchModels()" [disabled]="loadingModels()">
             <i class="pi pi-refresh text-xs" [class.animate-spin]="loadingModels()"></i> {{ loadingModels() ? 'Carico...' : 'Ricarica lista modelli' }}
           </button>
         </div>
         <div *ngIf="availableModels().length > 0; else noModels">
           <div class="flex flex-wrap gap-2">
-            <button *ngFor="let model of availableModels()"
-              type="button"
-              class="px-3 py-1 rounded-full border text-xs font-medium transition"
-              [class.text-white]="selectedModel() === model"
-              [ngClass]="selectedModel() === model ? 'bg-[#4979e6] text-white border-[#4979e6] dark:text-white' : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700'"
-              (click)="selectedModel.set(model)">
+            <ui-chip *ngFor="let model of availableModels()" tone="info" [selected]="selectedModel() === model" (chipClick)="selectedModel.set(model)">
               {{ model }}
-            </button>
+            </ui-chip>
           </div>
         </div>
         <ng-template #noModels>
-          <p class="text-sm italic text-slate-400 dark:text-slate-500">Nessun modello trovato. Avvia il ping per caricare la lista.</p>
+          <p class="text-sm italic text-[color:var(--text-3)]">Nessun modello trovato. Avvia il ping per caricare la lista.</p>
         </ng-template>
       </div>
 
       <!-- Disabled state -->
-      <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300" *ngIf="selectedProvider() === 'disabled'">
+      <ui-surface surfaceClass="rounded-md bg-[color:var(--surface-2)] px-4 py-3 text-sm text-[color:var(--text-2)] shadow-none" *ngIf="selectedProvider() === 'disabled'">
         <i class="pi pi-info-circle mr-2"></i> AI disabilitata. La pianificazione automatica userà la modalità manuale.
-      </div>
+      </ui-surface>
 
       <!-- Actions -->
       <div class="flex items-center gap-3 pt-2">
-        <button class="rounded-md bg-[#4979e6] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 transition disabled:opacity-60"
-          (click)="saveAiSettings()" [disabled]="saving()">
-          <i class="pi pi-save mr-1 text-xs"></i> {{ saving() ? 'Salvataggio...' : 'Salva impostazioni' }}
-        </button>
-        <button class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-          (click)="pingProvider()" [disabled]="pingStatus() === 'testing' || selectedProvider() === 'disabled'">
-          <i class="pi pi-wifi mr-1 text-xs"></i> Testa connessione
-        </button>
+        <ui-button tone="info" icon="pi pi-save" (buttonClick)="saveAiSettings()" [disabled]="saving()">{{ saving() ? 'Salvataggio...' : 'Salva impostazioni' }}</ui-button>
+        <ui-button tone="neutral" variant="outlined" icon="pi pi-wifi" (buttonClick)="pingProvider()" [disabled]="pingStatus() === 'testing' || selectedProvider() === 'disabled'">Testa connessione</ui-button>
         <span class="text-xs text-emerald-600 font-medium" *ngIf="saveStatus() === 'saved'"><i class="pi pi-check mr-1"></i>Salvato</span>
         <span class="text-xs text-red-600 font-medium" *ngIf="saveStatus() === 'error'"><i class="pi pi-times mr-1"></i>Errore nel salvataggio</span>
       </div>
     </div>
-  </div>
+  </ui-surface>
 
   <!-- Automazioni -->
-  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/80" *ngIf="activeTab() === 'ai'">
-    <div class="border-b border-slate-100 px-6 py-4 dark:border-slate-700">
-      <h3 class="flex items-center gap-2 text-base font-semibold text-slate-800 dark:text-slate-100">
+  <ui-surface surfaceClass="overflow-hidden" *ngIf="activeTab() === 'ai'">
+    <div class="border-b border-[color:var(--border-soft)] px-6 py-4">
+      <h3 class="flex items-center gap-2 text-base font-semibold text-[color:var(--text-1)]">
         <i class="pi pi-cog text-[#4979e6]"></i> Automazioni
       </h3>
-      <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-300">Bilanciamento tra manuale e scheduling assistito.</p>
+      <p class="mt-0.5 text-sm text-[color:var(--text-2)]">Bilanciamento tra manuale e scheduling assistito.</p>
     </div>
     <div class="px-6 py-5 grid gap-5">
       <div class="grid gap-2">
-        <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Modalità pianificazione</label>
-        <p class="text-xs text-slate-500 dark:text-slate-400">Ciclo turni, sostituzioni, limiti, quiet hours, reminder e fallback manuale.</p>
+        <label class="text-sm font-medium text-[color:var(--text-2)]">Modalità pianificazione</label>
+        <p class="text-xs text-[color:var(--text-3)]">Ciclo turni, sostituzioni, limiti, quiet hours, reminder e fallback manuale.</p>
         <ui-select [options]="automationModes" [value]="selectedAutomationMode" (valueChange)="onAutomationModeChange($event)"></ui-select>
       </div>
       <div class="grid gap-3">
-        <div class="flex items-center justify-between border-b border-slate-100 py-3 dark:border-slate-800">
+        <div class="flex items-center justify-between border-b border-[color:var(--border-soft)] py-3">
           <div>
-            <p class="text-sm font-medium text-slate-800 dark:text-slate-100">Modalità AI agnostic</p>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Usa il provider configurato per ottimizzare le assegnazioni.</p>
+            <p class="text-sm font-medium text-[color:var(--text-1)]">Modalità AI agnostic</p>
+            <p class="text-xs text-[color:var(--text-3)]">Usa il provider configurato per ottimizzare le assegnazioni.</p>
           </div>
           <ui-toggle label="" [value]="agnosticMode()" (valueChange)="agnosticMode.set($event)"></ui-toggle>
         </div>
-        <div class="flex items-center justify-between border-b border-slate-100 py-3 dark:border-slate-800">
+        <div class="flex items-center justify-between border-b border-[color:var(--border-soft)] py-3">
           <div>
-            <p class="text-sm font-medium text-slate-800 dark:text-slate-100">Reminder automatici</p>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Notifiche automatiche ai volontari prima degli eventi assegnati.</p>
+            <p class="text-sm font-medium text-[color:var(--text-1)]">Reminder automatici</p>
+            <p class="text-xs text-[color:var(--text-3)]">Notifiche automatiche ai volontari prima degli eventi assegnati.</p>
           </div>
           <ui-toggle label="" [value]="remindersEnabled()" (valueChange)="remindersEnabled.set($event)"></ui-toggle>
         </div>
         <div class="flex items-center justify-between py-3">
           <div>
-            <p class="text-sm font-medium text-slate-800 dark:text-slate-100">Quiet hours</p>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Non inviare notifiche tra le 22:00 e le 08:00.</p>
+            <p class="text-sm font-medium text-[color:var(--text-1)]">Quiet hours</p>
+            <p class="text-xs text-[color:var(--text-3)]">Non inviare notifiche tra le 22:00 e le 08:00.</p>
           </div>
           <ui-toggle label="" [value]="quietHours()" (valueChange)="quietHours.set($event)"></ui-toggle>
         </div>
       </div>
     </div>
-  </div>
+  </ui-surface>
 
-  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/80" *ngIf="activeTab() === 'ai'">
-    <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-700">
+  <ui-surface surfaceClass="overflow-hidden" *ngIf="activeTab() === 'ai'">
+    <div class="flex items-center justify-between border-b border-[color:var(--border-soft)] px-6 py-4">
       <div>
-        <h3 class="flex items-center gap-2 text-base font-semibold text-slate-800 dark:text-slate-100">
+        <h3 class="flex items-center gap-2 text-base font-semibold text-[color:var(--text-1)]">
           <i class="pi pi-sparkles text-[#4979e6]"></i> AI jobs e capabilities
         </h3>
-        <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-300">Base pronta per frontend: provider, capability e prompt asincroni via queue.</p>
+        <p class="mt-0.5 text-sm text-[color:var(--text-2)]">Base pronta per frontend: provider, capability e prompt asincroni via queue.</p>
       </div>
-      <button class="text-xs font-medium text-[#4979e6] hover:underline" (click)="loadAiJobs()">Aggiorna job</button>
+          <ui-button tone="neutral" variant="text" size="sm" (buttonClick)="loadAiJobs()">Aggiorna job</ui-button>
     </div>
     <div class="px-6 py-5 grid gap-6">
       <div class="grid gap-3 md:grid-cols-2">
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/70" *ngFor="let capability of aiCapabilities()">
-          <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ capability.provider }}</p>
-          <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">chat={{ capability.supportsChat }} · models={{ capability.supportsModelListing }} · health={{ capability.supportsHealthcheck }}</p>
-        </div>
+        <ui-surface surfaceClass="rounded-2xl bg-[color:var(--surface-2)] p-4 shadow-none" *ngFor="let capability of aiCapabilities()">
+          <p class="text-sm font-semibold text-[color:var(--text-1)]">{{ capability.provider }}</p>
+          <p class="mt-2 text-xs text-[color:var(--text-2)]">chat={{ capability.supportsChat }} · models={{ capability.supportsModelListing }} · health={{ capability.supportsHealthcheck }}</p>
+        </ui-surface>
       </div>
       <div class="grid gap-2">
-        <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Prompt rapido</label>
-        <textarea class="min-h-28 rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [ngModel]="aiPrompt()" (ngModelChange)="aiPrompt.set($event)" placeholder="Es. suggerisci una bozza di reminder per i volontari del turno di domani"></textarea>
+        <label class="text-sm font-medium text-[color:var(--text-2)]">Prompt rapido</label>
+        <ui-textarea [value]="aiPrompt()" (valueChange)="aiPrompt.set($event)" placeholder="Es. suggerisci una bozza di reminder per i volontari del turno di domani" [rows]="5"></ui-textarea>
         <div class="flex items-center gap-3">
-          <button class="rounded-md bg-[#4979e6] px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:text-white" (click)="runAiPrompt()" [disabled]="creatingAiJob() || selectedProvider() === 'disabled'">{{ creatingAiJob() ? 'Invio...' : 'Crea job AI' }}</button>
+          <ui-button tone="info" (buttonClick)="runAiPrompt()" [disabled]="creatingAiJob() || selectedProvider() === 'disabled'">{{ creatingAiJob() ? 'Invio...' : 'Crea job AI' }}</ui-button>
         </div>
       </div>
-      <div class="divide-y divide-slate-100 rounded-2xl border border-slate-200">
+      <div class="divide-y divide-[color:var(--border-soft)] rounded-2xl border border-[color:var(--border-soft)]">
         <div *ngFor="let job of aiJobs()" class="px-4 py-3">
           <div class="flex items-start justify-between gap-4">
             <div>
-              <p class="text-sm font-medium text-slate-800">{{ job.kind }} · {{ job.status }}</p>
-              <p class="mt-1 text-xs text-slate-500">{{ job.createdAt | date:'short' }} · progresso {{ job.progress }}%</p>
+              <p class="text-sm font-medium text-[color:var(--text-1)]">{{ job.kind }} · {{ job.status }}</p>
+              <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ job.createdAt | date:'short' }} · progresso {{ job.progress }}%</p>
             </div>
-            <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">{{ job.id }}</span>
+            <span class="rounded-full bg-[color:var(--surface-2)] px-2.5 py-1 text-[11px] font-medium text-[color:var(--text-2)]">{{ job.id }}</span>
           </div>
         </div>
-        <div *ngIf="!aiJobs().length" class="px-4 py-8 text-sm text-slate-400">Nessun job AI disponibile.</div>
+        <div *ngIf="!aiJobs().length" class="px-4 py-8 text-sm text-[color:var(--text-3)]">Nessun job AI disponibile.</div>
       </div>
-      <div class="divide-y divide-slate-100 rounded-2xl border border-slate-200">
-        <div class="px-4 py-3 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Background jobs recenti</div>
+      <div class="divide-y divide-[color:var(--border-soft)] rounded-2xl border border-[color:var(--border-soft)]">
+        <div class="px-4 py-3 text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Background jobs recenti</div>
         <div *ngFor="let job of recentJobs().slice(0, 8)" class="px-4 py-3">
           <div class="flex items-start justify-between gap-4">
             <div>
-              <p class="text-sm font-medium text-slate-800">{{ job.kind }} · {{ job.status }}</p>
-              <p class="mt-1 text-xs text-slate-500">{{ job.createdAt | date:'short' }} · team {{ job.teamId || 'n/a' }} · progresso {{ job.progress }}%</p>
+              <p class="text-sm font-medium text-[color:var(--text-1)]">{{ job.kind }} · {{ job.status }}</p>
+              <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ job.createdAt | date:'short' }} · team {{ job.teamId || 'n/a' }} · progresso {{ job.progress }}%</p>
             </div>
-            <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">{{ job.id }}</span>
+            <span class="rounded-full bg-[color:var(--surface-2)] px-2.5 py-1 text-[11px] font-medium text-[color:var(--text-2)]">{{ job.id }}</span>
           </div>
         </div>
-        <div *ngIf="!recentJobs().length" class="px-4 py-8 text-sm text-slate-400">Nessun background job disponibile.</div>
+        <div *ngIf="!recentJobs().length" class="px-4 py-8 text-sm text-[color:var(--text-3)]">Nessun background job disponibile.</div>
       </div>
     </div>
-  </div>
+  </ui-surface>
 
-  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/80" *ngIf="activeTab() === 'backend'">
-    <div class="border-b border-slate-100 px-6 py-4 dark:border-slate-700">
-      <h3 class="flex items-center gap-2 text-base font-semibold text-slate-800 dark:text-slate-100">
+  <ui-surface surfaceClass="overflow-hidden" *ngIf="activeTab() === 'backend'">
+    <div class="border-b border-[color:var(--border-soft)] px-6 py-4">
+      <h3 class="flex items-center gap-2 text-base font-semibold text-[color:var(--text-1)]">
         <i class="pi pi-server text-[#4979e6]"></i> Backend channels
       </h3>
-      <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-300">Configurazione persistita di SMTP, webhook e valori backend operativi.</p>
+      <p class="mt-0.5 text-sm text-[color:var(--text-2)]">Configurazione persistita di SMTP, webhook e valori backend operativi.</p>
     </div>
     <div class="px-6 py-5 grid gap-6">
-      <div class="grid gap-4 md:grid-cols-2">
-        <div class="grid gap-2">
-          <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Redis URL</label>
-          <input class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-mono text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [(ngModel)]="redisUrl" placeholder="redis://localhost:6379" />
+        <div class="grid gap-4 md:grid-cols-2">
+          <div class="grid gap-2">
+            <label class="text-sm font-medium text-[color:var(--text-2)]">Redis URL</label>
+          <ui-input [value]="redisUrl" (valueChange)="redisUrl = $event" placeholder="redis://localhost:6379" [mono]="true"></ui-input>
         </div>
         <div class="grid gap-2">
-          <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Web app URL</label>
-          <input class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-mono text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [(ngModel)]="webAppUrl" placeholder="http://localhost:4200" />
+          <label class="text-sm font-medium text-[color:var(--text-2)]">Web app URL</label>
+          <ui-input [value]="webAppUrl" (valueChange)="webAppUrl = $event" placeholder="http://localhost:4200" [mono]="true"></ui-input>
         </div>
         <div class="grid gap-2">
-          <label class="text-sm font-medium text-slate-700 dark:text-slate-200">SMTP host</label>
-          <input class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-mono text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [(ngModel)]="smtpHost" placeholder="smtp.example.com" />
+          <label class="text-sm font-medium text-[color:var(--text-2)]">SMTP host</label>
+          <ui-input [value]="smtpHost" (valueChange)="smtpHost = $event" placeholder="smtp.example.com" [mono]="true"></ui-input>
         </div>
         <div class="grid gap-2">
-          <label class="text-sm font-medium text-slate-700 dark:text-slate-200">SMTP port</label>
-          <input class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-mono text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" type="number" [(ngModel)]="smtpPort" placeholder="587" />
+          <label class="text-sm font-medium text-[color:var(--text-2)]">SMTP port</label>
+          <ui-input [value]="'' + smtpPort" (valueChange)="smtpPort = +$event" type="number" placeholder="587" [mono]="true"></ui-input>
         </div>
         <div class="grid gap-2">
-          <label class="text-sm font-medium text-slate-700 dark:text-slate-200">SMTP user</label>
-          <input class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-mono text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [(ngModel)]="smtpUser" placeholder="user@example.com" />
+          <label class="text-sm font-medium text-[color:var(--text-2)]">SMTP user</label>
+          <ui-input [value]="smtpUser" (valueChange)="smtpUser = $event" placeholder="user@example.com" [mono]="true"></ui-input>
         </div>
         <div class="grid gap-2">
-          <label class="text-sm font-medium text-slate-700 dark:text-slate-200">SMTP password</label>
-          <input class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-mono text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" type="password" [(ngModel)]="smtpPassword" placeholder="••••••••" />
+          <label class="text-sm font-medium text-[color:var(--text-2)]">SMTP password</label>
+          <ui-input [value]="smtpPassword" (valueChange)="smtpPassword = $event" type="password" placeholder="••••••••" [mono]="true"></ui-input>
         </div>
         <div class="grid gap-2">
-          <label class="text-sm font-medium text-slate-700 dark:text-slate-200">From email</label>
-          <input class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-mono text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [(ngModel)]="smtpFromEmail" placeholder="no-reply@shift.local" />
+          <label class="text-sm font-medium text-[color:var(--text-2)]">From email</label>
+          <ui-input [value]="smtpFromEmail" (valueChange)="smtpFromEmail = $event" placeholder="no-reply@shift.local" [mono]="true"></ui-input>
         </div>
         <div class="grid gap-2">
-          <label class="text-sm font-medium text-slate-700 dark:text-slate-200">From name</label>
-          <input class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [(ngModel)]="smtpFromName" placeholder="Shift Complete" />
+          <label class="text-sm font-medium text-[color:var(--text-2)]">From name</label>
+          <ui-input [value]="smtpFromName" (valueChange)="smtpFromName = $event" placeholder="Shift Complete"></ui-input>
         </div>
         <div class="grid gap-2">
-          <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Reply-to</label>
-          <input class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-mono text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [(ngModel)]="smtpReplyTo" placeholder="support@example.com" />
+          <label class="text-sm font-medium text-[color:var(--text-2)]">Reply-to</label>
+          <ui-input [value]="smtpReplyTo" (valueChange)="smtpReplyTo = $event" placeholder="support@example.com" [mono]="true"></ui-input>
         </div>
         <div class="grid gap-2">
-          <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Driver storage risorse</label>
-          <select class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-mono text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [(ngModel)]="selectedResourceStorageDriver">
-            <option value="local">local</option>
-            <option value="s3">s3</option>
-          </select>
-          <p class="text-xs text-slate-500 dark:text-slate-400">Mantieni `local` per storage interno gestito dal backend oppure usa `s3` per bucket esterni compatibili.</p>
+          <label class="text-sm font-medium text-[color:var(--text-2)]">Driver storage risorse</label>
+          <ui-select
+            [options]="[{ label: 'local', value: 'local' }, { label: 's3', value: 's3' }]"
+            [value]="selectedResourceStorageDriver"
+            (valueChange)="selectedResourceStorageDriver = castString($event)"
+          ></ui-select>
+          <p class="text-xs text-[color:var(--text-3)]">Mantieni `local` per storage interno gestito dal backend oppure usa `s3` per bucket esterni compatibili.</p>
         </div>
-        <div class="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Capienza totale piattaforma</label>
-          <input class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-mono text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" type="number" min="0" step="0.5" [(ngModel)]="totalStorageLimitGb" placeholder="0 = illimitato" />
-          <p class="text-xs text-slate-500 dark:text-slate-400">Somma massima di tutti i file caricati. Valore attuale: <span class="font-semibold text-slate-700 dark:text-slate-200">{{ quotaPreviewLabel(totalStorageLimitGb) }}</span>.</p>
-        </div>
-        <div class="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Capienza predefinita per team</label>
-          <input class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-mono text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" type="number" min="0" step="0.5" [(ngModel)]="defaultTeamStorageLimitGb" placeholder="0 = illimitato" />
-          <p class="text-xs text-slate-500 dark:text-slate-400">Ogni team usa questo valore se non ha un override dedicato. Valore attuale: <span class="font-semibold text-slate-700 dark:text-slate-200">{{ quotaPreviewLabel(defaultTeamStorageLimitGb) }}</span>.</p>
-        </div>
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300" *ngIf="selectedResourceStorageDriver === 'local'">
+        <ui-surface surfaceClass="grid gap-2 rounded-2xl bg-[color:var(--surface-2)] p-4 shadow-none">
+          <label class="text-sm font-medium text-[color:var(--text-2)]">Capienza totale piattaforma</label>
+          <ui-input [value]="'' + totalStorageLimitGb" (valueChange)="totalStorageLimitGb = +$event" type="number" placeholder="0 = illimitato" [mono]="true"></ui-input>
+          <p class="text-xs text-[color:var(--text-2)]">Somma massima di tutti i file caricati. Valore attuale: <span class="font-semibold text-[color:var(--text-1)]">{{ quotaPreviewLabel(totalStorageLimitGb) }}</span>.</p>
+        </ui-surface>
+        <ui-surface surfaceClass="grid gap-2 rounded-2xl bg-[color:var(--surface-2)] p-4 shadow-none">
+          <label class="text-sm font-medium text-[color:var(--text-2)]">Capienza predefinita per team</label>
+          <ui-input [value]="'' + defaultTeamStorageLimitGb" (valueChange)="defaultTeamStorageLimitGb = +$event" type="number" placeholder="0 = illimitato" [mono]="true"></ui-input>
+          <p class="text-xs text-[color:var(--text-2)]">Ogni team usa questo valore se non ha un override dedicato. Valore attuale: <span class="font-semibold text-[color:var(--text-1)]">{{ quotaPreviewLabel(defaultTeamStorageLimitGb) }}</span>.</p>
+        </ui-surface>
+        <ui-surface surfaceClass="rounded-2xl bg-[color:var(--surface-2)] px-4 py-3 text-sm text-[color:var(--text-2)] shadow-none" *ngIf="selectedResourceStorageDriver === 'local'">
           Lo storage diretto usa percorsi interni gestiti dal backend e non espone valori configurabili da questa schermata.
+        </ui-surface>
+        <div class="grid gap-2" *ngIf="selectedResourceStorageDriver === 's3'">
+          <label class="text-sm font-medium text-[color:var(--text-2)]">S3 endpoint</label>
+          <ui-input [value]="resourceS3Endpoint" (valueChange)="resourceS3Endpoint = $event" placeholder="http://localhost:9000" [mono]="true"></ui-input>
         </div>
         <div class="grid gap-2" *ngIf="selectedResourceStorageDriver === 's3'">
-          <label class="text-sm font-medium text-slate-700">S3 endpoint</label>
-          <input class="rounded-md border border-slate-300 px-3 py-2 text-sm font-mono" [(ngModel)]="resourceS3Endpoint" placeholder="http://localhost:9000" />
+          <label class="text-sm font-medium text-[color:var(--text-2)]">S3 region</label>
+          <ui-input [value]="resourceS3Region" (valueChange)="resourceS3Region = $event" placeholder="us-east-1" [mono]="true"></ui-input>
         </div>
         <div class="grid gap-2" *ngIf="selectedResourceStorageDriver === 's3'">
-          <label class="text-sm font-medium text-slate-700">S3 region</label>
-          <input class="rounded-md border border-slate-300 px-3 py-2 text-sm font-mono" [(ngModel)]="resourceS3Region" placeholder="us-east-1" />
+          <label class="text-sm font-medium text-[color:var(--text-2)]">S3 bucket</label>
+          <ui-input [value]="resourceS3Bucket" (valueChange)="resourceS3Bucket = $event" placeholder="shift-complete-resources" [mono]="true"></ui-input>
         </div>
         <div class="grid gap-2" *ngIf="selectedResourceStorageDriver === 's3'">
-          <label class="text-sm font-medium text-slate-700">S3 bucket</label>
-          <input class="rounded-md border border-slate-300 px-3 py-2 text-sm font-mono" [(ngModel)]="resourceS3Bucket" placeholder="shift-complete-resources" />
+          <label class="text-sm font-medium text-[color:var(--text-2)]">S3 access key</label>
+          <ui-input [value]="resourceS3AccessKey" (valueChange)="resourceS3AccessKey = $event" placeholder="shiftminio" [mono]="true"></ui-input>
         </div>
         <div class="grid gap-2" *ngIf="selectedResourceStorageDriver === 's3'">
-          <label class="text-sm font-medium text-slate-700">S3 access key</label>
-          <input class="rounded-md border border-slate-300 px-3 py-2 text-sm font-mono" [(ngModel)]="resourceS3AccessKey" placeholder="shiftminio" />
-        </div>
-        <div class="grid gap-2" *ngIf="selectedResourceStorageDriver === 's3'">
-          <label class="text-sm font-medium text-slate-700">S3 secret key</label>
-          <input class="rounded-md border border-slate-300 px-3 py-2 text-sm font-mono" type="password" [(ngModel)]="resourceS3SecretKey" placeholder="••••••••" />
+          <label class="text-sm font-medium text-[color:var(--text-2)]">S3 secret key</label>
+          <ui-input [value]="resourceS3SecretKey" (valueChange)="resourceS3SecretKey = $event" type="password" placeholder="••••••••" [mono]="true"></ui-input>
         </div>
         <div class="grid gap-2">
-          <label class="text-sm font-medium text-slate-700">Resource queue concurrency</label>
-          <input class="rounded-md border border-slate-300 px-3 py-2 text-sm font-mono" type="number" [(ngModel)]="resourceJobConcurrency" />
+          <label class="text-sm font-medium text-[color:var(--text-2)]">Resource queue concurrency</label>
+          <ui-input [value]="'' + resourceJobConcurrency" (valueChange)="resourceJobConcurrency = +$event" type="number" [mono]="true"></ui-input>
         </div>
         <div class="grid gap-2">
-          <label class="text-sm font-medium text-slate-700">Notification queue concurrency</label>
-          <input class="rounded-md border border-slate-300 px-3 py-2 text-sm font-mono" type="number" [(ngModel)]="notificationJobConcurrency" />
+          <label class="text-sm font-medium text-[color:var(--text-2)]">Notification queue concurrency</label>
+          <ui-input [value]="'' + notificationJobConcurrency" (valueChange)="notificationJobConcurrency = +$event" type="number" [mono]="true"></ui-input>
         </div>
         <div class="grid gap-2">
-          <label class="text-sm font-medium text-slate-700">AI queue concurrency</label>
-          <input class="rounded-md border border-slate-300 px-3 py-2 text-sm font-mono" type="number" [(ngModel)]="aiJobConcurrency" />
+          <label class="text-sm font-medium text-[color:var(--text-2)]">AI queue concurrency</label>
+          <ui-input [value]="'' + aiJobConcurrency" (valueChange)="aiJobConcurrency = +$event" type="number" [mono]="true"></ui-input>
         </div>
-        <div class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <ui-surface surfaceClass="flex items-center justify-between rounded-2xl bg-[color:var(--surface-2)] px-4 py-3 shadow-none">
           <div>
-            <p class="text-sm font-medium text-slate-800">SMTP secure</p>
-            <p class="text-xs text-slate-500">Abilita TLS implicito, tipicamente porta 465.</p>
+            <p class="text-sm font-medium text-[color:var(--text-1)]">SMTP secure</p>
+            <p class="text-xs text-[color:var(--text-2)]">Abilita TLS implicito, tipicamente porta 465.</p>
           </div>
           <ui-toggle label="" [value]="smtpSecure()" (valueChange)="smtpSecure.set($event)"></ui-toggle>
-        </div>
-        <div class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" *ngIf="selectedResourceStorageDriver === 's3'">
+        </ui-surface>
+        <ui-surface surfaceClass="flex items-center justify-between rounded-2xl bg-[color:var(--surface-2)] px-4 py-3 shadow-none" *ngIf="selectedResourceStorageDriver === 's3'">
           <div>
-            <p class="text-sm font-medium text-slate-800">S3 force path style</p>
-            <p class="text-xs text-slate-500">Necessario per MinIO e ambienti S3 compatibili locali.</p>
+            <p class="text-sm font-medium text-[color:var(--text-1)]">S3 force path style</p>
+            <p class="text-xs text-[color:var(--text-2)]">Necessario per MinIO e ambienti S3 compatibili locali.</p>
           </div>
           <ui-toggle label="" [value]="resourceS3ForcePathStyle()" (valueChange)="resourceS3ForcePathStyle.set($event)"></ui-toggle>
-        </div>
-        <div class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" *ngIf="selectedResourceStorageDriver === 's3'">
+        </ui-surface>
+        <ui-surface surfaceClass="flex items-center justify-between rounded-2xl bg-[color:var(--surface-2)] px-4 py-3 shadow-none" *ngIf="selectedResourceStorageDriver === 's3'">
           <div>
-            <p class="text-sm font-medium text-slate-800">S3 use SSL</p>
-            <p class="text-xs text-slate-500">Disattivo in locale con MinIO HTTP, attivo dietro HTTPS.</p>
+            <p class="text-sm font-medium text-[color:var(--text-1)]">S3 use SSL</p>
+            <p class="text-xs text-[color:var(--text-2)]">Disattivo in locale con MinIO HTTP, attivo dietro HTTPS.</p>
           </div>
           <ui-toggle label="" [value]="resourceS3UseSsl()" (valueChange)="resourceS3UseSsl.set($event)"></ui-toggle>
-        </div>
-        <div class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+        </ui-surface>
+        <ui-surface surfaceClass="flex items-center justify-between rounded-2xl bg-[color:var(--surface-2)] px-4 py-3 shadow-none">
           <div>
-            <p class="text-sm font-medium text-slate-800">In-app notifications</p>
-            <p class="text-xs text-slate-500">Salva notifiche nel database applicativo.</p>
+            <p class="text-sm font-medium text-[color:var(--text-1)]">In-app notifications</p>
+            <p class="text-xs text-[color:var(--text-2)]">Salva notifiche nel database applicativo.</p>
           </div>
           <ui-toggle label="" [value]="inAppNotificationsEnabled()" (valueChange)="inAppNotificationsEnabled.set($event)"></ui-toggle>
-        </div>
-        <div class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+        </ui-surface>
+        <ui-surface surfaceClass="flex items-center justify-between rounded-2xl bg-[color:var(--surface-2)] px-4 py-3 shadow-none">
           <div>
-            <p class="text-sm font-medium text-slate-800">Websocket notifications</p>
-            <p class="text-xs text-slate-500">Pubblica eventi realtime verso il frontend.</p>
+            <p class="text-sm font-medium text-[color:var(--text-1)]">Websocket notifications</p>
+            <p class="text-xs text-[color:var(--text-2)]">Pubblica eventi realtime verso il frontend.</p>
           </div>
           <ui-toggle label="" [value]="websocketNotificationsEnabled()" (valueChange)="websocketNotificationsEnabled.set($event)"></ui-toggle>
-        </div>
-        <div class="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+        </ui-surface>
+        <ui-surface surfaceClass="flex items-center justify-between rounded-2xl bg-[color:var(--surface-2)] px-4 py-3 shadow-none">
           <div>
-            <p class="text-sm font-medium text-slate-800">Email notifications</p>
-            <p class="text-xs text-slate-500">Abilita la delivery email tramite SMTP.</p>
+            <p class="text-sm font-medium text-[color:var(--text-1)]">Email notifications</p>
+            <p class="text-xs text-[color:var(--text-2)]">Abilita la delivery email tramite SMTP.</p>
           </div>
           <ui-toggle label="" [value]="emailNotificationsEnabled()" (valueChange)="emailNotificationsEnabled.set($event)"></ui-toggle>
-        </div>
+        </ui-surface>
       </div>
 
-      <div class="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <ui-surface surfaceClass="grid gap-4 rounded-2xl bg-[color:var(--surface-2)] p-4 shadow-none">
         <div class="flex items-center justify-between gap-4">
           <div>
-            <p class="text-sm font-medium text-slate-800">Quote granulari per team</p>
-            <p class="text-xs text-slate-500">Override del limite predefinito per singolo team. Se assente, usa il limite globale per team.</p>
+            <p class="text-sm font-medium text-[color:var(--text-1)]">Quote granulari per team</p>
+            <p class="text-xs text-[color:var(--text-2)]">Override del limite predefinito per singolo team. Se assente, usa il limite globale per team.</p>
           </div>
-          <button class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 disabled:opacity-50" type="button" (click)="addTeamQuotaRule()" [disabled]="resourceTeamQuotaRules().length >= teams().length">
-            Aggiungi team
-          </button>
+          <ui-button tone="neutral" variant="outlined" type="button" (buttonClick)="addTeamQuotaRule()" [disabled]="resourceTeamQuotaRules().length >= teams().length">Aggiungi team</ui-button>
         </div>
-        <div class="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-3 text-xs text-slate-500">
-          Override configurati: <span class="font-semibold text-slate-700">{{ resourceTeamQuotaRules().length }}</span>
-          · Team ancora disponibili: <span class="font-semibold text-slate-700">{{ remainingTeamQuotaSlots() }}</span>
+        <div class="rounded-xl border border-dashed border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-4 py-3 text-xs text-[color:var(--text-2)]">
+          Override configurati: <span class="font-semibold text-[color:var(--text-1)]">{{ resourceTeamQuotaRules().length }}</span>
+          · Team ancora disponibili: <span class="font-semibold text-[color:var(--text-1)]">{{ remainingTeamQuotaSlots() }}</span>
         </div>
 
         <div class="grid gap-3" *ngIf="resourceTeamQuotaRules().length; else noTeamQuotaRules">
-          <div *ngFor="let rule of resourceTeamQuotaRules()" class="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-[1.1fr_0.9fr_auto] md:items-end">
+          <div *ngFor="let rule of resourceTeamQuotaRules()" class="grid gap-3 rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] p-4 md:grid-cols-[1.1fr_0.9fr_auto] md:items-end">
             <div class="grid gap-2">
-              <label class="text-sm font-medium text-slate-700">Team</label>
-              <select class="rounded-md border border-slate-300 px-3 py-2 text-sm" [ngModel]="rule.teamId" (ngModelChange)="updateTeamQuotaRuleTeam(rule.teamId, $event)">
-                <option *ngFor="let team of teams()" [value]="team.id" [disabled]="isTeamQuotaOptionDisabled(team.id, rule.teamId)">{{ team.name }}</option>
-              </select>
+              <label class="text-sm font-medium text-[color:var(--text-2)]">Team</label>
+              <ui-select
+                [options]="teamQuotaOptions(rule.teamId)"
+                [value]="rule.teamId"
+                optionDisabled="disabled"
+                (valueChange)="updateTeamQuotaRuleTeam(rule.teamId, $event)"
+              ></ui-select>
             </div>
             <div class="grid gap-2">
-              <label class="text-sm font-medium text-slate-700">Limite team (GB)</label>
-              <input class="rounded-md border border-slate-300 px-3 py-2 text-sm font-mono" type="number" min="0" step="0.5" [ngModel]="rule.storageLimitGb" (ngModelChange)="rule.storageLimitGb = $event" />
-              <p class="text-xs text-slate-500">Override attivo per <span class="font-semibold text-slate-700">{{ teamLabel(rule.teamId) }}</span>: {{ quotaPreviewLabel(rule.storageLimitGb) }}.</p>
+              <label class="text-sm font-medium text-[color:var(--text-2)]">Limite team (GB)</label>
+              <ui-input [value]="'' + rule.storageLimitGb" (valueChange)="rule.storageLimitGb = +$event" type="number" [mono]="true"></ui-input>
+              <p class="text-xs text-[color:var(--text-2)]">Override attivo per <span class="font-semibold text-[color:var(--text-1)]">{{ teamLabel(rule.teamId) }}</span>: {{ quotaPreviewLabel(rule.storageLimitGb) }}.</p>
             </div>
-            <button class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700" type="button" (click)="removeTeamQuotaRule(rule.teamId)">
-              Rimuovi
-            </button>
+            <ui-button tone="danger" variant="outlined" type="button" (buttonClick)="removeTeamQuotaRule(rule.teamId)">Rimuovi</ui-button>
           </div>
         </div>
 
         <ng-template #noTeamQuotaRules>
-          <p class="text-sm text-slate-500">Nessun override configurato. Tutti i team usano il limite predefinito.</p>
+          <p class="text-sm text-[color:var(--text-2)]">Nessun override configurato. Tutti i team usano il limite predefinito.</p>
         </ng-template>
-      </div>
+      </ui-surface>
 
-      <div class="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <ui-surface surfaceClass="grid gap-4 rounded-2xl bg-[color:var(--surface-2)] p-4 shadow-none">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-slate-800">Webhook notifiche</p>
-            <p class="text-xs text-slate-500">Invio webhook asincrono firmato per eventi backend.</p>
+            <p class="text-sm font-medium text-[color:var(--text-1)]">Webhook notifiche</p>
+            <p class="text-xs text-[color:var(--text-2)]">Invio webhook asincrono firmato per eventi backend.</p>
           </div>
           <ui-toggle label="" [value]="webhookEnabled()" (valueChange)="webhookEnabled.set($event)"></ui-toggle>
         </div>
         <div class="grid gap-4 md:grid-cols-2">
           <div class="grid gap-2 md:col-span-2">
-            <label class="text-sm font-medium text-slate-700">Webhook URL</label>
-            <input class="rounded-md border border-slate-300 px-3 py-2 text-sm font-mono" [(ngModel)]="webhookUrl" placeholder="https://hooks.example.com/shift" />
+            <label class="text-sm font-medium text-[color:var(--text-2)]">Webhook URL</label>
+            <ui-input [value]="webhookUrl" (valueChange)="webhookUrl = $event" placeholder="https://hooks.example.com/shift" [mono]="true"></ui-input>
           </div>
           <div class="grid gap-2 md:col-span-2">
-            <label class="text-sm font-medium text-slate-700">Webhook secret</label>
-            <input class="rounded-md border border-slate-300 px-3 py-2 text-sm font-mono" type="password" [(ngModel)]="webhookSecret" placeholder="shared-secret" />
+            <label class="text-sm font-medium text-[color:var(--text-2)]">Webhook secret</label>
+            <ui-input [value]="webhookSecret" (valueChange)="webhookSecret = $event" type="password" placeholder="shared-secret" [mono]="true"></ui-input>
           </div>
         </div>
-      </div>
+      </ui-surface>
 
       <div class="flex items-center gap-3">
-        <button class="rounded-md bg-[#4979e6] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 transition disabled:opacity-60" (click)="saveAiSettings()" [disabled]="saving()">Salva backend settings</button>
-          <button class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200" (click)="runSmtpTest()">Test SMTP</button>
-          <button class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200" (click)="runWebhookTest()">Test webhook</button>
-          <span class="text-xs text-slate-500 dark:text-slate-400">I valori persistono nel DB e fanno fallback su .env solo se assenti.</span>
+        <ui-button tone="info" (buttonClick)="saveAiSettings()" [disabled]="saving()">Salva backend settings</ui-button>
+          <ui-button tone="neutral" variant="outlined" (buttonClick)="runSmtpTest()">Test SMTP</ui-button>
+          <ui-button tone="neutral" variant="outlined" (buttonClick)="runWebhookTest()">Test webhook</ui-button>
+          <span class="text-xs text-[color:var(--text-3)]">I valori persistono nel DB e fanno fallback su .env solo se assenti.</span>
       </div>
     </div>
-  </div>
+  </ui-surface>
 
-  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/80" *ngIf="activeTab() === 'observability'">
-    <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-700">
+  <ui-surface surfaceClass="overflow-hidden" *ngIf="activeTab() === 'observability'">
+    <div class="flex items-center justify-between border-b border-[color:var(--border-soft)] px-6 py-4">
       <div>
-        <h3 class="flex items-center gap-2 text-base font-semibold text-slate-800 dark:text-slate-100">
+        <h3 class="flex items-center gap-2 text-base font-semibold text-[color:var(--text-1)]">
           <i class="pi pi-send text-[#4979e6]"></i> Delivery notifiche
         </h3>
-        <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-300">Storico canali email, websocket e webhook gestiti dalla coda notifiche.</p>
+        <p class="mt-0.5 text-sm text-[color:var(--text-2)]">Storico canali email, websocket e webhook gestiti dalla coda notifiche.</p>
       </div>
-      <button class="text-xs font-medium text-[#4979e6] hover:underline" (click)="loadNotificationDeliveries()">Aggiorna delivery</button>
+      <ui-button tone="neutral" variant="text" size="sm" (buttonClick)="loadNotificationDeliveries()">Aggiorna delivery</ui-button>
     </div>
-    <div class="divide-y divide-slate-100">
+    <div class="divide-y divide-[color:var(--border-soft)]">
       <div *ngFor="let item of notificationDeliveries()" class="px-6 py-4">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <p class="text-sm font-medium text-slate-800">{{ item.channel }} · {{ item.status }}</p>
-            <p class="mt-1 text-xs text-slate-500">{{ item.notification?.subject }} · {{ item.notification?.user?.email || 'utente' }} · {{ item.createdAt | date:'short' }}</p>
+            <p class="text-sm font-medium text-[color:var(--text-1)]">{{ item.channel }} · {{ item.status }}</p>
+            <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ item.notification?.subject }} · {{ item.notification?.user?.email || 'utente' }} · {{ item.createdAt | date:'short' }}</p>
             <p class="mt-1 text-xs text-red-500" *ngIf="item.lastError">{{ item.lastError }}</p>
           </div>
-          <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">{{ item.id }}</span>
+          <span class="rounded-full bg-[color:var(--surface-2)] px-2.5 py-1 text-[11px] font-medium text-[color:var(--text-2)]">{{ item.id }}</span>
         </div>
       </div>
-      <div *ngIf="!notificationDeliveries().length" class="px-6 py-8 text-sm text-slate-400">Nessuna delivery disponibile.</div>
+      <div *ngIf="!notificationDeliveries().length" class="px-6 py-8 text-sm text-[color:var(--text-3)]">Nessuna delivery disponibile.</div>
     </div>
-  </div>
+  </ui-surface>
 
-  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/80" *ngIf="activeTab() === 'observability'">
-    <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-700">
+  <ui-surface surfaceClass="overflow-hidden" *ngIf="activeTab() === 'observability'">
+    <div class="flex items-center justify-between border-b border-[color:var(--border-soft)] px-6 py-4">
       <div>
-        <h3 class="flex items-center gap-2 text-base font-semibold text-slate-800 dark:text-slate-100">
+        <h3 class="flex items-center gap-2 text-base font-semibold text-[color:var(--text-1)]">
           <i class="pi pi-history text-[#4979e6]"></i> Audit recente
         </h3>
-        <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-300">Ultime modifiche tracciate su configurazioni e flussi operativi.</p>
+        <p class="mt-0.5 text-sm text-[color:var(--text-2)]">Ultime modifiche tracciate su configurazioni e flussi operativi.</p>
       </div>
-      <button class="text-xs font-medium text-[#4979e6] hover:underline" (click)="loadAuditLogs()">Aggiorna log</button>
+      <ui-button tone="neutral" variant="text" size="sm" (buttonClick)="loadAuditLogs()">Aggiorna log</ui-button>
     </div>
-    <div class="divide-y divide-slate-100">
+    <div class="divide-y divide-[color:var(--border-soft)]">
       <div *ngFor="let item of auditLogs()" class="px-6 py-4">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <p class="text-sm font-medium text-slate-800">{{ item.action }}</p>
-            <p class="mt-1 text-xs text-slate-500">{{ item.user?.fullName || item.user?.email || 'Sistema' }} · {{ item.entityType }} · {{ item.createdAt | date:'short' }}</p>
+            <p class="text-sm font-medium text-[color:var(--text-1)]">{{ item.action }}</p>
+            <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ item.user?.fullName || item.user?.email || 'Sistema' }} · {{ item.entityType }} · {{ item.createdAt | date:'short' }}</p>
           </div>
-          <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">{{ item.entityId }}</span>
+          <span class="rounded-full bg-[color:var(--surface-2)] px-2.5 py-1 text-[11px] font-medium text-[color:var(--text-2)]">{{ item.entityId }}</span>
         </div>
       </div>
-      <div *ngIf="!auditLogs().length" class="px-6 py-8 text-sm text-slate-400">Nessun log disponibile.</div>
+      <div *ngIf="!auditLogs().length" class="px-6 py-8 text-sm text-[color:var(--text-3)]">Nessun log disponibile.</div>
     </div>
-  </div>
+  </ui-surface>
 </section>

@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { UiCardComponent, UiLabelComponent } from '@shift-complete/ui-kit';
+import { UiButtonComponent, UiCardComponent, UiFieldComponent, UiInputComponent, UiLabelComponent, UiPageHeaderComponent, UiStatCardComponent, UiSurfaceComponent } from '@shift-complete/ui-kit';
 import { UserProfile } from '@shift-complete/shared-types';
 import { ApiErrorService } from '../../core/services/api-error.service';
 import { SessionService } from '../../core/services/session.service';
@@ -12,7 +12,7 @@ import { UserProfileEditorComponent } from '../../shared/components/user-profile
 @Component({
   selector: 'app-user-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiCardComponent, UiLabelComponent, UserProfileEditorComponent],
+  imports: [CommonModule, FormsModule, UiButtonComponent, UiCardComponent, UiFieldComponent, UiInputComponent, UiLabelComponent, UiPageHeaderComponent, UiStatCardComponent, UiSurfaceComponent, UserProfileEditorComponent],
   templateUrl: './user-page.component.html',
 })
 export class UserPageComponent {

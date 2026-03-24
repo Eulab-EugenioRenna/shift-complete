@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { UiCardComponent, UiDatePickerComponent, UiLabelComponent, UiSelectComponent, UiTableShellComponent, UiToggleComponent } from '@shift-complete/ui-kit';
+import { UiButtonComponent, UiCardComponent, UiConfirmDialogComponent, UiDatePickerComponent, UiFieldComponent, UiFormSectionComponent, UiInputComponent, UiLabelComponent, UiPageHeaderComponent, UiSelectComponent, UiTableShellComponent, UiToggleComponent } from '@shift-complete/ui-kit';
 import { UserProfile } from '@shift-complete/shared-types';
 import { ApiErrorService } from '../../core/services/api-error.service';
 import { SessionService } from '../../core/services/session.service';
@@ -24,7 +24,7 @@ type AvailabilityRow = {
 @Component({
   selector: 'app-onboarding-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiCardComponent, UiDatePickerComponent, UiLabelComponent, UiSelectComponent, UiTableShellComponent, UiToggleComponent, UserProfileEditorComponent],
+  imports: [CommonModule, FormsModule, UiButtonComponent, UiCardComponent, UiConfirmDialogComponent, UiDatePickerComponent, UiFieldComponent, UiFormSectionComponent, UiInputComponent, UiLabelComponent, UiPageHeaderComponent, UiSelectComponent, UiTableShellComponent, UiToggleComponent, UserProfileEditorComponent],
   templateUrl: './onboarding-page.component.html',
 })
 export class OnboardingPageComponent {
@@ -40,6 +40,8 @@ export class OnboardingPageComponent {
   protected readonly editingAvailabilityId = signal<string | null>(null);
   protected readonly savingProfile = signal(false);
   protected readonly savingAvailability = signal(false);
+  protected readonly confirmVisible = signal(false);
+  protected readonly pendingDeleteAvailability = signal<AvailabilityRow | null>(null);
   protected readonly canManageOthers = computed(() => this.users().length > 1);
   protected readonly profileCompletion = computed(() => Boolean(this.profileForm.phone && this.profileForm.emergencyName && this.profileForm.emergencyPhone));
   protected readonly preferencesCompletion = computed(() => this.profileForm.preferredShifts.length > 0 && this.profileForm.competencies.length > 0);
@@ -135,13 +137,29 @@ export class OnboardingPageComponent {
   }
 
   protected removeAvailability(availabilityId: string): void {
-    this.api.deleteAvailability(availabilityId).subscribe({
+    this.pendingDeleteAvailability.set(this.availability().find((item) => item.id === availabilityId) ?? null);
+    this.confirmVisible.set(true);
+  }
+
+  protected confirmDeleteAvailability(): void {
+    const pending = this.pendingDeleteAvailability();
+    if (!pending) {
+      return;
+    }
+
+    this.api.deleteAvailability(pending.id).subscribe({
       next: () => {
+        this.closeDeleteConfirm();
         this.loadAvailability();
         this.feedback.success('Disponibilita eliminata');
       },
       error: (error) => this.feedback.error('Eliminazione non riuscita', this.apiError.message(error, 'Impossibile eliminare la disponibilita.'))
     });
+  }
+
+  protected closeDeleteConfirm(): void {
+    this.confirmVisible.set(false);
+    this.pendingDeleteAvailability.set(null);
   }
 
   protected resetForm(): void {

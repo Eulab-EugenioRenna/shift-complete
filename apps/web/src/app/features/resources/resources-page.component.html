@@ -1,59 +1,54 @@
-<section class="flex flex-col gap-6 text-slate-800 dark:text-slate-100">
-  <header class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-    <div>
-      <p class="text-sm font-semibold uppercase tracking-widest text-orange-500 dark:text-orange-300">File Manager</p>
-      <h2 class="mt-1 text-2xl font-semibold tracking-tight text-slate-800 dark:text-slate-100">Repository documentale diviso per team con code upload e download asincrone.</h2>
-    </div>
-    <div class="flex flex-wrap items-center gap-2" *ngIf="canManageResources()">
-      <select class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" [(ngModel)]="uploadTeamId">
-        <option value="">{{ canManageGlobal() ? 'Libreria globale' : 'Seleziona team' }}</option>
-        <option *ngFor="let team of teamOptions()" [value]="team.id">{{ team.name }}</option>
-      </select>
+<section class="flex flex-col gap-6 text-[color:var(--text-1)]">
+  <ui-page-header
+    eyebrow="File Manager"
+    eyebrowClass="text-orange-500"
+    title="Repository documentale diviso per team con code upload e download asincrone."
+    [hasActions]="canManageResources()"
+  >
+    <div page-actions class="flex flex-wrap items-center gap-2" *ngIf="canManageResources()">
+      <ui-select
+        [options]="uploadTeamOptions()"
+        [value]="uploadTeamId"
+        (valueChange)="uploadTeamId = $any($event)"
+      ></ui-select>
       <label class="cursor-pointer rounded-md bg-[#4979e6] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700">
         <i class="pi pi-upload mr-2 text-xs"></i> Carica file
         <input type="file" multiple class="hidden" (change)="onFileSelect($event)" />
       </label>
     </div>
-  </header>
+  </ui-page-header>
 
   <app-team-scope-chips [teams]="teams()"></app-team-scope-chips>
 
   <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4" *ngIf="summaryCards().length">
-    <article *ngFor="let card of summaryCards()" class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
-      <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">{{ card.label }}</p>
-      <p class="mt-3 text-2xl font-semibold text-slate-900 dark:text-slate-100">{{ card.value }}</p>
-      <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">{{ card.detail }}</p>
-    </article>
+    <ui-stat-card *ngFor="let card of summaryCards()" [label]="card.label" [value]="card.value" [detail]="card.detail"></ui-stat-card>
   </div>
 
   <div class="grid gap-4 xl:grid-cols-[1.65fr_0.85fr]">
     <div class="flex flex-col gap-4">
-      <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
+      <ui-surface surfaceClass="px-4 py-3">
         <div class="flex flex-col gap-3">
           <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <button type="button" class="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800" (click)="openSpotlight()">
-              <i class="pi pi-search text-xs"></i>
-              Cerca file
-            </button>
-            <p class="text-xs text-slate-500 dark:text-slate-400">{{ filteredResources().length }} file visibili</p>
+            <ui-button tone="neutral" variant="outlined" icon="pi pi-search" (buttonClick)="openSpotlight()">Cerca file</ui-button>
+            <p class="text-xs text-[color:var(--text-3)]">{{ filteredResources().length }} file visibili</p>
           </div>
         </div>
-      </div>
+      </ui-surface>
 
       <div class="grid gap-4" *ngIf="groupedResources().length; else noFiles">
-        <article *ngFor="let group of groupedResources()" class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
-          <div class="border-b border-slate-100 px-5 py-4 dark:border-slate-700">
+        <ui-surface *ngFor="let group of groupedResources()" surfaceClass="overflow-hidden">
+          <div class="border-b border-[color:var(--border-soft)] px-5 py-4">
             <div class="flex items-center justify-between gap-3">
               <div>
-                <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">{{ group.label }}</h3>
-                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ group.items.length }} documenti disponibili</p>
+                <h3 class="text-base font-semibold text-[color:var(--text-1)]">{{ group.label }}</h3>
+                <p class="mt-1 text-sm text-[color:var(--text-2)]">{{ group.items.length }} documenti disponibili</p>
               </div>
-              <span class="app-chip app-chip-neutral">{{ group.items.length }}</span>
+              <ui-label tone="neutral">{{ group.items.length }}</ui-label>
             </div>
           </div>
           <div class="overflow-x-auto">
             <table class="min-w-full text-sm">
-              <thead class="bg-slate-50 text-left text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
+              <thead class="bg-[color:var(--surface-2)] text-left text-[color:var(--text-3)]">
                 <tr>
                   <th class="px-5 py-3">Nome</th>
                   <th class="px-5 py-3">Tipo</th>
@@ -63,29 +58,29 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let resource of group.items" class="border-t border-slate-100 cursor-pointer hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60 transition-colors duration-700" [attr.data-resource-id]="resource.id" [class.resource-row-highlight]="highlightedResourceId() === resource.id" [ngClass]="{
-                  'bg-blue-50 dark:bg-[#12233f]': selectedResource()?.id === resource.id,
-                  'bg-amber-50 dark:bg-amber-950/40': highlightedResourceId() === resource.id && selectedResource()?.id !== resource.id
+                <tr *ngFor="let resource of group.items" class="cursor-pointer border-t border-[color:var(--border-soft)] transition-colors duration-700 hover:bg-[color:var(--surface-2)]" [attr.data-resource-id]="resource.id" [class.resource-row-highlight]="highlightedResourceId() === resource.id" [ngClass]="{
+                  'bg-blue-50': selectedResource()?.id === resource.id,
+                  'bg-amber-50': highlightedResourceId() === resource.id && selectedResource()?.id !== resource.id
                 }" [class.ring-1]="selectedResource()?.id === resource.id" [class.ring-inset]="selectedResource()?.id === resource.id" [class.ring-blue-200]="selectedResource()?.id === resource.id" (click)="focusResource(resource)">
                   <td class="px-5 py-3">
                     <div class="flex items-center gap-3">
-                       <div class="flex h-9 w-9 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-[#4979e6] dark:border-blue-900 dark:bg-blue-950/50">
+                       <div class="flex h-9 w-9 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-[#4979e6]">
                         <i class="text-sm" [class]="fileIcon(resource.mimeType)"></i>
                       </div>
                       <div>
-                        <p *ngIf="renamingId() !== resource.id" class="font-medium text-slate-900 dark:text-slate-100">{{ resource.name }}</p>
-                        <input *ngIf="renamingId() === resource.id" class="rounded-md border border-[#4979e6] bg-white px-2 py-1 text-sm dark:bg-slate-900 dark:text-slate-100" [(ngModel)]="renameValue" (blur)="confirmRename(resource)" (keydown.enter)="confirmRename(resource)" (keydown.escape)="cancelRename()" />
-                        <p class="mt-0.5 text-xs text-slate-400 dark:text-slate-500">{{ group.label }}</p>
+                        <p *ngIf="renamingId() !== resource.id" class="font-medium text-[color:var(--text-1)]">{{ resource.name }}</p>
+                        <input *ngIf="renamingId() === resource.id" class="ui-input rounded-md border-[#4979e6] px-2 py-1" [(ngModel)]="renameValue" (blur)="confirmRename(resource)" (keydown.enter)="confirmRename(resource)" (keydown.escape)="cancelRename()" />
+                        <p class="mt-0.5 text-xs text-[color:var(--text-3)]">{{ group.label }}</p>
                       </div>
                     </div>
                   </td>
-                   <td class="px-5 py-3 text-xs font-mono text-slate-500 dark:text-slate-400">{{ resource.mimeType || 'n/a' }}</td>
-                   <td class="px-5 py-3 text-slate-500 dark:text-slate-400">{{ formatSize(resource.sizeBytes) }}</td>
-                   <td class="px-5 py-3 text-slate-500 dark:text-slate-400">{{ resource.uploadedAt | date:'short' }}</td>
+                   <td class="px-5 py-3 text-xs font-mono text-[color:var(--text-3)]">{{ resource.mimeType || 'n/a' }}</td>
+                   <td class="px-5 py-3 text-[color:var(--text-3)]">{{ formatSize(resource.sizeBytes) }}</td>
+                   <td class="px-5 py-3 text-[color:var(--text-3)]">{{ resource.uploadedAt | date:'short' }}</td>
                   <td class="px-5 py-3 text-right">
                       <div class="flex items-center justify-end gap-3">
                         <button type="button" class="text-sm text-[#4979e6] hover:underline" (click)="queueDownload(resource)">Scarica</button>
-                        <button *ngIf="canManageResources()" type="button" class="text-sm text-slate-600 hover:underline" (click)="startRename(resource); $event.stopPropagation()">Rinomina</button>
+                        <button *ngIf="canManageResources()" type="button" class="text-sm text-[color:var(--text-2)] hover:underline" (click)="startRename(resource); $event.stopPropagation()">Rinomina</button>
                         <button *ngIf="canManageResources()" type="button" class="text-sm text-red-600 hover:underline" (click)="deleteResource(resource.id); $event.stopPropagation()">Elimina</button>
                       </div>
                   </td>
@@ -93,41 +88,39 @@
               </tbody>
             </table>
           </div>
-        </article>
+        </ui-surface>
       </div>
       <ng-template #noFiles>
-        <div class="rounded-lg border border-slate-200 bg-white px-5 py-16 text-center text-slate-400 shadow-sm dark:border-slate-700 dark:bg-slate-900/85 dark:text-slate-500">
+        <ui-surface surfaceClass="px-5 py-16 text-center text-[color:var(--text-3)]">
           <i class="pi pi-folder-open mb-3 block text-4xl opacity-40"></i>
           <p class="text-sm">Nessun file disponibile per il filtro selezionato.</p>
-        </div>
+        </ui-surface>
       </ng-template>
     </div>
 
     <aside class="flex flex-col gap-4">
-      <div class="rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
-        <div class="border-b border-slate-100 px-5 py-4 dark:border-slate-700">
+      <ui-surface surfaceClass="overflow-hidden">
+        <div class="border-b border-[color:var(--border-soft)] px-5 py-4">
           <div class="flex items-start justify-between gap-3">
             <div>
-              <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">Queue trasferimenti</h3>
-              <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Job backend distribuiti con progress realtime e recupero stato multiistanza.</p>
+              <h3 class="text-base font-semibold text-[color:var(--text-1)]">Queue trasferimenti</h3>
+              <p class="mt-1 text-sm text-[color:var(--text-2)]">Job backend distribuiti con progress realtime e recupero stato multiistanza.</p>
             </div>
-            <button *ngIf="transferQueue.items().length" type="button" class="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:text-slate-100" (click)="transferQueue.clearAll()">
-              Pulisci tutto
-            </button>
+            <ui-button *ngIf="transferQueue.items().length" tone="neutral" variant="outlined" size="sm" (buttonClick)="transferQueue.clearAll()">Pulisci tutto</ui-button>
           </div>
         </div>
-        <div class="divide-y divide-slate-100">
+        <div class="divide-y divide-[color:var(--border-soft)]">
           <div *ngFor="let item of transferQueue.items()" class="px-5 py-4">
             <div class="flex items-start justify-between gap-3">
               <div>
-                <p class="text-sm font-medium text-slate-900">{{ item.name }}</p>
-                <p class="mt-1 text-xs text-slate-500">{{ item.kind === 'upload' ? 'Upload' : 'Download' }} · {{ teamLabel(item.teamId) }}</p>
+                <p class="text-sm font-medium text-[color:var(--text-1)]">{{ item.name }}</p>
+                <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ item.kind === 'upload' ? 'Upload' : 'Download' }} · {{ teamLabel(item.teamId) }}</p>
               </div>
-              <button type="button" class="text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-200" (click)="transferQueue.dismiss(item.id)" *ngIf="item.status !== 'running'">
+              <button type="button" class="text-[color:var(--text-3)] hover:text-[color:var(--text-1)]" (click)="transferQueue.dismiss(item.id)" *ngIf="item.status !== 'running'">
                 <i class="pi pi-times text-xs"></i>
               </button>
             </div>
-            <div class="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+            <div class="mt-3 h-2 overflow-hidden rounded-full bg-[color:var(--surface-2)]">
               <div class="h-full rounded-full transition-all"
                 [class.bg-[#4979e6]]="item.status === 'running'"
                 [class.bg-emerald-500]="item.status === 'completed'"
@@ -135,72 +128,66 @@
                 [style.width.%]="item.status === 'failed' ? 100 : item.progress"></div>
             </div>
             <p class="mt-2 text-xs"
-              [class.text-slate-500]="item.status === 'queued' || item.status === 'running'"
+              [class.text-[color:var(--text-2)]]="item.status === 'queued' || item.status === 'running'"
               [class.text-emerald-600]="item.status === 'completed'"
               [class.text-red-600]="item.status === 'failed'">
               {{ transferStatusLabel(item) }}
             </p>
           </div>
-          <div *ngIf="!transferQueue.items().length" class="px-5 py-10 text-center text-sm text-slate-400">Nessun trasferimento in coda.</div>
+          <div *ngIf="!transferQueue.items().length" class="px-5 py-10 text-center text-sm text-[color:var(--text-3)]">Nessun trasferimento in coda.</div>
         </div>
-      </div>
+      </ui-surface>
 
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
-        <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">Team visibili</p>
+      <ui-surface surfaceClass="p-5">
+        <p class="text-xs font-semibold uppercase tracking-widest text-[color:var(--text-3)]">Team visibili</p>
         <div class="mt-4 grid gap-2">
-          <div *ngFor="let team of visibleGroups()" class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800/70">
-            <span class="text-sm text-slate-700 dark:text-slate-200">{{ team.label }}</span>
-            <span class="text-xs font-medium text-slate-500 dark:text-slate-400">{{ team.count }}</span>
+          <div *ngFor="let team of visibleGroups()" class="flex items-center justify-between rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-3 py-2">
+            <span class="text-sm text-[color:var(--text-1)]">{{ team.label }}</span>
+            <span class="text-xs font-medium text-[color:var(--text-2)]">{{ team.count }}</span>
           </div>
         </div>
-      </div>
+      </ui-surface>
 
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900/85" *ngIf="summary() as summary">
+      <ui-surface surfaceClass="p-5" *ngIf="summary() as summary">
         <div class="flex items-start justify-between gap-3">
           <div>
-            <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">Numeri per team</p>
-            <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Spazio usato, disponibile, file e cartelle per libreria globale e team accessibili.</p>
+            <p class="text-xs font-semibold uppercase tracking-widest text-[color:var(--text-3)]">Numeri per team</p>
+            <p class="mt-2 text-sm text-[color:var(--text-2)]">Spazio usato, disponibile, file e cartelle per libreria globale e team accessibili.</p>
           </div>
-          <span class="app-chip app-chip-neutral">{{ summary.teamCount }} team</span>
+          <ui-label tone="neutral">{{ summary.teamCount }} team</ui-label>
         </div>
         <div class="mt-4 grid gap-3">
-          <article *ngFor="let team of summary.teams" class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/70">
+          <article *ngFor="let team of summary.teams" class="rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-4">
             <div class="flex items-start justify-between gap-3">
               <div>
-                <p class="text-sm font-medium text-slate-900">{{ team.label }}</p>
-                <p class="mt-1 text-xs text-slate-500">{{ team.fileCount }} file · {{ team.folderCount }} cartella</p>
+                <p class="text-sm font-medium text-[color:var(--text-1)]">{{ team.label }}</p>
+                <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ team.fileCount }} file · {{ team.folderCount }} cartella</p>
               </div>
               <div class="flex flex-col items-end gap-2">
-                <span class="app-chip"
-                  [class.app-chip-info]="!team.isGlobal"
-                  [class.app-chip-neutral]="team.isGlobal">
+                <ui-label [tone]="team.isGlobal ? 'neutral' : 'info'">
                   {{ team.isGlobal ? 'Globale' : 'Team' }}
-                </span>
-                <span class="app-chip"
-                  [class.app-chip-neutral]="usageStatus(team.usageRatio) === 'neutral'"
-                  [class.app-chip-success]="usageStatus(team.usageRatio) === 'healthy'"
-                  [class.app-chip-warn]="usageStatus(team.usageRatio) === 'warning'"
-                  [class.app-chip-danger]="usageStatus(team.usageRatio) === 'critical'">
+                </ui-label>
+                <ui-label [tone]="usageStatus(team.usageRatio) === 'healthy' ? 'success' : (usageStatus(team.usageRatio) === 'warning' ? 'warn' : (usageStatus(team.usageRatio) === 'critical' ? 'danger' : 'neutral'))">
                   {{ usageLabel(team.usageRatio) }}
-                </span>
+                </ui-label>
               </div>
             </div>
             <div class="mt-4 grid gap-3 sm:grid-cols-2">
               <div>
-                <p class="text-xs uppercase tracking-widest text-slate-400">Spazio occupato</p>
-                <p class="mt-1 text-sm font-medium text-slate-800">{{ formatSize(team.usedBytes) }}</p>
+                <p class="text-xs uppercase tracking-widest text-[color:var(--text-3)]">Spazio occupato</p>
+                <p class="mt-1 text-sm font-medium text-[color:var(--text-1)]">{{ formatSize(team.usedBytes) }}</p>
               </div>
               <div>
-                <p class="text-xs uppercase tracking-widest text-slate-400">Spazio disponibile</p>
-                <p class="mt-1 text-sm font-medium text-slate-800">{{ team.availableBytes === null ? 'Illimitato' : formatSize(team.availableBytes) }}</p>
-                <p class="mt-1 text-[11px] text-slate-500">{{ teamLimitLabel(team.limitBytes) }}</p>
+                <p class="text-xs uppercase tracking-widest text-[color:var(--text-3)]">Spazio disponibile</p>
+                <p class="mt-1 text-sm font-medium text-[color:var(--text-1)]">{{ team.availableBytes === null ? 'Illimitato' : formatSize(team.availableBytes) }}</p>
+                <p class="mt-1 text-[11px] text-[color:var(--text-2)]">{{ teamLimitLabel(team.limitBytes) }}</p>
               </div>
               <div class="sm:col-span-2" *ngIf="team.limitBytes !== null">
-                <div class="flex items-center justify-between text-xs text-slate-500">
+                <div class="flex items-center justify-between text-xs text-[color:var(--text-2)]">
                   <span>Limite {{ formatSize(team.limitBytes) }}</span>
                   <span>{{ ((team.usageRatio ?? 0) * 100).toFixed(0) }}%</span>
                 </div>
-                <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
+                <div class="mt-2 h-2 overflow-hidden rounded-full bg-[color:var(--surface-3)]">
                   <div class="h-full rounded-full"
                     [class.bg-emerald-500]="usageStatus(team.usageRatio) === 'healthy'"
                     [class.bg-amber-500]="usageStatus(team.usageRatio) === 'warning'"
@@ -212,60 +199,75 @@
             </div>
           </article>
         </div>
-      </div>
+      </ui-surface>
 
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
-        <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">Cartelle e permessi</p>
+      <ui-surface surfaceClass="p-5">
+        <p class="text-xs font-semibold uppercase tracking-widest text-[color:var(--text-3)]">Cartelle e permessi</p>
         <div class="mt-4 grid gap-3">
-          <div *ngFor="let folder of resourceFolders()" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/70">
+          <div *ngFor="let folder of resourceFolders()" class="rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-4 py-3">
             <div class="flex items-center justify-between gap-3">
               <div>
-                <p class="text-sm font-medium text-slate-900">{{ folder.label }}</p>
-                <p class="mt-1 text-xs text-slate-500">{{ folder.count }} file · {{ folder.access }}</p>
+                <p class="text-sm font-medium text-[color:var(--text-1)]">{{ folder.label }}</p>
+                <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ folder.count }} file · {{ folder.access }}</p>
               </div>
               <span class="rounded-full px-2.5 py-1 text-[11px] font-medium"
                 [class.bg-emerald-50]="folder.writable"
                 [class.text-emerald-700]="folder.writable"
                 [class.bg-slate-100]="!folder.writable"
-                [class.text-slate-500]="!folder.writable">
+                [class.text-[color:var(--text-3)]]="!folder.writable">
                 {{ folder.writable ? 'Scrittura' : 'Sola lettura' }}
               </span>
             </div>
           </div>
         </div>
-      </div>
+      </ui-surface>
 
-      <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900/85">
+      <ui-surface surfaceClass="p-5">
         <ng-container *ngIf="selectedResource() as resource; else noResourceSelected">
-          <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">Dettaglio file</p>
-          <h3 class="mt-2 text-base font-semibold text-slate-900 dark:text-slate-100">{{ resource.name }}</h3>
-          <div class="mt-4 grid gap-3 text-sm text-slate-600 dark:text-slate-300">
+          <p class="text-xs font-semibold uppercase tracking-widest text-[color:var(--text-3)]">Dettaglio file</p>
+          <h3 class="mt-2 text-base font-semibold text-[color:var(--text-1)]">{{ resource.name }}</h3>
+          <div class="mt-4 grid gap-3 text-sm text-[color:var(--text-2)]">
             <div>
-              <p class="text-xs uppercase tracking-widest text-slate-400">Team</p>
+              <p class="text-xs uppercase tracking-widest text-[color:var(--text-3)]">Team</p>
               <p class="mt-1">{{ resource.team?.name || 'Libreria globale' }}</p>
             </div>
             <div>
-              <p class="text-xs uppercase tracking-widest text-slate-400">Tipo</p>
+              <p class="text-xs uppercase tracking-widest text-[color:var(--text-3)]">Tipo</p>
               <p class="mt-1 font-mono text-xs">{{ resource.mimeType || 'n/a' }}</p>
             </div>
             <div>
-              <p class="text-xs uppercase tracking-widest text-slate-400">Dimensione</p>
+              <p class="text-xs uppercase tracking-widest text-[color:var(--text-3)]">Dimensione</p>
               <p class="mt-1">{{ formatSize(resource.sizeBytes) }}</p>
             </div>
             <div>
-              <p class="text-xs uppercase tracking-widest text-slate-400">Aggiornato</p>
+              <p class="text-xs uppercase tracking-widest text-[color:var(--text-3)]">Aggiornato</p>
               <p class="mt-1">{{ resource.uploadedAt | date:'fullDate' }} · {{ resource.uploadedAt | date:'shortTime' }}</p>
             </div>
             <div>
-              <p class="text-xs uppercase tracking-widest text-slate-400">Cartella logica</p>
+              <p class="text-xs uppercase tracking-widest text-[color:var(--text-3)]">Cartella logica</p>
               <p class="mt-1">{{ resourceFolder(resource) }}</p>
             </div>
           </div>
         </ng-container>
         <ng-template #noResourceSelected>
-          <p class="text-sm text-slate-500">Seleziona un file per vedere dettagli e contesto del team.</p>
+          <p class="text-sm text-[color:var(--text-2)]">Seleziona un file per vedere dettagli e contesto del team.</p>
         </ng-template>
-      </div>
+      </ui-surface>
     </aside>
   </div>
+
+  <ui-confirm-dialog
+    [visible]="confirmVisible()"
+    (visibleChange)="confirmVisible.set($event)"
+    title="Eliminare file?"
+    eyebrow="File manager"
+    subtitle="Il documento verra rimosso dalla libreria selezionata."
+    [message]="pendingDelete() ? ('Stai per eliminare ' + pendingDelete()!.name + '.') : ''"
+    [detail]="pendingDelete() ? ('Cartella: ' + resourceFolder(pendingDelete()!)) : 'Usa danger per file e documenti rimossi definitivamente.'"
+    tone="danger"
+    icon="pi pi-trash"
+    confirmLabel="Elimina file"
+    (cancel)="closeDeleteConfirm()"
+    (confirm)="confirmDeleteResource()"
+  ></ui-confirm-dialog>
 </section>

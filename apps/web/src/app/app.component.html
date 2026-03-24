@@ -1,1 +1,20 @@
-<router-outlet /><app-feedback-center />
+<div class="app-ambient" aria-hidden="true">
+  <div #ambientField class="app-ambient__field">
+    <div #ambientLava class="app-ambient__lava app-ambient__lava--one"></div>
+    <div #ambientLava class="app-ambient__lava app-ambient__lava--two"></div>
+    <div #ambientGlowBlob class="app-ambient__glow app-ambient__glow--one"></div>
+    <div #ambientGlowBlob class="app-ambient__glow app-ambient__glow--two"></div>
+    <div #ambientLayer class="app-ambient__orb app-ambient__orb--one"></div>
+    <div #ambientLayer class="app-ambient__orb app-ambient__orb--two"></div>
+    <div #ambientLayer class="app-ambient__orb app-ambient__orb--three"></div>
+    <div #ambientLayer class="app-ambient__orb app-ambient__orb--four"></div>
+  </div>
+  <div class="app-ambient__grain"></div>
+  <div class="app-ambient__vignette"></div>
+</div>
+
+<div class="relative z-10 min-h-screen">
+  <router-outlet />
+</div>
+
+<app-feedback-center />

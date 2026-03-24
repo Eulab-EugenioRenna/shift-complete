@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { toJsonValue } from '../../common/utils/json.util';
 import { PrismaService } from '../../database/prisma.service';
@@ -7,6 +7,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 
 const RECURRENCE_LOOKAHEAD_MONTHS = 12;
 const MAX_RECURRING_OCCURRENCES = 520;
+const DEFAULT_RECURRENCE_DURATION_MONTHS = 12;
 
 @Injectable()
 export class EventsService {
@@ -40,7 +41,7 @@ export class EventsService {
             }
           };
 
-    return this.prisma.event.findMany({
+    return this.ensureRecurringCoverage().then(() => this.prisma.event.findMany({
       where,
       include: {
         parentEvent: {
@@ -105,7 +106,7 @@ export class EventsService {
       orderBy: {
         startsAt: 'asc'
       }
-    }).then((events) =>
+    })).then((events) =>
       this.expandRecurringEvents(events).map((event) => {
         const visibleSlots = event.slots
           .map((slot) => ({
@@ -139,6 +140,10 @@ export class EventsService {
           type: event.type,
           recurrenceRule: event.recurrenceRule,
           recurrenceTz: event.recurrenceTz,
+          recurrenceUntil: event.recurrenceUntil,
+          recurrenceDurationMonths: event.recurrenceDurationMonths,
+          recurrenceAutoRenew: event.recurrenceAutoRenew,
+          recurrenceRenewMonths: event.recurrenceRenewMonths,
           occurrenceStart: event.occurrenceStart,
           isOccurrence: event.isOccurrence,
           isVirtualOccurrence: event.isVirtualOccurrence,
@@ -185,15 +190,23 @@ export class EventsService {
       }
     }
 
+    const startsAt = new Date(payload.startsAt);
+    const endsAt = new Date(payload.endsAt);
+    const recurrence = this.buildRecurringSettings(payload.type, startsAt, payload);
+
     const event = await this.prisma.event.create({
       data: {
         title: payload.title,
         description: payload.description,
         type: payload.type as any, // mapping between string and enum
-        startsAt: new Date(payload.startsAt),
-        endsAt: new Date(payload.endsAt),
-        recurrenceRule: payload.recurrenceRule,
-        recurrenceTz: payload.recurrenceTz,
+        startsAt,
+        endsAt,
+        recurrenceRule: recurrence.recurrenceRule,
+        recurrenceTz: recurrence.recurrenceTz,
+        recurrenceUntil: recurrence.recurrenceUntil,
+        recurrenceDurationMonths: recurrence.recurrenceDurationMonths,
+        recurrenceAutoRenew: recurrence.recurrenceAutoRenew,
+        recurrenceRenewMonths: recurrence.recurrenceRenewMonths,
         createdById: actorId,
         slots: {
           create: payload.slots.map((slot) => ({
@@ -358,15 +371,20 @@ export class EventsService {
   }
 
   async update(eventId: string, payload: UpdateEventDto & { editMode?: 'single' | 'series'; occurrenceStart?: string }, actorId: string, actorRole: Role) {
-    if (payload.editMode === 'single' && payload.occurrenceStart) {
-      return this.updateSingleOccurrence(eventId, payload as UpdateEventDto & { occurrenceStart: string }, actorId, actorRole);
+    const eventRef = this.resolveEventReference(eventId, payload.occurrenceStart);
+
+    if (payload.editMode === 'single' && eventRef.occurrenceStart) {
+      return this.updateSingleOccurrence(eventRef.eventId, { ...payload, occurrenceStart: eventRef.occurrenceStart } as UpdateEventDto & { occurrenceStart: string }, actorId, actorRole);
     }
 
+    await this.ensureRecurringCoverage(undefined, eventRef.eventId);
+
     const event = await this.prisma.event.findUniqueOrThrow({
-      where: { id: eventId },
+      where: { id: eventRef.eventId },
       include: { slots: true, parentEvent: { include: { slots: true } } }
     });
     const targetEvent = payload.editMode === 'series' && event.parentEventId && event.parentEvent ? event.parentEvent : event;
+    const recurrence = this.buildRecurringSettings(payload.type ?? targetEvent.type, payload.startsAt ? new Date(payload.startsAt) : new Date(targetEvent.startsAt), payload, targetEvent);
 
     await this.assertEventAccess(targetEvent, actorId, actorRole);
 
@@ -386,8 +404,12 @@ export class EventsService {
         type: payload.type as any,
         startsAt: payload.startsAt ? new Date(payload.startsAt) : undefined,
         endsAt: payload.endsAt ? new Date(payload.endsAt) : undefined,
-        recurrenceRule: payload.type === 'recurring' || targetEvent.type === 'recurring' ? payload.recurrenceRule : null,
-        recurrenceTz: payload.type === 'recurring' || targetEvent.type === 'recurring' ? payload.recurrenceTz : null,
+        recurrenceRule: recurrence.recurrenceRule,
+        recurrenceTz: recurrence.recurrenceTz,
+        recurrenceUntil: recurrence.recurrenceUntil,
+        recurrenceDurationMonths: recurrence.recurrenceDurationMonths,
+        recurrenceAutoRenew: recurrence.recurrenceAutoRenew,
+        recurrenceRenewMonths: recurrence.recurrenceRenewMonths,
         slots: payload.slots
           ? {
               deleteMany: {},
@@ -440,12 +462,16 @@ export class EventsService {
   }
 
   async remove(eventId: string, actorId: string, actorRole: Role, mode?: 'single' | 'series', occurrenceStart?: string) {
-    if (mode === 'single' && occurrenceStart) {
-      return this.removeSingleOccurrence(eventId, occurrenceStart, actorId, actorRole);
+    const eventRef = this.resolveEventReference(eventId, occurrenceStart);
+
+    if (mode === 'single' && eventRef.occurrenceStart) {
+      return this.removeSingleOccurrence(eventRef.eventId, eventRef.occurrenceStart, actorId, actorRole);
     }
 
+    await this.ensureRecurringCoverage(undefined, eventRef.eventId);
+
     const event = await this.prisma.event.findUniqueOrThrow({
-      where: { id: eventId },
+      where: { id: eventRef.eventId },
       include: {
         parentEvent: {
           include: {
@@ -521,6 +547,8 @@ export class EventsService {
         continue;
       }
 
+      expanded.push(this.mapStandaloneEvent(event));
+
       for (const occurrence of this.generateOccurrences(event)) {
         const key = `${event.id}:${occurrence.startsAt.toISOString()}`;
         if (cancelledOccurrences.has(key) || childBySeriesOccurrence.has(key)) {
@@ -551,6 +579,10 @@ export class EventsService {
       type: event.parentEventId ? 'recurring' : event.type,
       recurrenceRule: event.parentEvent?.recurrenceRule ?? event.recurrenceRule,
       recurrenceTz: event.parentEvent?.recurrenceTz ?? event.recurrenceTz,
+      recurrenceUntil: event.parentEvent?.recurrenceUntil ?? event.recurrenceUntil,
+      recurrenceDurationMonths: event.parentEvent?.recurrenceDurationMonths ?? event.recurrenceDurationMonths,
+      recurrenceAutoRenew: event.parentEvent?.recurrenceAutoRenew ?? event.recurrenceAutoRenew,
+      recurrenceRenewMonths: event.parentEvent?.recurrenceRenewMonths ?? event.recurrenceRenewMonths,
       seriesId: event.parentEventId ?? event.id,
       occurrenceStart: snapshot?.occurrenceStart ?? event.startsAt,
       isOccurrence: Boolean(event.parentEventId),
@@ -563,6 +595,10 @@ export class EventsService {
             endsAt: event.parentEvent.endsAt,
             recurrenceRule: event.parentEvent.recurrenceRule,
             recurrenceTz: event.parentEvent.recurrenceTz,
+            recurrenceUntil: event.parentEvent.recurrenceUntil,
+            recurrenceDurationMonths: event.parentEvent.recurrenceDurationMonths,
+            recurrenceAutoRenew: event.parentEvent.recurrenceAutoRenew,
+            recurrenceRenewMonths: event.parentEvent.recurrenceRenewMonths,
             slots: (event.parentEvent.slots ?? []).map((slot: any) => ({
               teamId: slot.teamId,
               dutyId: slot.dutyId,
@@ -594,6 +630,10 @@ export class EventsService {
         endsAt: event.endsAt,
         recurrenceRule: event.recurrenceRule,
         recurrenceTz: event.recurrenceTz,
+        recurrenceUntil: event.recurrenceUntil,
+        recurrenceDurationMonths: event.recurrenceDurationMonths,
+        recurrenceAutoRenew: event.recurrenceAutoRenew,
+        recurrenceRenewMonths: event.recurrenceRenewMonths,
         slots: (event.slots ?? []).map((slot: any) => ({
           teamId: slot.teamId,
           dutyId: slot.dutyId,
@@ -613,7 +653,7 @@ export class EventsService {
     };
   }
 
-  private generateOccurrences(event: any) {
+  private generateOccurrences(event: any, options?: { from?: Date; to?: Date }) {
     const startsAt = new Date(event.startsAt);
     const endsAt = new Date(event.endsAt);
     const rule = this.parseRecurrenceRule(event.recurrenceRule);
@@ -624,11 +664,20 @@ export class EventsService {
     const occurrences: Array<{ startsAt: Date; endsAt: Date }> = [];
     let currentStart = new Date(startsAt);
     let currentEnd = new Date(endsAt);
-    const horizon = new Date();
-    horizon.setMonth(horizon.getMonth() + RECURRENCE_LOOKAHEAD_MONTHS);
+    const horizon = options?.to ? new Date(options.to) : new Date();
+    const floor = options?.from ? new Date(options.from) : null;
+    if (!options?.to) {
+      horizon.setMonth(horizon.getMonth() + RECURRENCE_LOOKAHEAD_MONTHS);
+    }
+    const recurrenceUntil = event.recurrenceUntil ? new Date(event.recurrenceUntil) : null;
 
     for (let index = 0; index < MAX_RECURRING_OCCURRENCES && currentStart <= horizon; index += 1) {
-      occurrences.push({ startsAt: new Date(currentStart), endsAt: new Date(currentEnd) });
+      if (recurrenceUntil && currentStart > recurrenceUntil) {
+        break;
+      }
+      if ((!floor || currentEnd > floor) && currentStart <= horizon) {
+        occurrences.push({ startsAt: new Date(currentStart), endsAt: new Date(currentEnd) });
+      }
       const next = this.nextOccurrence(currentStart, currentEnd, rule, startsAt);
       currentStart = next.startsAt;
       currentEnd = next.endsAt;
@@ -693,7 +742,71 @@ export class EventsService {
     }
   }
 
+  async prepareSlotsForScheduling(payload: { from: string; to: string; teamId?: string; eventId?: string; occurrenceStart?: string; scope?: 'single' | 'series' | 'range' }) {
+    const from = new Date(payload.from);
+    const to = new Date(payload.to);
+    const scope = payload.scope ?? 'range';
+    const ref = payload.eventId ? this.resolveEventReference(payload.eventId, payload.occurrenceStart) : null;
+
+    await this.ensureRecurringCoverage(to, ref?.eventId);
+
+    if (ref?.eventId) {
+      await this.materializeOccurrencesInRange(from, to, ref.eventId, scope === 'single' ? ref.occurrenceStart : undefined);
+    } else {
+      await this.materializeOccurrencesInRange(from, to);
+    }
+
+    const where: any = {
+      startsAt: {
+        gte: from,
+        lte: to,
+      },
+      teamId: payload.teamId ?? undefined,
+    };
+
+    if (ref?.eventId) {
+      const event = await this.prisma.event.findUnique({ where: { id: ref.eventId } as any });
+      if (!event) {
+        throw new BadRequestException('Evento non trovato per lo scheduling');
+      }
+
+      if (scope === 'single' && ref.occurrenceStart) {
+        const occurrenceEvent = await this.findOccurrenceInstance(event, ref.occurrenceStart);
+        if (!occurrenceEvent) {
+          throw new BadRequestException('Occorrenza non disponibile per lo scheduling');
+        }
+        where.eventId = occurrenceEvent.id;
+      } else if ((event as any).type === 'recurring') {
+        where.event = { parentEventId: ref.eventId };
+      } else {
+        where.eventId = ref.eventId;
+      }
+    } else {
+      where.event = {
+        OR: [
+          { type: 'single' },
+          { parentEventId: { not: null } },
+        ],
+      };
+    }
+
+    return this.prisma.eventSlot.findMany({
+      where,
+      include: {
+        assignments: true,
+        team: {
+          select: { name: true },
+        },
+        duty: {
+          select: { id: true, name: true },
+        },
+      },
+      orderBy: { startsAt: 'asc' },
+    } as any);
+  }
+
   private async updateSingleOccurrence(eventId: string, payload: UpdateEventDto & { occurrenceStart: string }, actorId: string, actorRole: Role) {
+    await this.ensureRecurringCoverage(undefined, eventId);
     const event = await this.prisma.event.findUniqueOrThrow({
       where: { id: eventId },
       include: { slots: true, parentEvent: { include: { slots: true } } }
@@ -718,7 +831,7 @@ export class EventsService {
     const baseData = {
       title: payload.title ?? series.title,
       description: payload.description ?? series.description,
-      type: 'single' as any,
+      type: 'recurring' as any,
       startsAt: occurrenceStart,
       endsAt: occurrenceEnd,
       recurrenceRule: null,
@@ -770,10 +883,14 @@ export class EventsService {
       }
     });
 
-    return updated;
+    return this.prisma.event.findUniqueOrThrow({
+      where: { id: updated.id },
+      include: { slots: true, parentEvent: { include: { slots: true } } }
+    }).then((occurrence) => this.mapPersistedOccurrence(occurrence));
   }
 
   private async removeSingleOccurrence(eventId: string, occurrenceStart: string, actorId: string, actorRole: Role) {
+    await this.ensureRecurringCoverage(undefined, eventId);
     const event = await this.prisma.event.findUniqueOrThrow({
       where: { id: eventId },
       include: { slots: true, parentEvent: { include: { slots: true } } }
@@ -799,7 +916,7 @@ export class EventsService {
         data: {
           title: series.title,
           description: series.description,
-          type: 'single' as any,
+          type: 'recurring' as any,
           startsAt: start,
           endsAt: end,
           parentEventId: series.id,
@@ -838,6 +955,190 @@ export class EventsService {
       return null;
     }
     return snapshot as { mode?: string; occurrenceStart?: string; occurrenceEnd?: string };
+  }
+
+  private resolveEventReference(eventId: string, occurrenceStart?: string) {
+    if (eventId.includes('::')) {
+      const [seriesId, derivedOccurrenceStart] = eventId.split('::');
+      if (!seriesId || !derivedOccurrenceStart) {
+        throw new BadRequestException('Identificativo evento non valido');
+      }
+      return { eventId: seriesId, occurrenceStart: occurrenceStart ?? derivedOccurrenceStart };
+    }
+
+    return { eventId, occurrenceStart };
+  }
+
+  private buildRecurringSettings(type: string, seriesStart: Date, payload: Partial<CreateEventDto & UpdateEventDto>, existing?: any) {
+    const normalizedType = type ?? existing?.type;
+    if (normalizedType !== 'recurring') {
+      return {
+        recurrenceRule: null,
+        recurrenceTz: null,
+        recurrenceUntil: null,
+        recurrenceDurationMonths: null,
+        recurrenceAutoRenew: true,
+        recurrenceRenewMonths: null,
+      };
+    }
+
+    const recurrenceDurationMonths = payload.recurrenceDurationMonths
+      ?? existing?.recurrenceDurationMonths
+      ?? DEFAULT_RECURRENCE_DURATION_MONTHS;
+    const recurrenceAutoRenew = payload.recurrenceAutoRenew
+      ?? existing?.recurrenceAutoRenew
+      ?? true;
+    const recurrenceRenewMonths = payload.recurrenceRenewMonths
+      ?? existing?.recurrenceRenewMonths
+      ?? recurrenceDurationMonths;
+
+    let recurrenceUntil: Date | null;
+    if (payload.recurrenceUntil) {
+      recurrenceUntil = new Date(payload.recurrenceUntil);
+    } else if (payload.recurrenceDurationMonths || payload.startsAt || !existing?.recurrenceUntil) {
+      recurrenceUntil = this.addMonths(seriesStart, recurrenceDurationMonths);
+    } else {
+      recurrenceUntil = new Date(existing.recurrenceUntil);
+    }
+
+    return {
+      recurrenceRule: payload.recurrenceRule ?? existing?.recurrenceRule ?? null,
+      recurrenceTz: payload.recurrenceTz ?? existing?.recurrenceTz ?? 'Europe/Rome',
+      recurrenceUntil,
+      recurrenceDurationMonths,
+      recurrenceAutoRenew,
+      recurrenceRenewMonths,
+    };
+  }
+
+  private async ensureRecurringCoverage(targetDate?: Date, eventId?: string) {
+    const horizon = targetDate ? new Date(targetDate) : new Date();
+    if (!targetDate) {
+      horizon.setMonth(horizon.getMonth() + RECURRENCE_LOOKAHEAD_MONTHS);
+    }
+
+    const recurringEvents = await this.prisma.event.findMany({
+      where: {
+        type: 'recurring' as any,
+        parentEventId: null,
+        id: eventId ?? undefined,
+      } as any,
+    });
+
+    await Promise.all(recurringEvents.map(async (event: any) => {
+      const durationMonths = event.recurrenceDurationMonths ?? DEFAULT_RECURRENCE_DURATION_MONTHS;
+      const renewMonths = event.recurrenceRenewMonths ?? durationMonths;
+      let recurrenceUntil = event.recurrenceUntil ? new Date(event.recurrenceUntil) : this.addMonths(new Date(event.startsAt), durationMonths);
+
+      if (!event.recurrenceAutoRenew && event.recurrenceUntil) {
+        if (!event.recurrenceDurationMonths) {
+          await this.prisma.event.update({
+            where: { id: event.id },
+            data: { recurrenceDurationMonths: durationMonths, recurrenceRenewMonths: renewMonths } as any,
+          } as any);
+        }
+        return;
+      }
+
+      while (recurrenceUntil < horizon) {
+        recurrenceUntil = this.addMonths(recurrenceUntil, renewMonths);
+      }
+
+      if (!event.recurrenceUntil || recurrenceUntil.getTime() !== new Date(event.recurrenceUntil).getTime() || !event.recurrenceDurationMonths || !event.recurrenceRenewMonths) {
+        await this.prisma.event.update({
+          where: { id: event.id },
+          data: {
+            recurrenceUntil,
+            recurrenceDurationMonths: durationMonths,
+            recurrenceAutoRenew: event.recurrenceAutoRenew ?? true,
+            recurrenceRenewMonths: renewMonths,
+          } as any,
+        } as any);
+      }
+    }));
+  }
+
+  private async materializeOccurrencesInRange(from: Date, to: Date, eventId?: string, onlyOccurrenceStart?: string) {
+    const recurringSeries = await this.prisma.event.findMany({
+      where: {
+        type: 'recurring' as any,
+        parentEventId: null,
+        id: eventId ?? undefined,
+      } as any,
+      include: {
+        slots: true,
+        instances: {
+          include: {
+            slots: true,
+          },
+        },
+      } as any,
+    } as any);
+
+    for (const series of recurringSeries as any[]) {
+      const occurrences = this.generateOccurrences(series, {
+        from: onlyOccurrenceStart ? new Date(onlyOccurrenceStart) : from,
+        to: onlyOccurrenceStart ? new Date(onlyOccurrenceStart) : to,
+      }).filter((occurrence) => !onlyOccurrenceStart || occurrence.startsAt.toISOString() === onlyOccurrenceStart);
+
+      for (const occurrence of occurrences) {
+        const key = occurrence.startsAt.toISOString();
+        const existing = (series.instances ?? []).find((child: any) => {
+          const snapshot = this.readHistoricalSnapshot(child.historicalSnapshot);
+          return (snapshot?.occurrenceStart ?? new Date(child.startsAt).toISOString()) === key;
+        });
+        const snapshot = existing ? this.readHistoricalSnapshot(existing.historicalSnapshot) : null;
+
+        if (snapshot?.mode === 'cancelled' || existing) {
+          continue;
+        }
+
+        const delta = occurrence.startsAt.getTime() - new Date(series.startsAt).getTime();
+        await this.prisma.event.create({
+          data: {
+            title: series.title,
+            description: series.description,
+            type: 'recurring' as any,
+            startsAt: occurrence.startsAt,
+            endsAt: occurrence.endsAt,
+            parentEventId: series.id,
+            createdById: series.createdById,
+            historicalSnapshot: toJsonValue({
+              mode: 'materialized',
+              occurrenceStart: key,
+              occurrenceEnd: occurrence.endsAt.toISOString(),
+            }),
+            slots: {
+              create: (series.slots ?? []).map((slot: any) => ({
+                team: { connect: { id: slot.teamId } },
+                duty: { connect: { id: slot.dutyId } },
+                startsAt: new Date(new Date(slot.startsAt).getTime() + delta),
+                endsAt: new Date(new Date(slot.endsAt).getTime() + delta),
+                required: slot.required,
+              })),
+            },
+          } as any,
+        } as any);
+      }
+    }
+  }
+
+  private async findOccurrenceInstance(event: any, occurrenceStart: string) {
+    const seriesId = event.parentEventId ?? event.id;
+    const candidates = await this.prisma.event.findMany({
+      where: { parentEventId: seriesId } as any,
+    });
+
+    return candidates.find((candidate: any) => {
+      const snapshot = this.readHistoricalSnapshot(candidate.historicalSnapshot);
+      return (snapshot?.occurrenceStart ?? new Date(candidate.startsAt).toISOString()) === occurrenceStart;
+    }) ?? null;
+  }
+
+  private addMonths(source: Date, months: number) {
+    const next = new Date(source);
+    next.setMonth(next.getMonth() + months);
+    return next;
   }
 
   private async assertEventAccess(

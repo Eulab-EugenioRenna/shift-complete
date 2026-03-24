@@ -65,18 +65,6 @@ export const appRoutes: Routes = [
           ),
       },
       {
-        path: "design",
-        canActivate: [roleGuard, onboardingGuard],
-        data: {
-          roles: ["administrator", "service_leader"],
-          allowIncompleteOnboarding: true,
-        },
-        loadComponent: () =>
-          import("./features/design/design-manual-page.component").then(
-            (m) => m.DesignManualPageComponent,
-          ),
-      },
-      {
         path: "inventory",
         canActivate: [roleGuard, onboardingGuard],
         data: {
@@ -143,11 +131,25 @@ export const appRoutes: Routes = [
     ],
   },
   {
+    path: "welcome",
+    loadComponent: () =>
+      import("./features/landing/landing-page.component").then(
+        (m) => m.LandingPageComponent,
+      ),
+  },
+  {
     path: "auth",
     loadComponent: () =>
       import("./features/auth/auth-page.component").then(
         (m) => m.AuthPageComponent,
       ),
   },
-  { path: "**", redirectTo: "" },
+  {
+    path: "design",
+    loadComponent: () =>
+      import("./features/design/design-manual-page.component").then(
+        (m) => m.DesignManualPageComponent,
+      ),
+  },
+  { path: "**", redirectTo: "welcome" },
 ];

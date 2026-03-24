@@ -7,6 +7,13 @@ import { DropdownModule } from 'primeng/dropdown';
   selector: 'ui-select',
   standalone: true,
   imports: [CommonModule, FormsModule, DropdownModule],
+  styles: [`
+    :host {
+      display: block;
+      width: 100%;
+      min-width: 0;
+    }
+  `],
   template: `
     <div class="grid gap-2">
       <label *ngIf="label" class="text-sm font-medium text-[color:var(--text-2)]">{{ label }}</label>
@@ -14,6 +21,7 @@ import { DropdownModule } from 'primeng/dropdown';
         [options]="options"
         [optionLabel]="optionLabel"
         [optionValue]="optionValue"
+        [optionDisabled]="optionDisabled"
         [placeholder]="placeholder"
         [appendTo]="appendTo"
         [(ngModel)]="value"
@@ -29,6 +37,7 @@ export class UiSelectComponent {
   @Input() options: Array<Record<string, unknown>> = [];
   @Input() optionLabel = 'label';
   @Input() optionValue = 'value';
+  @Input() optionDisabled?: string;
   @Input() value: unknown;
   @Output() valueChange = new EventEmitter<unknown>();
 }

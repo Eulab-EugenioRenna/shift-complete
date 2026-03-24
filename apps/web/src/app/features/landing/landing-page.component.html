@@ -1,0 +1,121 @@
+<main class="min-h-screen bg-slate-950 text-slate-50 selection:bg-indigo-500/30 overflow-hidden relative font-sans">
+  <!-- Glow background -->
+  <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+    <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/20 blur-[120px] rounded-full"></div>
+    <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 blur-[120px] rounded-full"></div>
+  </div>
+
+  <div class="relative z-10 max-w-7xl mx-auto px-6 py-24 sm:py-32 lg:px-8 flex flex-col items-center text-center min-h-[90vh] justify-center">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-300 text-sm font-medium mb-8 border border-indigo-500/20 cursor-default hover:bg-indigo-500/20 transition-colors">
+      <span class="relative flex h-2 w-2">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+      </span>
+      Il futuro della gestione del personale
+    </div>
+    
+    <h1 #heroTitle class="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-500">
+      Sincronizza il tuo Team.<br />Semplifica i Turni.
+    </h1>
+    
+    <p #heroDesc class="text-xl text-slate-400 mb-12 max-w-2xl leading-relaxed">
+      L'unica piattaforma di cui hai bisogno per pianificare i turni, coordinare le sostituzioni e gestire le risorse in tempo reale, completamente reattiva.
+    </p>
+
+    <div #heroButtons class="flex flex-col sm:flex-row gap-4 items-center">
+      <a routerLink="/auth" class="group relative inline-flex items-center justify-center px-8 py-4 font-semibold text-white transition-all duration-300 bg-indigo-600 hover:bg-indigo-500 rounded-2xl shadow-[0_0_40px_-10px_rgba(79,70,229,0.5)] hover:shadow-[0_0_60px_-15px_rgba(79,70,229,0.7)] hover:-translate-y-1">
+        Inizia Subito
+        <i class="pi pi-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+      </a>
+      <a href="#features" class="px-8 py-4 font-semibold text-slate-300 transition-all duration-200 hover:text-white rounded-2xl hover:bg-white/5 border border-transparent hover:border-white/10">
+        Scopri le funzionalità
+      </a>
+    </div>
+  </div>
+
+  <!-- Features Section -->
+  <section id="features" class="relative z-10 py-32 max-w-7xl mx-auto px-6 lg:px-8">
+    <div class="text-center mb-20">
+      <h2 class="text-3xl md:text-5xl font-bold tracking-tight mb-6">Progettato per l'efficienza</h2>
+      <p class="text-lg text-slate-400 max-w-2xl mx-auto">Strumenti potenti racchiusi in un'interfaccia elegante, pensati per far risparmiare tempo prezioso a te e al tuo team.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <!-- Card 1 -->
+      <div #featureCard class="group relative rounded-3xl p-8 bg-slate-900/40 backdrop-blur-xl border border-slate-800/80 hover:border-indigo-500/50 transition-all duration-300 shadow-2xl overflow-hidden hover:-translate-y-2">
+        <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+        <div class="h-14 w-14 rounded-2xl bg-indigo-500/20 flex items-center justify-center mb-8 border border-indigo-500/30 text-indigo-400 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500">
+          <i class="pi pi-calendar text-2xl"></i>
+        </div>
+        <h3 class="text-xl font-semibold mb-3 tracking-tight">Gestione Turni</h3>
+        <p class="text-slate-400 leading-relaxed text-sm">Assegna e organizza i turni con estrema semplicità. Visualizza l'intero calendario in un colpo d'occhio.</p>
+      </div>
+
+      <!-- Card 2 -->
+      <div #featureCard class="group relative rounded-3xl p-8 bg-slate-900/40 backdrop-blur-xl border border-slate-800/80 hover:border-emerald-500/50 transition-all duration-300 shadow-2xl overflow-hidden hover:-translate-y-2">
+        <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+        <div class="h-14 w-14 rounded-2xl bg-emerald-500/20 flex items-center justify-center mb-8 border border-emerald-500/30 text-emerald-400 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-500">
+          <i class="pi pi-users text-2xl"></i>
+        </div>
+        <h3 class="text-xl font-semibold mb-3 tracking-tight">Coordinamento Team</h3>
+        <p class="text-slate-400 leading-relaxed text-sm">Mantieni tutti sincronizzati. Sostituzioni e cambi turno gestiti in tempo reale con notifiche istantanee.</p>
+      </div>
+
+      <!-- Card 3 -->
+      <div #featureCard class="group relative rounded-3xl p-8 bg-slate-900/40 backdrop-blur-xl border border-slate-800/80 hover:border-rose-500/50 transition-all duration-300 shadow-2xl overflow-hidden hover:-translate-y-2">
+        <div class="absolute inset-0 bg-gradient-to-br from-rose-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+        <div class="h-14 w-14 rounded-2xl bg-rose-500/20 flex items-center justify-center mb-8 border border-rose-500/30 text-rose-400 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500">
+          <i class="pi pi-chart-line text-2xl"></i>
+        </div>
+        <h3 class="text-xl font-semibold mb-3 tracking-tight">Controllo Completo</h3>
+        <p class="text-slate-400 leading-relaxed text-sm">Monitora le presenze, analizza i dati e ottimizza l'allocazione delle risorse per massimizzare la produttività.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Animated Interface Demo & Final CTA -->
+  <section class="relative z-10 py-24 pb-40 w-full overflow-hidden">
+    <div #demoSection class="max-w-5xl mx-auto px-6 lg:px-8 relative">
+      <div class="rounded-[2.5rem] border border-slate-700/50 bg-slate-900/60 backdrop-blur-3xl shadow-2xl overflow-hidden relative">
+        <!-- Mockup top bar -->
+        <div class="h-12 border-b border-slate-700/50 flex items-center px-6 gap-2 bg-slate-950/80">
+          <div class="w-3 h-3 rounded-full bg-slate-600"></div>
+          <div class="w-3 h-3 rounded-full bg-slate-600"></div>
+          <div class="w-3 h-3 rounded-full bg-slate-600"></div>
+        </div>
+        <!-- Mockup content area -->
+        <div class="p-8 md:p-16">
+          <div class="flex flex-col md:flex-row gap-12 items-center justify-between pointer-events-none opacity-50">
+            <div class="flex-1 space-y-6 w-full">
+              <div class="space-y-4">
+                <div class="h-8 w-48 bg-slate-700/50 rounded-lg animate-pulse"></div>
+                <div class="h-4 w-full bg-slate-800 rounded-md"></div>
+                <div class="h-4 w-5/6 bg-slate-800 rounded-md"></div>
+                <div class="h-4 w-4/6 bg-slate-800 rounded-md"></div>
+              </div>
+              <div class="grid grid-cols-2 gap-4 mt-8">
+                 <div class="h-24 bg-slate-800/80 rounded-xl border border-slate-700/30"></div>
+                 <div class="h-24 bg-slate-800/80 rounded-xl border border-slate-700/30"></div>
+              </div>
+            </div>
+            <div class="w-full md:w-80 aspect-square bg-gradient-to-tr from-indigo-500/10 to-purple-500/10 rounded-2xl border border-white/5 flex items-center justify-center backdrop-blur-md">
+              <div class="h-32 w-32 rounded-full border-4 border-indigo-500/30 border-t-indigo-400 animate-spin"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Overlay CTA -->
+      <div class="absolute inset-0 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm z-20 rounded-[2.5rem]">
+        <div class="text-center p-8">
+          <h3 class="text-3xl font-bold mb-6 tracking-tight text-white">Pronto a trasformare la tua organizzazione?</h3>
+          <p class="text-slate-400 mb-8 max-w-md mx-auto">Unisciti a noi e semplifica oggi stesso la gestione del tuo team.</p>
+          <a routerLink="/auth" class="group relative inline-flex items-center justify-center px-10 py-4 font-bold text-slate-950 transition-all duration-300 bg-white hover:bg-slate-200 rounded-2xl shadow-[0_0_30px_-5px_rgba(255,255,255,0.3)] hover:-translate-y-1">
+            Accesso al Sistema
+            <i class="pi pi-lock ml-3 group-hover:scale-110 transition-transform"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>

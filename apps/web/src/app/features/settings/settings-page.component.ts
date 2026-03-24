@@ -7,12 +7,12 @@ import { ApiErrorService } from '../../core/services/api-error.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import { ThemePreference, ThemeService } from '../../core/services/theme.service';
 import { AppApiService } from '../../shared/services/app-api.service';
-import { UiToggleComponent, UiSelectComponent } from '@shift-complete/ui-kit';
+import { UiButtonComponent, UiChipComponent, UiInputComponent, UiPageHeaderComponent, UiSelectComponent, UiSurfaceComponent, UiTextareaComponent, UiToggleComponent } from '@shift-complete/ui-kit';
 
 @Component({
   selector: 'app-settings-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiToggleComponent, UiSelectComponent],
+  imports: [CommonModule, FormsModule, UiButtonComponent, UiChipComponent, UiInputComponent, UiPageHeaderComponent, UiSelectComponent, UiSurfaceComponent, UiTextareaComponent, UiToggleComponent],
   templateUrl: './settings-page.component.html'
 })
 export class SettingsPageComponent {
@@ -168,6 +168,10 @@ export class SettingsPageComponent {
   onThemePreferenceChange(value: unknown): void {
     const normalized = String(value ?? 'system') as ThemePreference;
     this.theme.setPreference(normalized === 'light' || normalized === 'dark' || normalized === 'system' ? normalized : 'system');
+  }
+
+  protected castString(value: unknown): string {
+    return value ? String(value) : '';
   }
 
   pingProvider(): void {
@@ -379,6 +383,14 @@ export class SettingsPageComponent {
 
   protected isTeamQuotaOptionDisabled(optionTeamId: string, currentTeamId: string): boolean {
     return this.resourceTeamQuotaRules().some((rule) => rule.teamId === optionTeamId && rule.teamId !== currentTeamId);
+  }
+
+  protected teamQuotaOptions(currentTeamId: string): Array<{ label: string; value: string; disabled: boolean }> {
+    return this.teams().map((team) => ({
+      label: team.name,
+      value: team.id,
+      disabled: this.isTeamQuotaOptionDisabled(team.id, currentTeamId),
+    }));
   }
 
   protected quotaPreviewLabel(valueGb: number): string {

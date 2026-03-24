@@ -1,52 +1,50 @@
-<section class="mx-auto grid max-w-6xl gap-6 text-slate-800 dark:text-slate-100">
-  <header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-    <div>
-      <p class="text-sm uppercase tracking-[0.3em] text-orange-600 dark:text-orange-300">User page</p>
-      <h2 class="text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">Profilo personale, contatti e credenziali.</h2>
-      <p class="mt-2 text-sm text-slate-500 dark:text-slate-300">Aggiorna i tuoi dati operativi e cambia password senza uscire dal workspace.</p>
-    </div>
-    <div class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/85" *ngIf="profile() as user">
+<section class="mx-auto grid max-w-6xl gap-6 text-[color:var(--text-1)]">
+  <ui-page-header
+    eyebrow="User page"
+    eyebrowClass="text-orange-600"
+    title="Profilo personale, contatti e credenziali."
+    subtitle="Aggiorna i tuoi dati operativi e cambia password senza uscire dal workspace."
+    [hasActions]="profile() !== null"
+  >
+    <div page-actions class="flex items-center gap-3 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-4 py-3 shadow-sm" *ngIf="profile() as user">
       <div class="flex h-12 w-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#3156b3,#4979e6)] text-sm font-semibold text-white">
         {{ initials(user.fullName) }}
       </div>
       <div>
-        <p class="font-medium text-slate-900 dark:text-slate-100">{{ user.fullName }}</p>
-        <p class="text-xs text-slate-500 dark:text-slate-300">{{ roleLabel() }} · {{ user.email }}</p>
+        <p class="font-medium text-[color:var(--text-1)]">{{ user.fullName }}</p>
+        <p class="text-xs text-[color:var(--text-2)]">{{ roleLabel() }} · {{ user.email }}</p>
       </div>
     </div>
-  </header>
+  </ui-page-header>
 
   <div class="grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
     <ui-card title="Snapshot utente" subtitle="Stato rapido di identita e copertura profilo" surfaceClass="p-5 min-h-[30rem] max-h-[36rem]" bodyClass="overflow-y-auto pr-1">
       <div class="grid gap-4">
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Ruolo</p>
-          <p class="mt-2 text-lg font-semibold text-slate-900">{{ roleLabel() }}</p>
-        </div>
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Team attivi</p>
+        <ui-stat-card label="Ruolo" [value]="roleLabel()" surfaceClass="bg-[color:var(--surface-2)] shadow-none"></ui-stat-card>
+        <ui-surface surfaceClass="bg-[color:var(--surface-2)] p-4 shadow-none">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Team attivi</p>
           <div class="mt-3 flex flex-wrap gap-2">
             <ui-label *ngFor="let team of activeTeamNames()" tone="neutral">{{ team }}</ui-label>
-            <span class="text-sm text-slate-400" *ngIf="!activeTeamNames().length">Nessun team assegnato</span>
+            <span class="text-sm text-[color:var(--text-3)]" *ngIf="!activeTeamNames().length">Nessun team assegnato</span>
           </div>
-        </div>
-        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Checklist profilo</p>
+        </ui-surface>
+        <ui-surface surfaceClass="bg-[color:var(--surface-2)] p-4 shadow-none">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Checklist profilo</p>
           <div class="mt-3 grid gap-2 text-sm">
-            <div class="flex items-center justify-between rounded-xl bg-white px-3 py-2">
-              <span class="text-slate-600">Identita e contatti</span>
+            <div class="flex items-center justify-between rounded-xl bg-[color:var(--surface-1)] px-3 py-2">
+              <span class="text-[color:var(--text-2)]">Identita e contatti</span>
               <ui-label [tone]="identityComplete() ? 'success' : 'warn'">{{ identityComplete() ? 'ok' : 'incompleto' }}</ui-label>
             </div>
-            <div class="flex items-center justify-between rounded-xl bg-white px-3 py-2">
-              <span class="text-slate-600">Emergenze</span>
+            <div class="flex items-center justify-between rounded-xl bg-[color:var(--surface-1)] px-3 py-2">
+              <span class="text-[color:var(--text-2)]">Emergenze</span>
               <ui-label [tone]="emergencyComplete() ? 'success' : 'warn'">{{ emergencyComplete() ? 'ok' : 'incompleto' }}</ui-label>
             </div>
-            <div class="flex items-center justify-between rounded-xl bg-white px-3 py-2">
-              <span class="text-slate-600">Preferenze operative</span>
+            <div class="flex items-center justify-between rounded-xl bg-[color:var(--surface-1)] px-3 py-2">
+              <span class="text-[color:var(--text-2)]">Preferenze operative</span>
               <ui-label [tone]="preferencesComplete() ? 'success' : 'warn'">{{ preferencesComplete() ? 'ok' : 'incompleto' }}</ui-label>
             </div>
           </div>
-        </div>
+        </ui-surface>
       </div>
     </ui-card>
 
@@ -57,28 +55,26 @@
 
       <ui-card title="Credenziali" subtitle="Cambio password con verifica della password attuale" surfaceClass="p-5 min-h-[22rem] max-h-[28rem]" bodyClass="overflow-y-auto pr-1">
         <div class="grid gap-4 md:grid-cols-2">
-          <div class="grid gap-2 md:col-span-2">
-            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Password attuale</label>
+          <ui-field label="Password attuale" class="md:col-span-2">
             <div class="relative">
-          <input class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-11 text-sm text-slate-800 outline-none placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500" [type]="showCurrentPassword() ? 'text' : 'password'" [(ngModel)]="passwordForm.currentPassword" placeholder="Inserisci la password attuale" />
-          <button type="button" class="absolute inset-y-0 right-0 px-4 text-slate-400 hover:text-[#4979e6] dark:text-slate-500" (click)="showCurrentPassword.set(!showCurrentPassword())">
+          <ui-input class="block" [type]="showCurrentPassword() ? 'text' : 'password'" [value]="passwordForm.currentPassword" (valueChange)="passwordForm.currentPassword = $event" placeholder="Inserisci la password attuale"></ui-input>
+          <button type="button" class="absolute inset-y-0 right-0 px-4 text-[color:var(--text-3)] hover:text-[#4979e6]" (click)="showCurrentPassword.set(!showCurrentPassword())">
                 <i class="pi" [class.pi-eye]="!showCurrentPassword()" [class.pi-eye-slash]="showCurrentPassword()"></i>
               </button>
             </div>
-          </div>
-          <div class="grid gap-2 md:col-span-2">
-            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Nuova password</label>
+          </ui-field>
+          <ui-field label="Nuova password" class="md:col-span-2">
             <div class="relative">
-          <input class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-11 text-sm text-slate-800 outline-none placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500" [type]="showNewPassword() ? 'text' : 'password'" [(ngModel)]="passwordForm.newPassword" placeholder="Almeno 6 caratteri" />
-          <button type="button" class="absolute inset-y-0 right-0 px-4 text-slate-400 hover:text-[#4979e6] dark:text-slate-500" (click)="showNewPassword.set(!showNewPassword())">
+          <ui-input class="block" [type]="showNewPassword() ? 'text' : 'password'" [value]="passwordForm.newPassword" (valueChange)="passwordForm.newPassword = $event" placeholder="Almeno 6 caratteri"></ui-input>
+          <button type="button" class="absolute inset-y-0 right-0 px-4 text-[color:var(--text-3)] hover:text-[#4979e6]" (click)="showNewPassword.set(!showNewPassword())">
                 <i class="pi" [class.pi-eye]="!showNewPassword()" [class.pi-eye-slash]="showNewPassword()"></i>
               </button>
             </div>
-          </div>
+          </ui-field>
         </div>
         <div class="mt-4 flex items-center justify-between gap-3">
-          <p class="text-xs text-slate-500 dark:text-slate-400">Dopo il cambio password la sessione resta valida e il nuovo accesso usa subito la credenziale aggiornata.</p>
-          <button type="button" class="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200" (click)="changePassword()" [disabled]="savingPassword()">{{ savingPassword() ? 'Aggiornamento...' : 'Aggiorna password' }}</button>
+          <p class="text-xs text-[color:var(--text-3)]">Dopo il cambio password la sessione resta valida e il nuovo accesso usa subito la credenziale aggiornata.</p>
+          <ui-button tone="neutral" variant="outlined" (buttonClick)="changePassword()" [disabled]="savingPassword()">{{ savingPassword() ? 'Aggiornamento...' : 'Aggiorna password' }}</ui-button>
         </div>
       </ui-card>
     </div>

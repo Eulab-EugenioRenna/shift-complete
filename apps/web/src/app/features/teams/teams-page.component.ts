@@ -2,16 +2,23 @@ import { CommonModule } from '@angular/common';
 import { Component, HostListener, computed, ElementRef, ViewChild, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { ButtonModule } from 'primeng/button';
-import { DialogModule } from 'primeng/dialog';
 import { ReplacementItem, TeamAccessRequestItem, TeamListItem, UserProfile } from '@shift-complete/shared-types';
 import {
+  UiButtonComponent,
   UiCardComponent,
-  UiDialogShellComponent,
+  UiChipComponent,
+  UiConfirmDialogComponent,
+  UiFieldComponent,
+  UiInputComponent,
   UiLabelComponent,
+  UiModalComponent,
+  UiPageHeaderComponent,
   UiSelectComponent,
   UiSidebarPanelComponent,
+  UiStatCardComponent,
+  UiSurfaceComponent,
   UiTableShellComponent,
+  UiTextareaComponent,
 } from '@shift-complete/ui-kit';
 import { AuthApiService } from '../../core/services/auth-api.service';
 import { ApiErrorService } from '../../core/services/api-error.service';
@@ -23,20 +30,37 @@ import { SessionService } from '../../core/services/session.service';
 
 type TeamDuty = NonNullable<TeamListItem['duties']>[number];
 
+type PendingConfirmAction = {
+  title: string;
+  message: string;
+  detail?: string;
+  tone: 'confirm' | 'danger';
+  confirmLabel: string;
+  icon?: string;
+  run: () => void;
+};
+
 @Component({
   selector: 'app-teams-page',
   standalone: true,
   imports: [
     CommonModule,
     FormsModule,
-    ButtonModule,
-    DialogModule,
+    UiButtonComponent,
     UiCardComponent,
+    UiChipComponent,
+    UiConfirmDialogComponent,
+    UiFieldComponent,
+    UiInputComponent,
     UiTableShellComponent,
     UiLabelComponent,
+    UiModalComponent,
+    UiPageHeaderComponent,
     UiSelectComponent,
     UiSidebarPanelComponent,
-    UiDialogShellComponent,
+    UiStatCardComponent,
+    UiSurfaceComponent,
+    UiTextareaComponent,
     TeamScopeChipsComponent,
   ],
   templateUrl: './teams-page.component.html',
@@ -83,10 +107,18 @@ export class TeamsPageComponent {
   protected readonly highlightedTab = signal<'replacements' | 'requests'>('replacements');
   protected readonly assistantReplacement = signal<ReplacementItem | null>(null);
   protected readonly assistantTeamRequest = signal<TeamAccessRequestItem | null>(null);
+  protected readonly confirmVisible = signal(false);
+  protected readonly pendingConfirm = signal<PendingConfirmAction | null>(null);
   @ViewChild('teamRequestsSection') private teamRequestsSection?: ElementRef<HTMLElement>;
 
   @HostListener('document:keydown.escape', ['$event'])
   protected handleEscape(event: KeyboardEvent): void {
+    if (this.confirmVisible()) {
+      this.closeConfirm();
+      event.preventDefault();
+      return;
+    }
+
     if (this.dutyDialogVisible) {
       this.dutyDialogVisible = false;
       event.preventDefault();
@@ -264,15 +296,24 @@ export class TeamsPageComponent {
     if (!this.canEditTeams()) {
       return;
     }
-    this.api.deleteTeam(teamId).subscribe({
-      next: () => {
-        if (this.selectedTeam()?.id === teamId) {
-          this.selectedTeam.set(null);
-        }
-        this.loadData();
-        this.feedback.success('Team eliminato');
-      },
-      error: (error) => this.feedback.error('Eliminazione non riuscita', this.apiError.message(error, 'Impossibile eliminare il team.')),
+    const teamName = this.teams().find((team) => team.id === teamId)?.name ?? 'questo team';
+    this.openConfirm({
+      title: 'Eliminare team?',
+      message: `Stai per eliminare ${teamName} e rimuovere il workspace operativo associato.`,
+      detail: 'Usa danger per azioni distruttive che cambiano struttura, membri e workflow del team.',
+      tone: 'danger',
+      confirmLabel: 'Elimina team',
+      icon: 'pi pi-trash',
+      run: () => this.api.deleteTeam(teamId).subscribe({
+        next: () => {
+          if (this.selectedTeam()?.id === teamId) {
+            this.selectedTeam.set(null);
+          }
+          this.loadData();
+          this.feedback.success('Team eliminato');
+        },
+        error: (error) => this.feedback.error('Eliminazione non riuscita', this.apiError.message(error, 'Impossibile eliminare il team.')),
+      }),
     });
   }
 
@@ -327,12 +368,23 @@ export class TeamsPageComponent {
     if (!this.canManageTeams()) {
       return;
     }
-    this.api.deleteDuty(dutyId).subscribe({
-      next: () => {
-        this.loadData();
-        this.feedback.success('Mansione eliminata');
-      },
-      error: (error) => this.feedback.error('Eliminazione non riuscita', this.apiError.message(error, 'Impossibile eliminare la mansione.')),
+    const dutyName = this.teams()
+      .flatMap((team) => team.duties ?? [])
+      .find((duty) => duty.id === dutyId)?.name ?? 'questa mansione';
+    this.openConfirm({
+      title: 'Eliminare mansione?',
+      message: `La mansione ${dutyName} verra rimossa dal team e dalle configurazioni correnti.`,
+      detail: 'Le assegnazioni future dovranno essere riallineate con una mansione alternativa.',
+      tone: 'danger',
+      confirmLabel: 'Elimina mansione',
+      icon: 'pi pi-trash',
+      run: () => this.api.deleteDuty(dutyId).subscribe({
+        next: () => {
+          this.loadData();
+          this.feedback.success('Mansione eliminata');
+        },
+        error: (error) => this.feedback.error('Eliminazione non riuscita', this.apiError.message(error, 'Impossibile eliminare la mansione.')),
+      }),
     });
   }
 
@@ -341,12 +393,32 @@ export class TeamsPageComponent {
       return;
     }
     const replacementAssigneeId = status === 'APPROVED' ? this.replacementAssigneeSelection[replacementId] || undefined : null;
-    const replacementAssignee = replacementAssigneeId ? this.findMemberById(replacementAssigneeId) : null;
 
     if (status === 'APPROVED' && !replacementAssigneeId) {
       this.feedback.error('Selezione mancante', 'Seleziona un sostituto prima di approvare la richiesta.');
       return;
     }
+
+    const replacement = this.replacements().find((item) => item.id === replacementId);
+    const replacementAssignee = replacementAssigneeId ? this.findMemberById(replacementAssigneeId) : null;
+    this.openConfirm({
+      title: status === 'APPROVED' ? 'Approvare sostituzione?' : 'Rifiutare sostituzione?',
+      message: status === 'APPROVED'
+        ? `La richiesta verra approvata${replacementAssignee?.fullName ? ` con ${replacementAssignee.fullName}` : ''}.`
+        : 'La richiesta di sostituzione verra chiusa senza approvazione.',
+      detail: status === 'APPROVED'
+        ? `Evento: ${replacement?.assignment?.slot?.event?.title || 'Sostituzione team'} · Team: ${replacement?.assignment?.slot?.team?.name || 'Team'}`
+        : 'Il team dovra valutare manualmente una copertura alternativa.',
+      tone: status === 'APPROVED' ? 'confirm' : 'danger',
+      confirmLabel: status === 'APPROVED' ? 'Approva sostituzione' : 'Rifiuta sostituzione',
+      icon: status === 'APPROVED' ? 'pi pi-check-circle' : 'pi pi-times-circle',
+      run: () => this.performResolveReplacement(replacementId, status),
+    });
+  }
+
+  private performResolveReplacement(replacementId: string, status: 'APPROVED' | 'DECLINED'): void {
+    const replacementAssigneeId = status === 'APPROVED' ? this.replacementAssigneeSelection[replacementId] || undefined : null;
+    const replacementAssignee = replacementAssigneeId ? this.findMemberById(replacementAssigneeId) : null;
 
     this.api.resolveReplacement(replacementId, { status, replacementAssigneeId }).subscribe({
       next: () => {
@@ -368,8 +440,18 @@ export class TeamsPageComponent {
       return;
     }
 
-    this.replacementAssigneeSelection[replacement.id] = replacement.suggestedReplacement.id;
-    this.resolveReplacement(replacement.id, 'APPROVED');
+    this.openConfirm({
+      title: 'Approvare con suggerito?',
+      message: `La copertura verra approvata con ${replacement.suggestedReplacement.fullName}.`,
+      detail: `Score suggerito: ${replacement.suggestedReplacement.score} · ${replacement.assignment?.slot?.event?.title || 'Sostituzione team'}`,
+      tone: 'confirm',
+      confirmLabel: 'Approva con suggerito',
+      icon: 'pi pi-sparkles',
+      run: () => {
+        this.replacementAssigneeSelection[replacement.id] = replacement.suggestedReplacement!.id;
+        this.performResolveReplacement(replacement.id, 'APPROVED');
+      },
+    });
   }
 
   protected openReplacementAssistant(replacement: ReplacementItem): void {
@@ -556,12 +638,21 @@ export class TeamsPageComponent {
       return;
     }
 
-    this.api.removeTeamMember(teamId, userId).subscribe({
-      next: () => {
-        this.loadData();
-        this.feedback.success('Membro rimosso dal team');
-      },
-      error: (error) => this.feedback.error('Rimozione non riuscita', this.apiError.message(error, 'Impossibile rimuovere la persona dal team.')),
+    const memberName = this.selectedTeam()?.members?.find((member) => member.id === userId)?.fullName ?? 'questa persona';
+    this.openConfirm({
+      title: 'Rimuovere membro dal team?',
+      message: `${memberName} verra rimosso dal team selezionato.`,
+      detail: 'La persona restera nel workspace ma non comparira piu nelle assegnazioni del team.',
+      tone: 'danger',
+      confirmLabel: 'Rimuovi membro',
+      icon: 'pi pi-user-minus',
+      run: () => this.api.removeTeamMember(teamId, userId).subscribe({
+        next: () => {
+          this.loadData();
+          this.feedback.success('Membro rimosso dal team');
+        },
+        error: (error) => this.feedback.error('Rimozione non riuscita', this.apiError.message(error, 'Impossibile rimuovere la persona dal team.')),
+      }),
     });
   }
 
@@ -613,6 +704,20 @@ export class TeamsPageComponent {
     if (!this.canManageRequests()) {
       return;
     }
+    this.openConfirm({
+      title: 'Approvare richiesta?',
+      message: `La richiesta di ${this.teamRequestAssistantSubject(request)} verra approvata.`,
+      detail: request.kind === 'SIGNUP'
+        ? 'La persona potra completare l accesso al workspace.'
+        : `Ingresso nel team ${request.team?.name || 'selezionato'} confermato.`,
+      tone: 'confirm',
+      confirmLabel: 'Approva richiesta',
+      icon: 'pi pi-check-circle',
+      run: () => this.performApproveTeamRequest(request),
+    });
+  }
+
+  private performApproveTeamRequest(request: TeamAccessRequestItem): void {
     if (request.kind === 'SIGNUP') {
       this.authApi.resolveSignupRequest(request.id, 'APPROVED').subscribe({
         next: () => {
@@ -639,6 +744,18 @@ export class TeamsPageComponent {
     if (!this.canManageRequests()) {
       return;
     }
+    this.openConfirm({
+      title: 'Rifiutare richiesta?',
+      message: `La richiesta di ${this.teamRequestAssistantSubject(request)} verra rifiutata.`,
+      detail: 'Usa danger quando il flusso viene chiuso o negato operativamente.',
+      tone: 'danger',
+      confirmLabel: 'Rifiuta richiesta',
+      icon: 'pi pi-times-circle',
+      run: () => this.performDeclineTeamRequest(request),
+    });
+  }
+
+  private performDeclineTeamRequest(request: TeamAccessRequestItem): void {
     if (request.kind === 'SIGNUP') {
       this.authApi.resolveSignupRequest(request.id, 'DECLINED').subscribe({
         next: () => {
@@ -659,6 +776,26 @@ export class TeamsPageComponent {
       },
       error: (error) => this.feedback.error('Rifiuto non riuscito', this.apiError.message(error, 'Impossibile rifiutare la richiesta team.')),
     });
+  }
+
+  protected confirmPendingAction(): void {
+    const action = this.pendingConfirm();
+    if (!action) {
+      return;
+    }
+
+    this.confirmVisible.set(false);
+    action.run();
+  }
+
+  protected closeConfirm(): void {
+    this.confirmVisible.set(false);
+    this.pendingConfirm.set(null);
+  }
+
+  private openConfirm(config: PendingConfirmAction): void {
+    this.pendingConfirm.set(config);
+    this.confirmVisible.set(true);
   }
 
   private loadData(): void {

@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { UiAutocompleteComponent } from '@shift-complete/ui-kit';
+import { UiAutocompleteComponent, UiButtonComponent, UiChipComponent, UiFieldComponent, UiFormSectionComponent, UiInputComponent, UiTextareaComponent } from '@shift-complete/ui-kit';
 
 type SelectOption = { label: string; value: string };
 
@@ -22,7 +22,7 @@ export type EditableUserProfileForm = {
 @Component({
   selector: 'app-user-profile-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiAutocompleteComponent],
+  imports: [CommonModule, FormsModule, UiAutocompleteComponent, UiButtonComponent, UiChipComponent, UiFieldComponent, UiFormSectionComponent, UiInputComponent, UiTextareaComponent],
   templateUrl: './user-profile-editor.component.html',
 })
 export class UserProfileEditorComponent implements OnChanges {

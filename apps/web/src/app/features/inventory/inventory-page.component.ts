@@ -2,8 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { TagModule } from 'primeng/tag';
-import { UiDatePickerComponent } from '@shift-complete/ui-kit';
+import { UiButtonComponent, UiConfirmDialogComponent, UiDatePickerComponent, UiFieldComponent, UiInputComponent, UiLabelComponent, UiModalComponent, UiPageHeaderComponent, UiSelectComponent, UiSurfaceComponent } from '@shift-complete/ui-kit';
 import { ApiErrorService } from '../../core/services/api-error.service';
 import { GlobalTeamScopeService } from '../../core/services/global-team-scope.service';
 import { SpotlightSearchService } from '../../core/services/spotlight-search.service';
@@ -25,7 +24,7 @@ type InventoryItem = {
 @Component({
   selector: 'app-inventory-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, TagModule, UiDatePickerComponent, TeamScopeChipsComponent],
+  imports: [CommonModule, FormsModule, UiButtonComponent, UiConfirmDialogComponent, UiDatePickerComponent, UiFieldComponent, UiInputComponent, UiLabelComponent, UiModalComponent, UiPageHeaderComponent, UiSelectComponent, UiSurfaceComponent, TeamScopeChipsComponent],
   templateUrl: './inventory-page.component.html',
 })
 export class InventoryPageComponent {
@@ -51,7 +50,15 @@ export class InventoryPageComponent {
     return role === 'administrator' || role === 'service_leader';
   });
   protected readonly teamOptions = computed(() => this.teams());
+  protected readonly teamSelectOptions = computed(() => this.teamOptions().map((team) => ({ label: team.name, value: team.id })));
+  protected readonly statusOptions = [
+    { label: 'Disponibile', value: 'available' },
+    { label: 'In prestito', value: 'checked_out' },
+    { label: 'In manutenzione', value: 'maintenance' },
+  ];
   protected readonly selectedItem = signal<InventoryItem | null>(null);
+  protected readonly confirmVisible = signal(false);
+  protected readonly pendingDelete = signal<{ id: string; name: string } | null>(null);
   protected readonly filteredItems = computed(() => {
     const query = this.searchQuery.trim().toLowerCase();
     return this.items().filter((item) => {
@@ -157,13 +164,30 @@ export class InventoryPageComponent {
   }
 
   protected deleteItem(id: string): void {
-    this.api.deleteInventoryItem(id).subscribe({
+    const itemName = this.items().find((item) => item.id === id)?.name ?? 'questa dotazione';
+    this.pendingDelete.set({ id, name: itemName });
+    this.confirmVisible.set(true);
+  }
+
+  protected confirmDeleteItem(): void {
+    const pending = this.pendingDelete();
+    if (!pending) {
+      return;
+    }
+
+    this.api.deleteInventoryItem(pending.id).subscribe({
       next: () => {
+        this.closeDeleteConfirm();
         this.loadItems();
         this.feedback.success('Asset eliminato');
       },
       error: (error) => this.feedback.error('Eliminazione non riuscita', this.apiError.message(error, 'Impossibile eliminare l\'asset.'))
     });
+  }
+
+  protected closeDeleteConfirm(): void {
+    this.confirmVisible.set(false);
+    this.pendingDelete.set(null);
   }
 
   protected checkedOutCount(items: InventoryItem[]): number {

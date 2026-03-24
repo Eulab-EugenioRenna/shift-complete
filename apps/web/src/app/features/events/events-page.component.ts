@@ -3,10 +3,7 @@ import { Component, HostListener, computed, inject, signal } from '@angular/core
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { map, of, switchMap, tap } from 'rxjs';
-import { ButtonModule } from 'primeng/button';
-import { DialogModule } from 'primeng/dialog';
 import { TableModule } from 'primeng/table';
-import { TagModule } from 'primeng/tag';
 import { ReplacementItem } from '@shift-complete/shared-types';
 import { ApiErrorService } from '../../core/services/api-error.service';
 import { GlobalTeamScopeService } from '../../core/services/global-team-scope.service';
@@ -17,11 +14,22 @@ import { toIsoDateTime } from '../../core/utils/date-picker.util';
 import { AppApiService } from '../../shared/services/app-api.service';
 import { LiveNotificationsService } from '../../core/services/live-notifications.service';
 import {
+  UiChipComponent,
+  UiButtonComponent,
+  UiBoardColumnComponent,
+  UiBoardTileComponent,
+  UiConfirmDialogComponent,
   UiDatePickerComponent,
-  UiDialogShellComponent,
+  UiFieldComponent,
+  UiInputComponent,
   UiLabelComponent,
+  UiModalComponent,
+  UiPageHeaderComponent,
+  UiReplacementTimelineCardComponent,
   UiSelectComponent,
   UiSidebarPanelComponent,
+  UiSegmentedControlComponent,
+  UiSurfaceComponent,
   UiTableShellComponent,
   UiToggleComponent,
 } from '@shift-complete/ui-kit';
@@ -39,6 +47,10 @@ type CalendarEvent = {
   type: string;
   recurrenceRule?: string | null;
   recurrenceTz?: string | null;
+  recurrenceUntil?: string | null;
+  recurrenceDurationMonths?: number | null;
+  recurrenceAutoRenew?: boolean | null;
+  recurrenceRenewMonths?: number | null;
   occurrenceStart?: string;
   isOccurrence?: boolean;
   isVirtualOccurrence?: boolean;
@@ -50,6 +62,10 @@ type CalendarEvent = {
     endsAt: string;
     recurrenceRule?: string | null;
     recurrenceTz?: string | null;
+    recurrenceUntil?: string | null;
+    recurrenceDurationMonths?: number | null;
+    recurrenceAutoRenew?: boolean | null;
+    recurrenceRenewMonths?: number | null;
     slots?: Array<{ teamId: string; dutyId: string; startsAt: string; endsAt: string; required?: boolean }>;
   } | null;
   slots?: Array<{
@@ -75,7 +91,19 @@ type EventSlotForm = {
   required: boolean;
 };
 
+type RecurrenceDurationOption = 3 | 6 | 12 | 24;
+
 type EventEditScope = 'single' | 'series';
+
+type PendingConfirmAction = {
+  title: string;
+  message: string;
+  detail?: string;
+  tone: 'confirm' | 'danger';
+  confirmLabel: string;
+  icon?: string;
+  run: () => void;
+};
 
 type TeamOption = {
   id: string;
@@ -101,12 +129,19 @@ type TeamOption = {
   imports: [
     CommonModule,
     FormsModule,
-    ButtonModule,
-    DialogModule,
     TableModule,
-    TagModule,
-    UiDialogShellComponent,
+    UiChipComponent,
+    UiButtonComponent,
+    UiBoardColumnComponent,
+    UiBoardTileComponent,
+    UiConfirmDialogComponent,
+    UiFieldComponent,
+    UiInputComponent,
+    UiModalComponent,
+    UiPageHeaderComponent,
+    UiReplacementTimelineCardComponent,
     UiSidebarPanelComponent,
+    UiSurfaceComponent,
     UiSelectComponent,
     UiDatePickerComponent,
     UiToggleComponent,
@@ -132,6 +167,7 @@ export class EventsPageComponent {
   protected readonly selectedEvent = signal<CalendarEvent | null>(null);
   protected readonly selectedUserFilter = signal<string>('');
   protected readonly occurrenceView = signal<'all' | 'series' | 'occurrences'>('all');
+  protected readonly selectedSeriesFilter = signal<string>('');
   protected readonly editingEventId = signal<string | null>(null);
   protected readonly editingEventScope = signal<EventEditScope>('single');
   protected readonly editingOccurrenceStart = signal<string | null>(null);
@@ -140,6 +176,8 @@ export class EventsPageComponent {
   protected readonly savingEvent = signal(false);
   protected readonly scheduling = signal(false);
   protected readonly locallyReservedSuggestionIds = signal<string[]>([]);
+  protected readonly confirmVisible = signal(false);
+  protected readonly pendingConfirm = signal<PendingConfirmAction | null>(null);
   protected previewVisible = false;
   protected assignmentBoardVisible = false;
   protected eventDialogVisible = false;
@@ -148,6 +186,12 @@ export class EventsPageComponent {
   protected handleEscape(event: KeyboardEvent): void {
     if (this.eventDialogVisible) {
       this.eventDialogVisible = false;
+      event.preventDefault();
+      return;
+    }
+
+    if (this.confirmVisible()) {
+      this.closeConfirm();
       event.preventDefault();
       return;
     }
@@ -163,7 +207,7 @@ export class EventsPageComponent {
       event.preventDefault();
     }
   }
-  protected eventForm = { title: '', startsAt: null as Date | null, endsAt: null as Date | null, isRecurring: false, recurrenceFrequency: 'WEEKLY' as 'WEEKLY' | 'MONTHLY' | 'YEARLY', slots: [] as EventSlotForm[] };
+  protected eventForm = { title: '', startsAt: null as Date | null, endsAt: null as Date | null, isRecurring: false, recurrenceFrequency: 'WEEKLY' as 'WEEKLY' | 'MONTHLY' | 'YEARLY', recurrenceDurationMonths: 12 as RecurrenceDurationOption, recurrenceAutoRenew: true, recurrenceRenewMonths: 12 as RecurrenceDurationOption, slots: [] as EventSlotForm[] };
   protected replacementReason = '';
   protected readonly replacementAssigneeId = signal<string | null>(null);
   protected readonly draggedVolunteerId = signal<string | null>(null);
@@ -178,19 +222,30 @@ export class EventsPageComponent {
       ).values()
     )
   );
+  protected readonly seriesOptions = computed(() =>
+    Array.from(
+      new Map(
+        this.events()
+          .filter((event) => event.type === 'recurring' && !event.isOccurrence)
+          .map((event) => [event.seriesId ?? event.id, { label: event.title, value: event.seriesId ?? event.id }])
+      ).values()
+    ).sort((left, right) => left.label.localeCompare(right.label, 'it'))
+  );
   protected readonly filteredEvents = computed(() => {
     const userId = this.selectedUserFilter();
+    const seriesId = this.selectedSeriesFilter();
 
     return this.events().filter((event) => {
       const scopedTeamId = this.teamScope.teamId();
       const teamMatch = !scopedTeamId || (event.slots ?? []).some((slot) => slot.teamId === scopedTeamId);
       const userMatch = !userId || (event.slots ?? []).some((slot) => (slot.assignments ?? []).some((assignment) => assignment.assigneeId === userId));
+      const seriesMatch = !seriesId || (event.seriesId ?? event.id) === seriesId;
       const occurrenceMatch = this.occurrenceView() === 'all'
         ? true
         : this.occurrenceView() === 'series'
           ? !event.isOccurrence
           : Boolean(event.isOccurrence);
-      return teamMatch && userMatch && occurrenceMatch;
+      return teamMatch && userMatch && seriesMatch && occurrenceMatch;
     });
   });
   protected readonly selectedEventSlots = computed(() => this.selectedEvent()?.slots ?? []);
@@ -201,6 +256,12 @@ export class EventsPageComponent {
     { label: 'Settimanale', value: 'WEEKLY' },
     { label: 'Mensile', value: 'MONTHLY' },
     { label: 'Annuale', value: 'YEARLY' },
+  ];
+  protected readonly recurrenceDurationOptions = [
+    { label: '3 mesi', value: 3 },
+    { label: '6 mesi', value: 6 },
+    { label: '1 anno', value: 12 },
+    { label: '2 anni', value: 24 },
   ];
   protected readonly occurrenceViewOptions = [
     { label: 'Tutto', value: 'all' },
@@ -280,6 +341,10 @@ export class EventsPageComponent {
     return value ? String(value) : null;
   }
 
+  protected setSeriesFilter(value: unknown): void {
+    this.selectedSeriesFilter.set(this.castNullable(value) ?? '');
+  }
+
   protected setOccurrenceView(value: unknown): void {
     const normalized = this.castNullable(value);
     if (normalized === 'series' || normalized === 'occurrences') {
@@ -297,6 +362,24 @@ export class EventsPageComponent {
     }
 
     this.eventForm.recurrenceFrequency = 'WEEKLY';
+  }
+
+  protected updateRecurrenceDuration(value: unknown): void {
+    const numeric = Number(value);
+    if ([3, 6, 12, 24].includes(numeric)) {
+      this.eventForm.recurrenceDurationMonths = numeric as RecurrenceDurationOption;
+      if (!this.eventForm.recurrenceAutoRenew) {
+        this.eventForm.recurrenceRenewMonths = numeric as RecurrenceDurationOption;
+      }
+      return;
+    }
+
+    this.eventForm.recurrenceDurationMonths = 12;
+  }
+
+  protected updateRecurrenceRenewDuration(value: unknown): void {
+    const numeric = Number(value);
+    this.eventForm.recurrenceRenewMonths = [3, 6, 12, 24].includes(numeric) ? numeric as RecurrenceDurationOption : 12;
   }
 
   constructor() {
@@ -340,6 +423,9 @@ export class EventsPageComponent {
       endsAt: end,
       isRecurring: false,
       recurrenceFrequency: 'WEEKLY',
+      recurrenceDurationMonths: 12,
+      recurrenceAutoRenew: true,
+      recurrenceRenewMonths: 12,
       slots: [this.createEmptySlot(now, end)],
     };
     this.editingEventId.set(null);
@@ -363,6 +449,9 @@ export class EventsPageComponent {
       endsAt: new Date(source.endsAt),
       isRecurring: scope === 'series' ? true : event.type === 'recurring',
       recurrenceFrequency: this.frequencyFromRule(scope === 'series' ? source.recurrenceRule : event.recurrenceRule),
+      recurrenceDurationMonths: this.normalizeRecurrenceMonths(source.recurrenceDurationMonths ?? event.recurrenceDurationMonths),
+      recurrenceAutoRenew: (source.recurrenceAutoRenew ?? event.recurrenceAutoRenew ?? true) !== false,
+      recurrenceRenewMonths: this.normalizeRecurrenceMonths(source.recurrenceRenewMonths ?? event.recurrenceRenewMonths ?? source.recurrenceDurationMonths ?? event.recurrenceDurationMonths),
       slots: sourceSlots.map((slot: any) => ({
         teamId: slot.teamId,
         dutyId: slot.dutyId ?? '',
@@ -395,6 +484,9 @@ export class EventsPageComponent {
       endsAt: toIsoDateTime(this.eventForm.endsAt),
       recurrenceRule: this.eventForm.isRecurring ? `FREQ=${this.eventForm.recurrenceFrequency}` : undefined,
       recurrenceTz: this.eventForm.isRecurring ? 'Europe/Rome' : undefined,
+      recurrenceDurationMonths: this.eventForm.isRecurring ? this.eventForm.recurrenceDurationMonths : undefined,
+      recurrenceAutoRenew: this.eventForm.isRecurring ? this.eventForm.recurrenceAutoRenew : undefined,
+      recurrenceRenewMonths: this.eventForm.isRecurring ? this.eventForm.recurrenceRenewMonths : undefined,
       slots: this.eventForm.slots.map((slot) => ({
         teamId: slot.teamId!,
         dutyId: slot.dutyId.trim(),
@@ -428,6 +520,31 @@ export class EventsPageComponent {
     });
   }
 
+  protected requestSaveEventConfirmation(): void {
+    if (!this.isEventFormValid()) {
+      this.saveEvent();
+      return;
+    }
+
+    if (!this.editingEventId()) {
+      this.saveEvent();
+      return;
+    }
+
+    const isSeries = this.editingEventScope() === 'series';
+    this.openConfirm({
+      title: isSeries ? 'Confermare modifica serie?' : 'Confermare modifica occorrenza?',
+      message: isSeries
+        ? 'Le modifiche verranno applicate alla serie ricorrente selezionata.'
+        : 'Le modifiche verranno applicate solo all occorrenza selezionata.',
+      detail: `Evento: ${this.eventForm.title.trim() || 'Evento'} · Inizio: ${this.eventForm.startsAt?.toISOString() || '-'}`,
+      tone: 'confirm',
+      confirmLabel: isSeries ? 'Salva serie' : 'Salva occorrenza',
+      icon: 'pi pi-check-circle',
+      run: () => this.saveEvent(),
+    });
+  }
+
   renameEvent(eventId: string, title: string): void {
     if (!this.canManageEvents()) {
       return;
@@ -449,15 +566,27 @@ export class EventsPageComponent {
       return;
     }
     const targetId = scope === 'series' && event.seriesId ? event.seriesId : event.id;
-    this.api.deleteEvent(targetId, {
-      mode: scope,
-      occurrenceStart: scope === 'single' ? (event.occurrenceStart ?? event.startsAt) : undefined,
-    }).subscribe({
-      next: () => {
-        this.loadData();
-        this.feedback.success('Evento eliminato');
-      },
-      error: (error) => this.feedback.error('Eliminazione non riuscita', this.apiError.message(error, 'Impossibile eliminare l\'evento.'))
+    this.openConfirm({
+      title: scope === 'series' ? 'Eliminare serie?' : 'Eliminare occorrenza?',
+      message: scope === 'series'
+        ? `La serie ${event.title} verra rimossa con tutte le sue ricorrenze.`
+        : `L occorrenza di ${event.title} verra rimossa dal calendario operativo.`,
+      detail: scope === 'series'
+        ? 'Usa danger per eliminazioni strutturali che impattano piu eventi.'
+        : `Data: ${event.startsAt}`,
+      tone: 'danger',
+      confirmLabel: scope === 'series' ? 'Elimina serie' : 'Elimina occorrenza',
+      icon: 'pi pi-trash',
+      run: () => this.api.deleteEvent(targetId, {
+        mode: scope,
+        occurrenceStart: scope === 'single' ? (event.occurrenceStart ?? event.startsAt) : undefined,
+      }).subscribe({
+        next: () => {
+          this.loadData();
+          this.feedback.success('Evento eliminato');
+        },
+        error: (error) => this.feedback.error('Eliminazione non riuscita', this.apiError.message(error, 'Impossibile eliminare l\'evento.'))
+      })
     });
   }
 
@@ -587,12 +716,23 @@ export class EventsPageComponent {
     if (!this.canManageEvents()) {
       return;
     }
-    const selectedTeamId = this.selectedEvent()?.slots?.[0]?.teamId ?? this.eventForm.slots[0]?.teamId ?? undefined;
+    const selected = this.selectedEvent();
+    if (!selected) {
+      this.feedback.error('Seleziona un evento', 'Auto assegna funziona solo sull evento attualmente selezionato.');
+      return;
+    }
+
+    const selectedTeamId = selected.slots?.[0]?.teamId ?? undefined;
     this.scheduling.set(true);
-    const now = new Date();
-    const to = new Date(now);
-    to.setDate(to.getDate() + 30);
-    this.api.generateSchedulePreview({ from: now.toISOString(), to: to.toISOString(), teamId: selectedTeamId ?? undefined, apply: true }).subscribe({
+    this.api.generateSchedulePreview({
+      from: selected.startsAt,
+      to: selected.endsAt,
+      teamId: selectedTeamId ?? undefined,
+      eventId: selected.seriesId ?? selected.id,
+      occurrenceStart: selected.isOccurrence ? (selected.occurrenceStart ?? selected.startsAt) : undefined,
+      scope: selected.isOccurrence ? 'single' : selected.type === 'recurring' ? 'series' : 'single',
+      apply: true,
+    }).subscribe({
       next: (result) => {
         this.previewSuggestions.set(result.suggestions ?? []);
         this.previewVisible = true;
@@ -684,21 +824,29 @@ export class EventsPageComponent {
       this.feedback.error('Selezione mancante', 'Seleziona un sostituto prima di approvare la richiesta.');
       return;
     }
-    this.api.resolveReplacement(replacementId, { status: 'APPROVED', replacementAssigneeId: assigneeId || null }).subscribe({
-      next: () => {
-        const replacement = this.replacements().find((item) => item.id === replacementId) ?? null;
-        const replacementAssignee = assigneeId ? this.findMemberById(assigneeId) : null;
-        if (assigneeId) {
-          this.locallyReservedSuggestionIds.update((ids) => Array.from(new Set([...ids, assigneeId])));
-        }
-        this.patchReplacementState(replacementId, 'APPROVED', assigneeId, replacementAssignee);
-        if (replacement?.assignmentId && assigneeId) {
-          this.patchAssignmentAssignee(replacement.assignmentId, assigneeId, replacementAssignee?.fullName ?? replacement.replacementAssignee?.fullName ?? 'Sostituto');
-        }
-        this.replacementAssigneeId.set(null);
-        this.feedback.success('Sostituzione confermata');
-      },
-      error: (error) => this.feedback.error('Conferma non riuscita', this.apiError.message(error, 'Impossibile confermare il sostituto.'))
+    const replacement = this.replacements().find((item) => item.id === replacementId) ?? null;
+    const replacementAssignee = assigneeId ? this.findMemberById(assigneeId) : null;
+    this.openConfirm({
+      title: 'Confermare sostituto?',
+      message: `La sostituzione verra confermata${replacementAssignee?.fullName ? ` con ${replacementAssignee.fullName}` : ''}.`,
+      detail: `Evento: ${replacement?.assignment?.slot?.event?.title || 'Sostituzione'} · Team: ${replacement?.assignment?.slot?.team?.name || 'Team'}`,
+      tone: 'confirm',
+      confirmLabel: 'Conferma sostituto',
+      icon: 'pi pi-check-circle',
+      run: () => this.api.resolveReplacement(replacementId, { status: 'APPROVED', replacementAssigneeId: assigneeId || null }).subscribe({
+        next: () => {
+          if (assigneeId) {
+            this.locallyReservedSuggestionIds.update((ids) => Array.from(new Set([...ids, assigneeId])));
+          }
+          this.patchReplacementState(replacementId, 'APPROVED', assigneeId, replacementAssignee);
+          if (replacement?.assignmentId && assigneeId) {
+            this.patchAssignmentAssignee(replacement.assignmentId, assigneeId, replacementAssignee?.fullName ?? replacement.replacementAssignee?.fullName ?? 'Sostituto');
+          }
+          this.replacementAssigneeId.set(null);
+          this.feedback.success('Sostituzione confermata');
+        },
+        error: (error) => this.feedback.error('Conferma non riuscita', this.apiError.message(error, 'Impossibile confermare il sostituto.'))
+      })
     });
   }
 
@@ -710,15 +858,43 @@ export class EventsPageComponent {
       return;
     }
 
-    this.api.resolveReplacement(replacement.id, { status: 'APPROVED', replacementAssigneeId: replacement.suggestedReplacement.id }).subscribe({
-      next: () => {
-        this.locallyReservedSuggestionIds.update((ids) => Array.from(new Set([...ids, replacement.suggestedReplacement!.id])));
-        this.patchReplacementState(replacement.id, 'APPROVED', replacement.suggestedReplacement!.id, replacement.suggestedReplacement);
-        this.patchAssignmentAssignee(replacement.assignmentId, replacement.suggestedReplacement!.id, replacement.suggestedReplacement!.fullName);
-        this.feedback.success('Sostituzione approvata con suggerito');
-      },
-      error: (error) => this.feedback.error('Conferma non riuscita', this.apiError.message(error, 'Impossibile approvare con il sostituto suggerito.'))
+    this.openConfirm({
+      title: 'Approvare con suggerito?',
+      message: `La copertura verra approvata con ${replacement.suggestedReplacement.fullName}.`,
+      detail: `Score suggerito: ${replacement.suggestedReplacement.score} · ${replacement.assignment?.slot?.event?.title || 'Sostituzione'}`,
+      tone: 'confirm',
+      confirmLabel: 'Approva con suggerito',
+      icon: 'pi pi-sparkles',
+      run: () => this.api.resolveReplacement(replacement.id, { status: 'APPROVED', replacementAssigneeId: replacement.suggestedReplacement!.id }).subscribe({
+        next: () => {
+          this.locallyReservedSuggestionIds.update((ids) => Array.from(new Set([...ids, replacement.suggestedReplacement!.id])));
+          this.patchReplacementState(replacement.id, 'APPROVED', replacement.suggestedReplacement!.id, replacement.suggestedReplacement);
+          this.patchAssignmentAssignee(replacement.assignmentId, replacement.suggestedReplacement!.id, replacement.suggestedReplacement!.fullName);
+          this.feedback.success('Sostituzione approvata con suggerito');
+        },
+        error: (error) => this.feedback.error('Conferma non riuscita', this.apiError.message(error, 'Impossibile approvare con il sostituto suggerito.'))
+      })
     });
+  }
+
+  protected confirmPendingAction(): void {
+    const action = this.pendingConfirm();
+    if (!action) {
+      return;
+    }
+
+    this.confirmVisible.set(false);
+    action.run();
+  }
+
+  protected closeConfirm(): void {
+    this.confirmVisible.set(false);
+    this.pendingConfirm.set(null);
+  }
+
+  private openConfirm(config: PendingConfirmAction): void {
+    this.pendingConfirm.set(config);
+    this.confirmVisible.set(true);
   }
 
   protected openReplacementAssistant(replacement: ReplacementItem): void {
@@ -1094,5 +1270,22 @@ export class EventsPageComponent {
       }),
       map((events) => events.find((item: CalendarEvent) => item.seriesId === event.seriesId && item.occurrenceStart === event.occurrenceStart && !item.isVirtualOccurrence) ?? event)
     );
+  }
+
+  protected recurrenceDurationLabel(event: CalendarEvent): string {
+    if (!event.recurrenceDurationMonths) {
+      return '1 anno';
+    }
+    if (event.recurrenceDurationMonths === 12) {
+      return '1 anno';
+    }
+    return `${event.recurrenceDurationMonths} mesi`;
+  }
+
+  private normalizeRecurrenceMonths(value: number | null | undefined): RecurrenceDurationOption {
+    if (value === 3 || value === 6 || value === 24) {
+      return value;
+    }
+    return 12;
   }
 }

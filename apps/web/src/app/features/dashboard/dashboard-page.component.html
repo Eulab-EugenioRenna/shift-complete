@@ -1,36 +1,30 @@
     <section class="flex flex-col gap-6 text-[color:var(--text-1)]">
-      <header class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between py-2">
-        <div>
-          <h2 class="text-2xl font-semibold tracking-tight text-[color:var(--text-1)]">La mia dashboard</h2>
-          <p class="mt-1 text-sm text-[color:var(--text-2)]" *ngIf="profile() as user">Sessione attiva: {{ user.fullName }} • {{ roleLabel(user.role) }}</p>
+      <ui-page-header
+        title="La mia dashboard"
+        [subtitle]="profile() ? 'Sessione attiva: ' + profile()!.fullName + ' • ' + roleLabel(profile()!.role) : undefined"
+        [hasActions]="true"
+        headerClass="py-2"
+      >
+        <div page-actions class="flex items-center gap-3">
+          <ui-label [tone]="live.connected() ? 'success' : 'neutral'">{{ live.connected() ? 'Tempo reale online' : 'Tempo reale offline' }}</ui-label>
+          <ui-button tone="neutral" variant="outlined" icon="pi pi-refresh" size="sm" (buttonClick)="loadData()">Aggiorna</ui-button>
         </div>
-        <div class="flex items-center gap-3">
-          <p-tag [severity]="live.connected() ? 'success' : 'contrast'" [value]="live.connected() ? 'Tempo reale online' : 'Tempo reale offline'"></p-tag>
-          <button class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800" (click)="loadData()">
-            <i class="pi pi-refresh mr-1 text-xs"></i> Aggiorna
-          </button>
-        </div>
-      </header>
+      </ui-page-header>
 
       <app-team-scope-chips [teams]="teams()"></app-team-scope-chips>
 
       <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <button type="button" *ngFor="let metric of metrics()" class="flex min-h-[10rem] flex-col rounded-lg border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] p-4 text-left shadow-[var(--shadow-soft)] transition duration-200 hover:shadow-md" (click)="openMetric(metric.label)">
-          <h3 class="flex items-center gap-2 text-sm font-semibold font-medium text-[color:var(--text-2)]">
-            <i class="pi pi-chart-pie text-[#4979e6]"></i> {{ metric.label }}
-          </h3>
-          <div class="mt-3 flex-1">
-            <p class="text-3xl font-light tracking-tight text-[color:var(--text-1)]">{{ metric.value }}</p>
-            <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ metric.detail }}</p>
+        <button type="button" *ngFor="let metric of metrics()" class="text-left transition duration-200 hover:shadow-md" (click)="openMetric(metric.label)">
+          <ui-stat-card [label]="metric.label" [value]="metric.value" [detail]="metric.detail" surfaceClass="flex min-h-[10rem] flex-col">
             <div class="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-[color:var(--surface-3)]">
-              <div class="h-full bg-[#4979e6] rounded-full" [style.width.%]="metric.progress"></div>
+              <div class="h-full rounded-full bg-[#4979e6]" [style.width.%]="metric.progress"></div>
             </div>
-          </div>
+          </ui-stat-card>
         </button>
       </div>
 
       <div class="grid gap-6 xl:grid-cols-[1.4fr_0.6fr]">
-        <div class="flex max-h-[36rem] min-h-[36rem] flex-col overflow-hidden rounded-lg border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] shadow-[var(--shadow-soft)]">
+        <ui-surface class="flex max-h-[36rem] min-h-[36rem] flex-col overflow-hidden">
           <div class="flex items-center justify-between border-b border-[color:var(--border-soft)] px-5 py-4">
              <h3 class="flex items-center gap-2 text-lg font-semibold text-[color:var(--text-1)]">
                 <i class="pi pi-calendar text-[#4979e6]"></i> Agenda
@@ -44,13 +38,13 @@
                     <p class="font-medium tracking-tight text-[color:var(--text-1)]">{{ item.title }}</p>
                     <p class="mt-1 text-sm text-[color:var(--text-2)]">{{ item.startsAt | date:'fullDate' }} alle {{ item.startsAt | date:'shortTime' }}</p>
                 </div>
-                 <span class="opacity-0 group-hover:opacity-100 text-[#4979e6] hover:bg-blue-50 dark:hover:bg-blue-950/30 px-2 py-1 rounded transition text-sm font-medium flex items-center gap-1 cursor-pointer">
+                 <span class="opacity-0 group-hover:opacity-100 text-[#4979e6] hover:bg-[color:var(--surface-2)] px-2 py-1 rounded transition text-sm font-medium flex items-center gap-1 cursor-pointer">
                     Apri
                  </span>
               </div>
               <div class="mt-3 flex items-center gap-2">
-                <p-tag [severity]="(item.assignments?.length || 0) > 0 ? 'success' : 'warn'" [value]="(item.assignments?.length || 0) > 0 ? 'Coperto' : 'Assenza'"></p-tag>
-                <span class="app-event-chip" [class.app-event-chip-success]="item.type === 'recurring'" [class.app-event-chip-neutral]="item.type === 'single' || (item.type !== 'recurring' && item.type !== 'single')">{{ eventTypeLabel(item.type) }}</span>
+                <ui-label [tone]="(item.assignments?.length || 0) > 0 ? 'success' : 'warn'">{{ (item.assignments?.length || 0) > 0 ? 'Coperto' : 'Assenza' }}</ui-label>
+                <ui-chip [tone]="item.type === 'recurring' ? 'success' : 'neutral'" [interactive]="false">{{ eventTypeLabel(item.type) }}</ui-chip>
                 <span class="ml-auto text-xs font-medium text-[color:var(--text-2)]">{{ item.slots?.length || 0 }} ruoli operativi</span>
               </div>
             </button>
@@ -61,10 +55,10 @@
           <div class="flex justify-center border-t border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-5 py-3">
              <a routerLink="/events" class="flex items-center gap-1 text-sm font-medium text-[color:var(--text-1)] transition hover:text-[#4979e6]"><i class="pi pi-calendar mr-1 text-xs text-[#4979e6]"></i> Apri workspace eventi</a>
           </div>
-        </div>
+        </ui-surface>
 
         <div class="flex flex-col gap-6">
-          <div class="flex max-h-[22rem] min-h-[22rem] flex-col overflow-hidden rounded-lg border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] shadow-[var(--shadow-soft)]">
+          <ui-surface surfaceClass="flex max-h-[22rem] min-h-[22rem] flex-col overflow-hidden">
             <div class="flex items-center justify-between border-b border-[color:var(--border-soft)] px-5 py-4">
                <h3 class="flex items-center gap-2 text-lg font-semibold text-[color:var(--text-1)]">
                  <i class="pi pi-chart-bar text-[#4979e6]"></i> KPI e mix eventi
@@ -90,14 +84,14 @@
                 <div class="mt-3 grid gap-2">
                    <div *ngFor="let item of inventoryHighlights()" class="flex items-center justify-between rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-3 py-2 text-sm">
                      <span class="text-[color:var(--text-2)]">{{ item.label }}</span>
-                     <span class="font-medium" [ngClass]="item.tone === 'success' ? 'text-emerald-600 dark:text-emerald-300' : item.tone === 'warn' ? 'text-amber-700 dark:text-amber-300' : item.tone === 'danger' ? 'text-red-600 dark:text-red-300' : 'text-[#4979e6]'">{{ item.value }}</span>
+                     <span class="font-medium" [ngClass]="item.tone === 'success' ? 'text-emerald-600' : item.tone === 'warn' ? 'text-amber-600' : item.tone === 'danger' ? 'text-red-600' : 'text-[#4979e6]'">{{ item.value }}</span>
                    </div>
                 </div>
               </div>
             </div>
-          </div>
+          </ui-surface>
 
-          <div class="flex flex-col overflow-hidden rounded-lg border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] shadow-[var(--shadow-soft)]">
+          <ui-surface surfaceClass="flex flex-col overflow-hidden">
           <div class="flex items-center justify-between border-b border-[color:var(--border-soft)] px-5 py-4">
              <h3 class="flex items-center gap-2 text-lg font-semibold text-[color:var(--text-1)]">
                <i class="pi pi-list text-[#4979e6]"></i> Segnali e backlog
@@ -107,7 +101,7 @@
           <div class="p-0">
             <div class="flex items-start justify-between gap-4 border-b border-[color:var(--border-soft)] p-4 transition last:border-0 hover:bg-[color:var(--surface-2)] hover:ring-1 hover:ring-blue-100 rounded-md focus-within:ring-1 focus-within:ring-blue-200" *ngFor="let assignment of openWorkItems()">
               <div class="flex items-center gap-3">
-                <div class="flex h-8 w-8 items-center justify-center rounded-full border border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-900/70 dark:bg-orange-950/40 dark:text-orange-200">
+                <div class="flex h-8 w-8 items-center justify-center rounded-full border border-orange-200 bg-orange-50 text-orange-700">
                   <i class="pi pi-exclamation-triangle text-xs"></i>
                 </div>
                 <div>
@@ -120,7 +114,7 @@
             
             <div class="flex items-start justify-between gap-4 border-b border-[color:var(--border-soft)] p-4 transition last:border-0 hover:bg-[color:var(--surface-2)] hover:ring-1 hover:ring-blue-100 rounded-md focus-within:ring-1 focus-within:ring-blue-200" *ngFor="let notification of notifications()">
               <div class="flex items-center gap-3 w-full">
-                <div class="flex h-8 w-8 items-center justify-center rounded-full border border-blue-200 bg-blue-50 text-[#4979e6] shrink-0 dark:border-blue-900/70 dark:bg-blue-950/40 dark:text-blue-200">
+                <div class="flex h-8 w-8 items-center justify-center rounded-full border border-blue-200 bg-blue-50 text-[#4979e6] shrink-0">
                   <i class="pi pi-bell text-xs"></i>
                 </div>
                     <button type="button" class="flex-1 rounded-md px-1 py-1 text-left focus:outline-none focus:ring-2 focus:ring-blue-200" (click)="openNotification(notification)">
@@ -136,12 +130,12 @@
               <p>Nessuna notifica o azione richiesta nel backlog.</p>
             </div>
           </div>
-          <div class="border-t border-slate-100 bg-slate-50 px-5 py-3 flex justify-center">
+          <div class="border-t border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-5 py-3 flex justify-center">
                <a routerLink="/teams" [queryParams]="{ tab: 'requests' }" class="text-sm text-[#4979e6] font-medium hover:underline flex items-center gap-1"><i class="pi pi-list mr-1 text-xs"></i> Gestisci le richieste attive</a>
           </div>
-          </div>
+          </ui-surface>
 
-          <div class="flex flex-col overflow-hidden rounded-lg border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] shadow-[var(--shadow-soft)]">
+          <ui-surface surfaceClass="flex flex-col overflow-hidden">
             <div class="flex items-center justify-between border-b border-[color:var(--border-soft)] px-5 py-4">
                <h3 class="flex items-center gap-2 text-lg font-semibold text-[color:var(--text-1)]">
                   <i class="pi pi-users text-emerald-600"></i> Team e utenti
@@ -149,63 +143,63 @@
             </div>
             <div class="grid gap-4 px-5 py-5 lg:grid-cols-2">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Team sotto pressione</p>
+                <p class="text-xs font-semibold uppercase tracking-widest text-[color:var(--text-3)]">Team sotto pressione</p>
                 <div class="mt-3 grid gap-2">
-                  <button type="button" *ngFor="let item of teamInsights()" class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-left text-sm hover:bg-white" (click)="openAssignment({ team: item.name })">
+                  <button type="button" *ngFor="let item of teamInsights()" class="flex items-center justify-between rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-3 py-3 text-left text-sm transition hover:bg-[color:var(--surface-1)]" (click)="openAssignment({ team: item.name })">
                     <span>
-                      <span class="block font-medium text-slate-900">{{ item.name }}</span>
-                      <span class="block text-xs text-slate-500">{{ item.open }} slot aperti · {{ item.assigned }} coperti</span>
+                      <span class="block font-medium text-[color:var(--text-1)]">{{ item.name }}</span>
+                      <span class="block text-xs text-[color:var(--text-2)]">{{ item.open }} slot aperti · {{ item.assigned }} coperti</span>
                     </span>
-                    <i class="pi pi-arrow-right text-slate-300"></i>
+                    <i class="pi pi-arrow-right text-[color:var(--text-3)]"></i>
                   </button>
-                  <div *ngIf="!teamInsights().length" class="text-sm text-slate-400">Nessun dato team disponibile.</div>
+                  <div *ngIf="!teamInsights().length" class="text-sm text-[color:var(--text-3)]">Nessun dato team disponibile.</div>
                 </div>
               </div>
               <div>
-                <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Volontari piu attivi</p>
+                <p class="text-xs font-semibold uppercase tracking-widest text-[color:var(--text-3)]">Volontari piu attivi</p>
                 <div class="mt-3 grid gap-2">
-                  <div *ngFor="let item of userInsights()" class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm">
-                    <span class="font-medium text-slate-900">{{ item.name }}</span>
-                    <span class="text-xs text-slate-500">{{ item.assignments }} turni</span>
+                  <div *ngFor="let item of userInsights()" class="flex items-center justify-between rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-3 py-3 text-sm">
+                    <span class="font-medium text-[color:var(--text-1)]">{{ item.name }}</span>
+                    <span class="text-xs text-[color:var(--text-2)]">{{ item.assignments }} turni</span>
                   </div>
-                  <div *ngIf="!userInsights().length" class="text-sm text-slate-400">Nessuna assegnazione utenti disponibile.</div>
+                  <div *ngIf="!userInsights().length" class="text-sm text-[color:var(--text-3)]">Nessuna assegnazione utenti disponibile.</div>
                 </div>
               </div>
             </div>
-          </div>
+          </ui-surface>
 
-          <div class="flex flex-col overflow-hidden rounded-lg border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] shadow-[var(--shadow-soft)]">
+          <ui-surface surfaceClass="flex flex-col overflow-hidden">
             <div class="flex items-center justify-between border-b border-[color:var(--border-soft)] px-5 py-4">
                <h3 class="flex items-center gap-2 text-lg font-semibold text-[color:var(--text-1)]">
                   <i class="pi pi-inbox text-orange-500"></i> Richieste
                 </h3>
             </div>
             <div class="grid gap-3 px-5 py-5">
-              <button type="button" class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left hover:bg-white" (click)="openMetric('Sostituzioni aperte')">
+              <button type="button" class="flex items-center justify-between rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-4 py-3 text-left transition hover:bg-[color:var(--surface-1)]" (click)="openMetric('Sostituzioni aperte')">
                 <span>
-                  <span class="block text-sm font-medium text-slate-900">Sostituzioni aperte</span>
-                  <span class="block text-xs text-slate-500">Richieste ancora da risolvere</span>
+                  <span class="block text-sm font-medium text-[color:var(--text-1)]">Sostituzioni aperte</span>
+                  <span class="block text-xs text-[color:var(--text-2)]">Richieste ancora da risolvere</span>
                 </span>
-                <span class="text-lg font-semibold text-slate-900">{{ requestSummary().pendingReplacements }}</span>
+                <span class="text-lg font-semibold text-[color:var(--text-1)]">{{ requestSummary().pendingReplacements }}</span>
               </button>
-              <button type="button" class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left hover:bg-white" (click)="openNotification({ id: '', userId: '', channel: 'in_app', subject: 'team', body: 'team', createdAt: '' })">
+              <button type="button" class="flex items-center justify-between rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-4 py-3 text-left transition hover:bg-[color:var(--surface-1)]" (click)="openNotification({ id: '', userId: '', channel: 'in_app', subject: 'team', body: 'team', createdAt: '' })">
                 <span>
-                  <span class="block text-sm font-medium text-slate-900">Richieste team</span>
-                  <span class="block text-xs text-slate-500">Notifiche legate a team e onboarding</span>
+                  <span class="block text-sm font-medium text-[color:var(--text-1)]">Richieste team</span>
+                  <span class="block text-xs text-[color:var(--text-2)]">Notifiche legate a team e onboarding</span>
                 </span>
-                <span class="text-lg font-semibold text-slate-900">{{ requestSummary().teamRequests }}</span>
+                <span class="text-lg font-semibold text-[color:var(--text-1)]">{{ requestSummary().teamRequests }}</span>
               </button>
-              <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left">
+              <div class="flex items-center justify-between rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-4 py-3 text-left">
                 <span>
-                  <span class="block text-sm font-medium text-slate-900">Notifiche non lette</span>
-                  <span class="block text-xs text-slate-500">Backlog operativo complessivo</span>
+                  <span class="block text-sm font-medium text-[color:var(--text-1)]">Notifiche non lette</span>
+                  <span class="block text-xs text-[color:var(--text-2)]">Backlog operativo complessivo</span>
                 </span>
-                <span class="text-lg font-semibold text-slate-900">{{ requestSummary().unreadNotifications }}</span>
+                <span class="text-lg font-semibold text-[color:var(--text-1)]">{{ requestSummary().unreadNotifications }}</span>
               </div>
             </div>
-          </div>
+          </ui-surface>
 
-          <div class="flex flex-col overflow-hidden rounded-lg border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] shadow-[var(--shadow-soft)]">
+          <ui-surface surfaceClass="flex flex-col overflow-hidden">
             <div class="flex items-center justify-between border-b border-[color:var(--border-soft)] px-5 py-4">
                <h3 class="flex items-center gap-2 text-lg font-semibold text-[color:var(--text-1)]">
                   <i class="pi pi-arrow-right-arrow-left text-orange-500"></i> Monitor sostituzioni
@@ -223,29 +217,29 @@
                     <p class="mt-0.5 text-xs text-[color:var(--text-2)]">{{ replacement.requestedBy?.fullName || '-' }} → {{ replacement.replacementAssignee?.fullName || 'da assegnare' }}</p>
                   </div>
                 </div>
-                <p-tag [severity]="replacement.status === 'APPROVED' ? 'success' : (replacement.status === 'DECLINED' ? 'danger' : 'warn')" [value]="replacementStatusLabel(replacement.status)"></p-tag>
+                <ui-label [tone]="replacement.status === 'APPROVED' ? 'success' : (replacement.status === 'DECLINED' ? 'danger' : 'warn')">{{ replacementStatusLabel(replacement.status) }}</ui-label>
               </button>
               <div class="p-8 text-center text-sm text-[color:var(--text-2)]" *ngIf="!replacementFeed().length">Nessuna sostituzione recente.</div>
             </div>
-          </div>
+          </ui-surface>
            
-          <div class="rounded-lg border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] shadow-[var(--shadow-soft)] overflow-hidden flex flex-col">
+          <ui-surface surfaceClass="overflow-hidden flex flex-col">
             <div class="flex items-center justify-between border-b border-[color:var(--border-soft)] px-5 py-4">
                <h3 class="flex items-center gap-2 text-lg font-semibold text-[color:var(--text-1)]">
                   <i class="pi pi-wave-pulse text-green-500"></i> Feed tempo reale
                </h3>
              </div>
             <div class="px-5 pb-5">
-              <button type="button" class="flex w-full items-start gap-3 py-2 text-left rounded-md hover:bg-slate-50 dark:hover:bg-slate-800/60 transition" *ngFor="let item of liveFeedPreview()" (click)="openLiveItem(item)">
+              <button type="button" class="flex w-full items-start gap-3 rounded-md py-2 text-left transition hover:bg-[color:var(--surface-2)]" *ngFor="let item of liveFeedPreview()" (click)="openLiveItem(item)">
                 <div class="mt-1 h-2 w-2 rounded-full bg-green-500 shrink-0"></div>
                 <div>
-                  <p class="text-sm font-medium text-slate-700 dark:text-slate-100">{{ item.translatedType }}</p>
-                  <p class="text-xs text-slate-500 dark:text-slate-400">{{ item.translatedSubject }}</p>
+                  <p class="text-sm font-medium text-[color:var(--text-1)]">{{ item.translatedType }}</p>
+                  <p class="text-xs text-[color:var(--text-2)]">{{ item.translatedSubject }}</p>
                 </div>
               </button>
-              <div class="py-2 text-sm text-slate-500 dark:text-slate-400" *ngIf="!live.feed().length">Feed silenzioso.</div>
+              <div class="py-2 text-sm text-[color:var(--text-2)]" *ngIf="!live.feed().length">Feed silenzioso.</div>
             </div>
-          </div>
+          </ui-surface>
         </div>
       </div>
     </section>

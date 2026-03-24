@@ -157,6 +157,9 @@ export interface SchedulePreviewRequest {
   from: string;
   to: string;
   teamId?: string;
+  eventId?: string;
+  occurrenceStart?: string;
+  scope?: 'single' | 'series' | 'range';
   apply?: boolean;
   includeExistingAssignments?: boolean;
 }

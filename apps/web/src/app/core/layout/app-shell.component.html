@@ -1,4 +1,4 @@
-<div class="min-screen bg-[var(--app-bg-accent)] text-[color:var(--text-1)] transition-colors">
+<div class="min-screen bg-transparent text-[color:var(--text-1)] transition-colors">
   <header class="sticky top-0 z-40 border-b border-[color:var(--border-soft)] bg-[color:var(--surface-overlay)] shadow-sm backdrop-blur">
     <div class="grid min-h-20 grid-cols-[auto_1fr_auto] items-center gap-4 px-4 sm:px-6 lg:px-10 xl:px-12">
       <div class="flex items-center gap-8 justify-self-start">
@@ -34,10 +34,10 @@
           <i class="pi" [class.pi-sun]="theme.resolvedTheme() === 'light'" [class.pi-moon]="theme.resolvedTheme() === 'dark'"></i>
           {{ themeLabel() }}
         </button>
-        <div class="hidden items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 dark:border-amber-900/70 dark:bg-amber-950/50 dark:text-amber-200 md:flex" *ngIf="needsOnboarding()">
+        <ui-label tone="warn" class="hidden md:inline-flex" *ngIf="needsOnboarding()">
           <i class="pi pi-compass text-[10px]"></i>
           Onboarding da completare
-        </div>
+        </ui-label>
         <button type="button" class="hidden rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-1.5 text-xs font-medium text-[color:var(--text-2)] transition hover:border-[color:var(--border-strong)] hover:text-[color:var(--text-1)] md:inline-flex" (click)="goToOnboarding()" *ngIf="currentUser()?.role === 'volunteer'">
           Profilo operativo
         </button>
