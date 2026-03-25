@@ -50,7 +50,7 @@
 
     <div class="grid gap-4">
       <ui-card title="Informazioni profilo" subtitle="Dati personali e preferenze di servizio" surfaceClass="p-5 min-h-[30rem] max-h-[36rem]" bodyClass="overflow-y-auto pr-1">
-        <app-user-profile-editor [profileForm]="profileForm" [saving]="savingProfile()" submitLabel="Salva profilo" (save)="saveProfile()"></app-user-profile-editor>
+        <app-user-profile-editor [profileForm]="profileForm" [saving]="savingProfile()" [shiftPreferenceOptions]="shiftPreferenceOptions()" [competencyOptions]="competencyOptions()" [locationPreferenceOptions]="locationPreferenceOptions()" [teamPreferenceOptions]="preferredTeamOptions()" submitLabel="Salva profilo" (save)="saveProfile()"></app-user-profile-editor>
       </ui-card>
 
       <ui-card title="Credenziali" subtitle="Cambio password con verifica della password attuale" surfaceClass="p-5 min-h-[22rem] max-h-[28rem]" bodyClass="overflow-y-auto pr-1">

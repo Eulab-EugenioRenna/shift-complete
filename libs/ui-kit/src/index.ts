@@ -1,5 +1,6 @@
 export * from './lib/theme-tokens';
 export * from './lib/components/ui-card.component';
+export * from './lib/components/ui-filter-bar.component';
 export * from './lib/components/ui-button.component';
 export * from './lib/components/ui-input.component';
 export * from './lib/components/ui-textarea.component';
@@ -25,6 +26,7 @@ export * from './lib/components/ui-pagination.component';
 export * from './lib/components/ui-page-header.component';
 export * from './lib/components/ui-surface.component';
 export * from './lib/components/ui-stat-card.component';
+export * from './lib/components/ui-list-panel.component';
 export * from './lib/components/ui-board-column.component';
 export * from './lib/components/ui-board-tile.component';
 export * from './lib/components/ui-replacement-timeline-card.component';

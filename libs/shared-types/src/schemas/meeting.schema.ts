@@ -1,0 +1,43 @@
+import { z } from 'zod';
+import { EventEditModeSchema } from './event.schema';
+
+export const CreateMeetingGroupSchema = z.object({
+  name: z.string().min(2),
+  description: z.string().optional().nullable(),
+  leaderId: z.string().cuid().or(z.string().uuid()).optional().nullable(),
+  groupId: z.string().cuid().or(z.string().uuid()).optional().nullable(),
+});
+export type CreateMeetingGroupDto = z.infer<typeof CreateMeetingGroupSchema>;
+
+export const UpdateMeetingGroupSchema = CreateMeetingGroupSchema.partial();
+export type UpdateMeetingGroupDto = z.infer<typeof UpdateMeetingGroupSchema>;
+
+export const AddMeetingGroupMemberSchema = z.object({
+  userId: z.string().cuid().or(z.string().uuid()),
+});
+export type AddMeetingGroupMemberDto = z.infer<typeof AddMeetingGroupMemberSchema>;
+
+export const CreateMeetingSchema = z.object({
+  meetingGroupId: z.string().cuid().or(z.string().uuid()),
+  title: z.string().min(2),
+  description: z.string().optional().nullable(),
+  locationValue: z.string().optional().nullable(),
+  startsAt: z.string().datetime(),
+  endsAt: z.string().datetime(),
+  recurrenceRule: z.string().optional().nullable(),
+  recurrenceTz: z.string().optional().nullable(),
+  recurrenceUntil: z.string().datetime().optional().nullable(),
+  recurrenceDurationMonths: z.number().int().min(1).max(60).optional().nullable(),
+  recurrenceAutoRenew: z.boolean().optional().nullable(),
+  recurrenceRenewMonths: z.number().int().min(1).max(60).optional().nullable(),
+});
+export type CreateMeetingDto = z.infer<typeof CreateMeetingSchema>;
+
+export const UpdateMeetingSchema = CreateMeetingSchema.partial();
+export type UpdateMeetingDto = z.infer<typeof UpdateMeetingSchema>;
+
+export const ExtendedUpdateMeetingSchema = UpdateMeetingSchema.extend({
+  editMode: EventEditModeSchema.optional(),
+  occurrenceStart: z.string().datetime().optional(),
+});
+export type ExtendedUpdateMeetingDto = z.infer<typeof ExtendedUpdateMeetingSchema>;

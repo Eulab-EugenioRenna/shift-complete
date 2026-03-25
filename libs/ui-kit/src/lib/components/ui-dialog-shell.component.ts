@@ -47,11 +47,13 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
           </button>
         </div>
       </header>
-      <div class="min-h-0 flex-1 overflow-y-auto px-6 py-6 pb-10 text-[color:var(--text-2)]">
-        <ng-content></ng-content>
+      <div *ngIf="hasFooter" class="order-3 sticky bottom-0 shrink-0 border-t border-[color:var(--border-soft)] bg-[color:var(--surface-overlay)] px-6 py-4 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur">
+        <div class="flex items-center justify-end gap-2">
+          <ng-content select="[dialog-footer-slot]"></ng-content>
+        </div>
       </div>
-      <div *ngIf="hasFooter" class="sticky bottom-0 shrink-0 border-t border-[color:var(--border-soft)] bg-[color:var(--surface-overlay)] px-6 py-4 backdrop-blur">
-        <ng-content select="[dialog-footer]"></ng-content>
+      <div class="order-2 min-h-0 flex-1 overflow-y-auto px-6 py-6 text-[color:var(--text-2)]" [ngClass]="hasFooter ? 'pb-6' : 'pb-10'">
+        <ng-content select="[dialog-body]"></ng-content>
       </div>
     </section>
   `

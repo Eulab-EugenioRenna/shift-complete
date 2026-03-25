@@ -22,7 +22,7 @@ export class AiSettingsService {
   ) {}
 
   async getSettings() {
-    const settings = await this.ensureSettings();
+    const settings = await this.ensureSettings() as any;
     return this.toResponse(settings);
   }
 
@@ -44,7 +44,7 @@ export class AiSettingsService {
         throw new BadRequestException('Per S3 sono richiesti endpoint, bucket e access key');
       }
 
-      const current = await this.prisma.aiSetting.findUnique({ where: { id: 'global' } });
+      const current = await this.prisma.aiSetting.findUnique({ where: { id: 'global' } } as any) as any;
       const nextSecret = payload.resourceS3SecretKey || current?.resourceS3SecretKey || process.env.RESOURCE_S3_SECRET_KEY;
       if (!nextSecret) {
         throw new BadRequestException('Per S3 e richiesta una secret key');
@@ -82,6 +82,12 @@ export class AiSettingsService {
         resourceJobConcurrency: payload.resourceJobConcurrency,
         notificationJobConcurrency: payload.notificationJobConcurrency,
         aiJobConcurrency: payload.aiJobConcurrency,
+        schedulingPreviewTransport: payload.schedulingPreviewTransport,
+        schedulingPreviewRetryCount: payload.schedulingPreviewRetryCount,
+        schedulingPreviewPollIntervalMs: payload.schedulingPreviewPollIntervalMs,
+        schedulingAsyncRangeDays: payload.schedulingAsyncRangeDays,
+        schedulingAsyncManualSelections: payload.schedulingAsyncManualSelections,
+        schedulingAsyncWithoutEvent: payload.schedulingAsyncWithoutEvent,
         inAppNotificationsEnabled: payload.inAppNotificationsEnabled,
         websocketNotificationsEnabled: payload.websocketNotificationsEnabled,
         emailNotificationsEnabled: payload.emailNotificationsEnabled,
@@ -123,6 +129,12 @@ export class AiSettingsService {
         resourceJobConcurrency: payload.resourceJobConcurrency ?? 3,
         notificationJobConcurrency: payload.notificationJobConcurrency ?? 5,
         aiJobConcurrency: payload.aiJobConcurrency ?? 2,
+        schedulingPreviewTransport: payload.schedulingPreviewTransport ?? 'hybrid',
+        schedulingPreviewRetryCount: payload.schedulingPreviewRetryCount ?? 20,
+        schedulingPreviewPollIntervalMs: payload.schedulingPreviewPollIntervalMs ?? 4000,
+        schedulingAsyncRangeDays: payload.schedulingAsyncRangeDays ?? 14,
+        schedulingAsyncManualSelections: payload.schedulingAsyncManualSelections ?? 20,
+        schedulingAsyncWithoutEvent: payload.schedulingAsyncWithoutEvent ?? true,
         inAppNotificationsEnabled: payload.inAppNotificationsEnabled ?? true,
         websocketNotificationsEnabled: payload.websocketNotificationsEnabled ?? true,
         emailNotificationsEnabled: payload.emailNotificationsEnabled ?? true,
@@ -134,7 +146,7 @@ export class AiSettingsService {
         remindersEnabled: payload.remindersEnabled ?? true,
         quietHours: payload.quietHours ?? true
       }
-    });
+    } as any);
 
     await this.prisma.auditLog.create({
       data: {
@@ -150,9 +162,9 @@ export class AiSettingsService {
           webhookSecret: payload.webhookSecret ? '***' : undefined
         })
       }
-    });
+    } as any) as any;
 
-    return this.toResponse(updated);
+    return this.toResponse(updated as any);
   }
 
   async pingProvider(payload: PingAiProviderDto) {
@@ -220,6 +232,12 @@ export class AiSettingsService {
         resourceJobConcurrency: Number(process.env.RESOURCE_JOB_CONCURRENCY ?? 3),
         notificationJobConcurrency: Number(process.env.NOTIFICATION_JOB_CONCURRENCY ?? 5),
         aiJobConcurrency: Number(process.env.AI_JOB_CONCURRENCY ?? 2),
+        schedulingPreviewTransport: process.env.SCHEDULING_PREVIEW_TRANSPORT ?? 'hybrid',
+        schedulingPreviewRetryCount: Number(process.env.SCHEDULING_PREVIEW_RETRY_COUNT ?? 20),
+        schedulingPreviewPollIntervalMs: Number(process.env.SCHEDULING_PREVIEW_POLL_INTERVAL_MS ?? 4000),
+        schedulingAsyncRangeDays: Number(process.env.SCHEDULING_ASYNC_RANGE_DAYS ?? 14),
+        schedulingAsyncManualSelections: Number(process.env.SCHEDULING_ASYNC_MANUAL_SELECTIONS ?? 20),
+        schedulingAsyncWithoutEvent: process.env.SCHEDULING_ASYNC_WITHOUT_EVENT !== 'false',
         inAppNotificationsEnabled: process.env.IN_APP_NOTIFICATIONS_ENABLED !== 'false',
         websocketNotificationsEnabled: process.env.WEBSOCKET_NOTIFICATIONS_ENABLED !== 'false',
         emailNotificationsEnabled: process.env.EMAIL_NOTIFICATIONS_ENABLED !== 'false',
@@ -227,11 +245,11 @@ export class AiSettingsService {
         webhookUrl: process.env.WEBHOOK_NOTIFICATIONS_URL ?? null,
         webhookSecret: process.env.WEBHOOK_NOTIFICATIONS_SECRET ?? null
       }
-    });
+    } as any) as any;
   }
 
   async runtimeSettings() {
-    const settings = await this.ensureSettings();
+    const settings = await this.ensureSettings() as any;
     return {
       provider: settings.provider,
       apiKey: settings.apiKey ?? undefined,
@@ -261,6 +279,12 @@ export class AiSettingsService {
       resourceJobConcurrency: settings.resourceJobConcurrency,
       notificationJobConcurrency: settings.notificationJobConcurrency,
       aiJobConcurrency: settings.aiJobConcurrency,
+      schedulingPreviewTransport: (settings as any).schedulingPreviewTransport ?? 'hybrid',
+      schedulingPreviewRetryCount: Number((settings as any).schedulingPreviewRetryCount ?? 20),
+      schedulingPreviewPollIntervalMs: Number((settings as any).schedulingPreviewPollIntervalMs ?? 4000),
+      schedulingAsyncRangeDays: Number((settings as any).schedulingAsyncRangeDays ?? 14),
+      schedulingAsyncManualSelections: Number((settings as any).schedulingAsyncManualSelections ?? 20),
+      schedulingAsyncWithoutEvent: Boolean((settings as any).schedulingAsyncWithoutEvent ?? true),
       inAppNotificationsEnabled: settings.inAppNotificationsEnabled,
       websocketNotificationsEnabled: settings.websocketNotificationsEnabled,
       emailNotificationsEnabled: settings.emailNotificationsEnabled,
@@ -303,6 +327,12 @@ export class AiSettingsService {
     resourceJobConcurrency: number;
     notificationJobConcurrency: number;
     aiJobConcurrency: number;
+    schedulingPreviewTransport?: string;
+    schedulingPreviewRetryCount?: number;
+    schedulingPreviewPollIntervalMs?: number;
+    schedulingAsyncRangeDays?: number;
+    schedulingAsyncManualSelections?: number;
+    schedulingAsyncWithoutEvent?: boolean;
     inAppNotificationsEnabled: boolean;
     websocketNotificationsEnabled: boolean;
     emailNotificationsEnabled: boolean;
@@ -340,6 +370,12 @@ export class AiSettingsService {
       resourceJobConcurrency: settings.resourceJobConcurrency,
       notificationJobConcurrency: settings.notificationJobConcurrency,
       aiJobConcurrency: settings.aiJobConcurrency,
+      schedulingPreviewTransport: settings.schedulingPreviewTransport ?? 'hybrid',
+      schedulingPreviewRetryCount: settings.schedulingPreviewRetryCount ?? 20,
+      schedulingPreviewPollIntervalMs: settings.schedulingPreviewPollIntervalMs ?? 4000,
+      schedulingAsyncRangeDays: settings.schedulingAsyncRangeDays ?? 14,
+      schedulingAsyncManualSelections: settings.schedulingAsyncManualSelections ?? 20,
+      schedulingAsyncWithoutEvent: settings.schedulingAsyncWithoutEvent ?? true,
       inAppNotificationsEnabled: settings.inAppNotificationsEnabled,
       websocketNotificationsEnabled: settings.websocketNotificationsEnabled,
       emailNotificationsEnabled: settings.emailNotificationsEnabled,

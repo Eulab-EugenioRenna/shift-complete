@@ -3,7 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ReplacementItem, TeamListItem } from '@shift-complete/shared-types';
-import { UiButtonComponent, UiCardComponent, UiConfirmDialogComponent, UiFieldComponent, UiInputComponent, UiLabelComponent, UiModalComponent, UiPageHeaderComponent, UiSelectComponent, UiSidebarPanelComponent, UiSurfaceComponent, UiTableShellComponent } from '@shift-complete/ui-kit';
+import { UiButtonComponent, UiCardComponent, UiConfirmDialogComponent, UiFilterBarComponent, UiInputComponent, UiLabelComponent, UiModalComponent, UiPageHeaderComponent, UiSelectComponent, UiSidebarPanelComponent, UiSurfaceComponent, UiTableShellComponent } from '@shift-complete/ui-kit';
 import { ApiErrorService } from '../../core/services/api-error.service';
 import { GlobalTeamScopeService } from '../../core/services/global-team-scope.service';
 import { SpotlightSearchService } from '../../core/services/spotlight-search.service';
@@ -15,7 +15,7 @@ import { SessionService } from '../../core/services/session.service';
 @Component({
   selector: 'app-replacements-history-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiButtonComponent, UiCardComponent, UiConfirmDialogComponent, UiFieldComponent, UiInputComponent, UiLabelComponent, UiModalComponent, UiPageHeaderComponent, UiSelectComponent, UiSidebarPanelComponent, UiSurfaceComponent, UiTableShellComponent, TeamScopeChipsComponent],
+  imports: [CommonModule, FormsModule, UiButtonComponent, UiCardComponent, UiConfirmDialogComponent, UiFilterBarComponent, UiInputComponent, UiLabelComponent, UiModalComponent, UiPageHeaderComponent, UiSelectComponent, UiSidebarPanelComponent, UiSurfaceComponent, UiTableShellComponent, TeamScopeChipsComponent],
   templateUrl: './replacements-history-page.component.html',
 })
 export class ReplacementsHistoryPageComponent {
@@ -52,11 +52,13 @@ export class ReplacementsHistoryPageComponent {
   protected readonly filters = {
     status: signal(''),
     person: signal(''),
+    requestedBy: signal(''),
   };
 
   protected readonly filteredReplacements = computed(() => {
     const status = this.filters.status().trim();
     const person = this.filters.person().trim().toLowerCase();
+    const requestedBy = this.filters.requestedBy().trim();
 
     return this.replacements().filter((replacement) => {
       const scopedTeamId = this.teamScope.teamId();
@@ -64,9 +66,21 @@ export class ReplacementsHistoryPageComponent {
       const statusMatch = !status || replacement.status === status;
       const personPool = `${replacement.requestedBy?.fullName || ''} ${replacement.replacementAssignee?.fullName || ''}`.toLowerCase();
       const personMatch = !person || personPool.includes(person);
-      return teamMatch && statusMatch && personMatch;
+      const requesterMatch = !requestedBy || replacement.requestedBy?.id === requestedBy;
+      return teamMatch && statusMatch && personMatch && requesterMatch;
     });
   });
+
+  protected readonly requesterOptions = computed(() => [
+    { label: 'Tutti i richiedenti', value: '' },
+    ...Array.from(
+      new Map(
+        this.replacements()
+          .filter((replacement) => Boolean(replacement.requestedBy?.id))
+          .map((replacement) => [replacement.requestedBy!.id, { label: replacement.requestedBy!.fullName, value: replacement.requestedBy!.id }])
+      ).values()
+    ),
+  ]);
 
   protected readonly sortedReplacements = computed(() => {
     const highlightedReplacementId = this.highlightedReplacementId();
@@ -166,6 +180,7 @@ export class ReplacementsHistoryPageComponent {
     return Boolean(
       this.filters.status() ||
       this.filters.person() ||
+      this.filters.requestedBy() ||
       this.selectedReplacementIds().length ||
       this.assistantReplacement() ||
       this.expandedReplacementId() ||
@@ -205,6 +220,7 @@ export class ReplacementsHistoryPageComponent {
   protected clearReplacementView(): void {
     this.filters.status.set('');
     this.filters.person.set('');
+    this.filters.requestedBy.set('');
     this.selectedReplacementIds.set([]);
     this.bulkReplacementAssigneeId.set(null);
     this.actionFeedback.set({});
@@ -239,6 +255,12 @@ export class ReplacementsHistoryPageComponent {
   protected openAssistant(replacement: ReplacementItem): void {
     this.assistantReplacement.set(replacement);
     this.expandedReplacementId.set(replacement.id);
+    this.router.navigate([], { queryParams: { replacementId: replacement.id }, queryParamsHandling: 'merge' });
+  }
+
+  protected selectReplacement(replacement: ReplacementItem): void {
+    this.highlightedReplacementId.set(replacement.id);
+    this.assistantReplacement.set(replacement);
     this.router.navigate([], { queryParams: { replacementId: replacement.id }, queryParamsHandling: 'merge' });
   }
 

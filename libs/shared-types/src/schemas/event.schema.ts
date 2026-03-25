@@ -14,6 +14,7 @@ export const CreateEventSchema = z.object({
   title: z.string().min(2),
   description: z.string().optional(),
   type: EventTypeEnum,
+  locationValue: z.string().optional(),
   startsAt: z.string().datetime(),
   endsAt: z.string().datetime(),
   recurrenceRule: z.string().optional(),

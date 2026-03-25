@@ -28,5 +28,5 @@ export class TeamScopeChipsComponent {
 
   @Input() teams: Array<{ id: string; name: string }> = [];
 
-  protected readonly visible = computed(() => this.session.hasAnyRole('administrator', 'service_leader'));
+  protected readonly visible = computed(() => this.session.isAdministrator());
 }

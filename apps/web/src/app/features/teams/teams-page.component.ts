@@ -1,16 +1,18 @@
 import { CommonModule } from '@angular/common';
 import { Component, HostListener, computed, ElementRef, ViewChild, effect, inject, signal } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { ReplacementItem, TeamAccessRequestItem, TeamListItem, UserProfile } from '@shift-complete/shared-types';
+import { MeetingGroupItem, ReplacementItem, TeamAccessRequestItem, TeamGroupItem, TeamListItem, UserPreferenceCatalogItem, UserProfile } from '@shift-complete/shared-types';
 import {
   UiButtonComponent,
+  UiBadgeComponent,
   UiCardComponent,
   UiChipComponent,
   UiConfirmDialogComponent,
   UiFieldComponent,
   UiInputComponent,
   UiLabelComponent,
+  UiMultiSelectComponent,
   UiModalComponent,
   UiPageHeaderComponent,
   UiSelectComponent,
@@ -25,8 +27,10 @@ import { ApiErrorService } from '../../core/services/api-error.service';
 import { GlobalTeamScopeService } from '../../core/services/global-team-scope.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import { TeamScopeChipsComponent } from '../../shared/components/team-scope-chips.component';
+import { ReportDocument, ReportModalComponent } from '../../shared/components/report-modal.component';
 import { AppApiService } from '../../shared/services/app-api.service';
 import { SessionService } from '../../core/services/session.service';
+import { OrgChartComponent } from './org-chart.component';
 
 type TeamDuty = NonNullable<TeamListItem['duties']>[number];
 
@@ -47,11 +51,13 @@ type PendingConfirmAction = {
     CommonModule,
     FormsModule,
     UiButtonComponent,
+    UiBadgeComponent,
     UiCardComponent,
     UiChipComponent,
     UiConfirmDialogComponent,
     UiFieldComponent,
     UiInputComponent,
+    UiMultiSelectComponent,
     UiTableShellComponent,
     UiLabelComponent,
     UiModalComponent,
@@ -62,6 +68,9 @@ type PendingConfirmAction = {
     UiSurfaceComponent,
     UiTextareaComponent,
     TeamScopeChipsComponent,
+    OrgChartComponent,
+    ReportModalComponent,
+    RouterLink,
   ],
   templateUrl: './teams-page.component.html',
 })
@@ -83,6 +92,7 @@ export class TeamsPageComponent {
   protected readonly people = signal<UserProfile[]>([]);
   protected readonly replacements = signal<ReplacementItem[]>([]);
   protected readonly teamRequests = signal<TeamAccessRequestItem[]>([]);
+  protected readonly preferenceCatalog = signal<UserPreferenceCatalogItem[]>([]);
   protected readonly selectedTeam = signal<TeamListItem | null>(null);
   protected readonly editingTeamId = signal<string | null>(null);
   protected readonly editingDutyId = signal<string | null>(null);
@@ -97,11 +107,84 @@ export class TeamsPageComponent {
   protected readonly canEditTeams = computed(() => this.session.isAdministrator());
   protected readonly canManageRequests = computed(() => this.session.hasAnyRole('administrator', 'service_leader'));
   protected readonly memberDutySelections = signal<Record<string, string[]>>({});
+  protected readonly teamCompetencySelections = signal<Record<string, string[]>>({});
+  protected readonly dutyCompetencySelections = signal<Record<string, string[]>>({});
+  protected readonly competencyOptions = computed(() => this.preferenceCatalog().filter((item) => item.type === 'competency').map((item) => ({ label: item.label, value: item.value })));
+  protected readonly reportVisible = signal(false);
+  protected readonly teamReport = computed<ReportDocument | null>(() => {
+    const team = this.selectedTeam();
+    if (!team) {
+      return null;
+    }
+
+    const members = team.members ?? [];
+    const duties = team.duties ?? [];
+    const openReplacements = this.replacements().filter((replacement) => replacement.status === 'PENDING' && replacement.assignment?.slot?.team?.name === team.name);
+    const competencies = this.competencyLabels(team.requiredCompetencies);
+
+    return {
+      eyebrow: 'Report team',
+      title: team.name,
+      subtitle: 'Stato organizzativo del team, con leadership, mansioni e assegnazioni operative delle persone.',
+      fileName: this.reportFileName(`team-${team.name}`),
+      generatedAt: this.formatDateTime(new Date().toISOString()),
+      sections: [
+        {
+          title: 'Panoramica team',
+          metrics: [
+            { label: 'Membri', value: String(team.memberCount || members.length) },
+            { label: 'Mansioni', value: String(duties.length) },
+            { label: 'Replacement aperte', value: String(openReplacements.length) },
+            { label: 'Competenze richieste', value: String(team.requiredCompetencies?.length ?? 0) },
+          ],
+          facts: [
+            { label: 'Leader', value: team.leader?.fullName || 'Da assegnare' },
+            { label: 'Gruppo', value: team.group?.name || 'Nessun gruppo' },
+            { label: 'Competenze team', value: competencies },
+            { label: 'Descrizione', value: team.description || 'Nessuna descrizione registrata.' },
+          ],
+        },
+        {
+          title: 'Membri e duty assegnate',
+          description: 'Vista dell organico corrente con responsabilita operative.',
+          table: {
+            columns: ['Persona', 'Ruolo', 'Email', 'Mansioni assegnate'],
+            rows: members.length
+              ? members.map((member) => [
+                  member.fullName,
+                  member.role,
+                  member.email,
+                  this.memberAssignedDutyNames(member),
+                ])
+              : [['Nessun membro', '-', '-', '-']],
+          },
+        },
+        {
+          title: 'Catalogo mansioni',
+          description: 'Ruoli operativi del team e requisiti di competenza associati.',
+          table: {
+            columns: ['Mansione', 'Competenze richieste', 'Colore', 'Icona'],
+            rows: duties.length
+              ? duties.map((duty) => [
+                  duty.name,
+                  this.competencyLabels(duty.requiredCompetencies),
+                  duty.color || 'Non definito',
+                  duty.icon || 'Non definita',
+                ])
+              : [['Nessuna mansione', '-', '-', '-']],
+          },
+          note: openReplacements.length
+            ? `Sono presenti ${openReplacements.length} replacement aperte collegate a questo team.`
+            : 'Nessuna replacement aperta collegata al team nel momento del report.',
+        },
+      ],
+    };
+  });
 
   protected teamDialogVisible = false;
   protected dutyDialogVisible = false;
   protected teamForm = { name: '', description: '', leaderId: null as string | null };
-  protected dutyForm = { teamId: '', name: '', description: '', color: '', icon: '' };
+  protected dutyForm = { teamId: '', name: '', description: '', color: '', icon: '', requiredCompetencies: [] as string[] };
   protected replacementAssigneeSelection: Record<string, string> = {};
   protected readonly locallyReservedSuggestionIds = signal<string[]>([]);
   protected readonly highlightedTab = signal<'replacements' | 'requests'>('replacements');
@@ -110,6 +193,38 @@ export class TeamsPageComponent {
   protected readonly confirmVisible = signal(false);
   protected readonly pendingConfirm = signal<PendingConfirmAction | null>(null);
   @ViewChild('teamRequestsSection') private teamRequestsSection?: ElementRef<HTMLElement>;
+
+  protected readonly orgChartView = signal(false);
+  protected readonly teamGroups = signal<TeamGroupItem[]>([]);
+  protected readonly meetingGroups = signal<MeetingGroupItem[]>([]);
+
+  protected readonly selectedTeamOrgGroups = computed(() => {
+    const selectedTeam = this.selectedTeam();
+    if (!selectedTeam) {
+      return [] as TeamGroupItem[];
+    }
+
+    const matchingGroup = this.teamGroups().find((group) => group.id === selectedTeam.groupId);
+    if (!matchingGroup) {
+      return [] as TeamGroupItem[];
+    }
+
+    return [
+      {
+        ...matchingGroup,
+        teams: matchingGroup.teams.filter((team) => team.id === selectedTeam.id),
+      },
+    ];
+  });
+
+  protected readonly selectedTeamMeetingGroups = computed(() => {
+    const selectedTeam = this.selectedTeam();
+    if (!selectedTeam?.groupId) {
+      return [] as MeetingGroupItem[];
+    }
+
+    return this.meetingGroups().filter((group) => group.groupId === selectedTeam.groupId);
+  });
 
   @HostListener('document:keydown.escape', ['$event'])
   protected handleEscape(event: KeyboardEvent): void {
@@ -191,6 +306,27 @@ export class TeamsPageComponent {
     return (team.duties ?? []).map((duty) => ({ label: duty.name, value: duty.id }));
   }
 
+  protected selectedTeamCompetencies(teamId: string): string[] {
+    return this.teamCompetencySelections()[teamId] ?? this.teams().find((team) => team.id === teamId)?.requiredCompetencies ?? [];
+  }
+
+  protected selectedDutyCompetencies(dutyId: string): string[] {
+    return this.dutyCompetencySelections()[dutyId] ?? this.teams().flatMap((team) => team.duties ?? []).find((duty) => duty.id === dutyId)?.requiredCompetencies ?? [];
+  }
+
+  protected setTeamCompetencies(teamId: string, values: unknown[] | null | undefined): void {
+    this.teamCompetencySelections.update((state) => ({ ...state, [teamId]: (values ?? []).map((item) => String(item)) }));
+  }
+
+  protected setDutyCompetencies(dutyId: string, values: unknown[] | null | undefined): void {
+    this.dutyCompetencySelections.update((state) => ({ ...state, [dutyId]: (values ?? []).map((item) => String(item)) }));
+  }
+
+  protected competencyLabels(values: string[] | null | undefined): string {
+    const labels = (values ?? []).map((value) => this.preferenceCatalog().find((item) => item.type === 'competency' && item.value === value)?.label ?? value);
+    return labels.length ? labels.join(', ') : 'Nessuna competenza richiesta';
+  }
+
   protected memberAssignedDutyNames(member: NonNullable<TeamListItem['members']>[number]): string {
     return member.duties?.map((duty) => duty.name).join(', ') || 'Nessuna mansione assegnata';
   }
@@ -231,6 +367,7 @@ export class TeamsPageComponent {
       description: '',
       color: '',
       icon: '',
+      requiredCompetencies: [],
     };
     this.dutyDialogVisible = true;
   }
@@ -251,6 +388,7 @@ export class TeamsPageComponent {
       description: team.description ?? '',
       leaderId: team.leader?.id ?? null,
     };
+    this.teamCompetencySelections.update((state) => ({ ...state, [team.id]: team.requiredCompetencies ?? [] }));
     this.teamDialogVisible = true;
   }
 
@@ -276,6 +414,7 @@ export class TeamsPageComponent {
       name: this.teamForm.name.trim(),
       description: this.teamForm.description.trim() || undefined,
       leaderId: this.teamForm.leaderId || undefined,
+      requiredCompetencies: this.editingTeamId() ? this.selectedTeamCompetencies(this.editingTeamId() as string) : undefined,
     };
 
     const request = this.editingTeamId()
@@ -329,6 +468,7 @@ export class TeamsPageComponent {
       description: '',
       color: duty.color ?? '',
       icon: duty.icon ?? '',
+      requiredCompetencies: duty.requiredCompetencies ?? [],
     };
     this.dutyDialogVisible = true;
   }
@@ -343,6 +483,7 @@ export class TeamsPageComponent {
       description: this.dutyForm.description.trim() || undefined,
       color: this.dutyForm.color.trim() || undefined,
       icon: this.dutyForm.icon.trim() || undefined,
+      requiredCompetencies: this.dutyForm.requiredCompetencies,
     };
 
     const request = this.editingDutyId()
@@ -351,6 +492,7 @@ export class TeamsPageComponent {
           description: payload.description,
           color: payload.color,
           icon: payload.icon,
+          requiredCompetencies: payload.requiredCompetencies,
         })
       : this.api.createDuty(payload);
 
@@ -680,6 +822,34 @@ export class TeamsPageComponent {
     });
   }
 
+  protected saveTeamCompetencies(teamId: string): void {
+    if (!this.canManageTeams()) {
+      return;
+    }
+
+    this.api.updateTeamCompetencies(teamId, this.selectedTeamCompetencies(teamId)).subscribe({
+      next: () => {
+        this.loadData();
+        this.feedback.success('Competenze team aggiornate');
+      },
+      error: (error) => this.feedback.error('Aggiornamento non riuscito', this.apiError.message(error, 'Impossibile aggiornare le competenze del team.')),
+    });
+  }
+
+  protected saveDutyCompetencies(dutyId: string): void {
+    if (!this.canManageTeams()) {
+      return;
+    }
+
+    this.api.updateDutyCompetencies(dutyId, this.selectedDutyCompetencies(dutyId)).subscribe({
+      next: () => {
+        this.loadData();
+        this.feedback.success('Competenze mansione aggiornate');
+      },
+      error: (error) => this.feedback.error('Aggiornamento non riuscito', this.apiError.message(error, 'Impossibile aggiornare le competenze della mansione.')),
+    });
+  }
+
   protected requestJoinForSelectedTeam(): void {
     if (!this.canManageTeams()) {
       return;
@@ -799,6 +969,11 @@ export class TeamsPageComponent {
   }
 
   private loadData(): void {
+    this.api.userPreferenceCatalog().subscribe({
+      next: (items) => this.preferenceCatalog.set(items),
+      error: () => this.preferenceCatalog.set([]),
+    });
+
     this.api.teams().subscribe({
       next: (teams) => {
         this.teams.set(teams);
@@ -806,6 +981,12 @@ export class TeamsPageComponent {
           Object.fromEntries(
             teams.flatMap((team) => (team.members ?? []).map((member) => [member.id, member.dutyIds ?? []]))
           )
+        );
+        this.teamCompetencySelections.set(
+          Object.fromEntries(teams.map((team) => [team.id, team.requiredCompetencies ?? []]))
+        );
+        this.dutyCompetencySelections.set(
+          Object.fromEntries(teams.flatMap((team) => (team.duties ?? []).map((duty) => [duty.id, duty.requiredCompetencies ?? []])))
         );
         const selectedTeamId = this.teamScope.teamId() || this.selectedTeam()?.id;
         const nextSelectedTeam = teams.find((team) => team.id === selectedTeamId) ?? teams[0] ?? null;
@@ -832,6 +1013,18 @@ export class TeamsPageComponent {
     this.api.teamJoinRequests().subscribe({
       next: (items) => this.teamRequests.set(items),
       error: (error) => this.feedback.error('Richieste team non caricate', this.apiError.message(error, 'Impossibile recuperare le richieste team.')),
+    });
+
+    this.api.teamGroups().subscribe({
+      next: (groups) => this.teamGroups.set(groups),
+      error: () => {},
+    });
+
+    this.api.meetingGroups().subscribe({
+      next: (groups) => {
+        this.meetingGroups.set(groups);
+      },
+      error: (error) => this.feedback.error('Gruppi riunione non caricati', this.apiError.message(error, 'Impossibile recuperare i gruppi riunione.')),
     });
   }
 
@@ -872,5 +1065,33 @@ export class TeamsPageComponent {
     return this.teams()
       .flatMap((team) => team.members ?? [])
       .find((member) => member.id === memberId) ?? null;
+  }
+
+  protected openTeamReport(): void {
+    if (!this.selectedTeam()) {
+      return;
+    }
+
+    this.reportVisible.set(true);
+  }
+
+  private formatDateTime(value?: string | null): string {
+    if (!value) {
+      return '-';
+    }
+
+    return new Intl.DateTimeFormat('it-IT', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(value));
+  }
+
+  private reportFileName(value: string): string {
+    return `${value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'report'}.pdf`;
   }
 }

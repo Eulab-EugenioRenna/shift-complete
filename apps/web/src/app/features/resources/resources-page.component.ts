@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { UiButtonComponent, UiConfirmDialogComponent, UiLabelComponent, UiPageHeaderComponent, UiSelectComponent, UiStatCardComponent, UiSurfaceComponent } from '@shift-complete/ui-kit';
+import { UiButtonComponent, UiConfirmDialogComponent, UiFilterBarComponent, UiLabelComponent, UiPageHeaderComponent, UiSelectComponent, UiStatCardComponent, UiSurfaceComponent } from '@shift-complete/ui-kit';
 import { ApiErrorService } from '../../core/services/api-error.service';
 import { GlobalTeamScopeService } from '../../core/services/global-team-scope.service';
 import { ResourceTransferQueueService } from '../../core/services/resource-transfer-queue.service';
@@ -45,7 +45,7 @@ type ResourceSummary = {
 @Component({
   selector: 'app-resources-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiButtonComponent, UiConfirmDialogComponent, UiLabelComponent, UiPageHeaderComponent, UiSelectComponent, UiStatCardComponent, UiSurfaceComponent, TeamScopeChipsComponent],
+  imports: [CommonModule, FormsModule, UiButtonComponent, UiConfirmDialogComponent, UiFilterBarComponent, UiLabelComponent, UiPageHeaderComponent, UiSelectComponent, UiStatCardComponent, UiSurfaceComponent, TeamScopeChipsComponent],
   templateUrl: './resources-page.component.html',
   styles: [`
     :host ::ng-deep .resource-row-highlight {
@@ -87,6 +87,7 @@ export class ResourcesPageComponent {
   protected readonly summary = signal<ResourceSummary | null>(null);
   protected readonly confirmVisible = signal(false);
   protected readonly pendingDelete = signal<ResourceItem | null>(null);
+  protected readonly dragActive = signal(false);
   private highlightResetTimer?: ReturnType<typeof setTimeout>;
 
   protected readonly teamOptions = computed(() => this.teams());
@@ -202,6 +203,24 @@ export class ResourcesPageComponent {
     this.transferQueue.enqueueUploads(files, this.uploadTeamId || undefined);
     this.feedback.success('Upload accodato', `${files.length} file inseriti nella coda trasferimenti.`);
     (event.target as HTMLInputElement).value = '';
+  }
+
+  protected onDropFiles(event: DragEvent): void {
+    event.preventDefault();
+    this.dragActive.set(false);
+    if (!this.canManageResources()) {
+      return;
+    }
+    const files = Array.from(event.dataTransfer?.files ?? []);
+    if (!files.length) {
+      return;
+    }
+    this.transferQueue.enqueueUploads(files, this.uploadTeamId || undefined);
+    this.feedback.success('Upload accodato', `${files.length} file inseriti nella coda trasferimenti.`);
+  }
+
+  protected setDragActive(active: boolean): void {
+    this.dragActive.set(active);
   }
 
   protected queueDownload(resource: ResourceItem): void {

@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsArray, IsOptional, IsString } from 'class-validator';
 
 export class UpdateTeamDto {
   @IsOptional()
@@ -12,4 +12,8 @@ export class UpdateTeamDto {
   @IsOptional()
   @IsString()
   leaderId?: string;
+
+  @IsOptional()
+  @IsArray()
+  requiredCompetencies?: string[];
 }

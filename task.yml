@@ -1,0 +1,46 @@
+- task:
+    - Calendario:
+        - fix agenda h e dettaglio h, agenda come dashboard e dettaglio come in eventi (sticky + nuovo fix) in tutte le view del calendario
+        - rimuovi assistente
+        - fix filter bar, input prendono troppo spazio, tutti i filtri devono avere tutto, tasto rimuovi filtri che imposta tutto su tutti i filtri.
+    - Eventi:
+        - filter bar come in calendario
+        - fix h max e scrolling su dettagli evento
+        - button elimina rosso e modifica bianco + verde, sistemare colori (serie e occorrenze) - no full w button 
+    - Sostituzioni:
+        - aggiungi dettaglio sostituzione come in eventi 
+        - rimuovi assistente
+        - seleziona sostituzione si apre dettagli
+        - registro sostituzioni, troppi elementi confusi, fix ui tra registro e dettagli
+        - sezione filtri richiedente select 
+        - nuova sostituzione button + flow
+        - rimuovi cerca
+    - Team:
+        - migliora ui il managment su main col e team attivi su side 
+        - sistema ui alignment button only icon richieste sostituzione item e anche in richieste team
+        - organigramma solo del team selezionato, sola lettura dai dati del gruppo 
+        - spostare nuovo gruppo button su organigramma generale
+        - sposta gruppi team su organigramma generale
+        - sposta gruppi riunione su riunione 
+    - Organigramma:
+        - organigramma generale su pagina nuova
+    - Riunioni:
+        - gestione meeting e meeting group
+    - Inventario:
+        - rimuovi cerca
+        - rimuovi select team 
+        - allinea dettagli a inizio liste come in eventi
+    - Admin/user:
+        - rimuovi cerca
+        - allinea dettagli a inizio liste come in eventi
+        - filter ui
+    - Risorse:
+        - select con nomi EMPTY, select + button insieme riga, nuovo componente ui (aggiungi in design)+ drag and drop file area
+        - side dettagli secondo posto dopo queque
+        - libreria globale visibile a tutti,  libreria team solo a chi ne fa parte, admin vede tutto
+        - azioni icon
+        - rimuovi cerca
+    - All:
+        - in ogni pagina c'è un chip per i team che fa da filtro questo lo vede solo admin
+    - UI:
+        - filter bar con icon da inserire in tutte le toolbar con pochi elementi es. amministratore - leader - volontario 3 icone, liste di x elementi rimane select (aggiungi in design)

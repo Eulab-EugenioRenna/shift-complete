@@ -3,7 +3,7 @@ import { Role } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
-import { CreateDutyDto, CreateDutySchema, UpdateDutyDto, UpdateDutySchema } from '@shift-complete/shared-types';
+import { CreateDutyDto, CreateDutySchema, UpdateDutyDto, UpdateDutySchema, UpdateTeamCompetenciesDto, UpdateTeamCompetenciesSchema } from '@shift-complete/shared-types';
 import { DutiesService } from './duties.service';
 
 @Controller('duties')
@@ -27,6 +27,13 @@ export class DutiesController {
   @UsePipes(new ZodValidationPipe(UpdateDutySchema))
   update(@Param('dutyId') dutyId: string, @Body() body: UpdateDutyDto, @CurrentUser() user: { sub: string; role: Role }) {
     return this.dutiesService.update(dutyId, body, user.sub, user.role);
+  }
+
+  @Roles(Role.administrator, Role.service_leader)
+  @Patch(':dutyId/competencies')
+  @UsePipes(new ZodValidationPipe(UpdateTeamCompetenciesSchema))
+  updateCompetencies(@Param('dutyId') dutyId: string, @Body() body: UpdateTeamCompetenciesDto, @CurrentUser() user: { sub: string; role: Role }) {
+    return this.dutiesService.updateCompetencies(dutyId, body.competencyValues, user.sub, user.role);
   }
 
   @Roles(Role.administrator, Role.service_leader)

@@ -1,4 +1,4 @@
-<section class="grid gap-6 text-[color:var(--text-1)] xl:grid-cols-[1.4fr_0.6fr]">
+<section class="grid gap-6 text-[color:var(--text-1)] xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
   <div class="flex flex-col gap-6">
   <ui-page-header
     eyebrow="Superuser"
@@ -11,12 +11,9 @@
 
   <app-team-scope-chips [teams]="teams()"></app-team-scope-chips>
 
-  <ui-surface surfaceClass="px-4 py-3">
-    <div class="flex flex-col gap-3 md:flex-row md:items-center">
-      <ui-button tone="neutral" variant="outlined" icon="pi pi-search" (buttonClick)="openSpotlight()">Cerca persone</ui-button>
-      <ui-select [options]="roleOptions" [value]="roleFilter" (valueChange)="roleFilter = $any($event); loadUsers()"></ui-select>
-    </div>
-  </ui-surface>
+  <ui-filter-bar title="Filtri utenti" subtitle="Riduci la lista per ruolo e team attivo." fieldsClass="md:grid-cols-1 xl:grid-cols-1">
+    <ui-select [options]="roleOptions" [value]="roleFilter" (valueChange)="roleFilter = $any($event); loadUsers()"></ui-select>
+  </ui-filter-bar>
 
   <ui-surface surfaceClass="overflow-hidden">
     <table class="min-w-full text-sm">
@@ -51,7 +48,8 @@
   </ui-surface>
   </div>
 
-  <ui-surface surfaceClass="sticky top-4 h-fit p-5">
+  <ui-surface surfaceClass="sticky top-24 self-start overflow-hidden p-5 xl:max-h-[calc(100vh-8rem)]">
+    <div class="xl:max-h-[calc(100vh-12.5rem)] xl:min-h-0 xl:overflow-y-auto xl:pr-3 xl:pb-4">
     <ng-container *ngIf="selectedUser() as user; else noSelectedUser">
       <p class="text-xs font-semibold uppercase tracking-widest text-[color:var(--text-3)]">Dettaglio utente</p>
       <h3 class="mt-2 text-lg font-semibold text-[color:var(--text-1)]">{{ user.fullName }}</h3>
@@ -73,10 +71,41 @@
           <p class="mt-1">{{ user.onboardingCompleted ? 'Completo' : 'In corso' }}</p>
         </div>
       </div>
+
+      <div class="mt-6 border-t border-[color:var(--border-soft)] pt-4">
+        <div class="flex items-center justify-between gap-3">
+          <p class="text-xs font-semibold uppercase tracking-widest text-[color:var(--text-3)]">Catalogo planner</p>
+          <ui-select [options]="[{ label: 'Competenze', value: 'competency' }, { label: 'Preferenze turno', value: 'shift' }, { label: 'Luoghi', value: 'location' }]" [value]="catalogType()" (valueChange)="catalogType.set($any($event))"></ui-select>
+        </div>
+        <div class="mt-4 grid gap-3">
+          <ui-field label="Valore">
+            <ui-input [value]="catalogForm.value" (valueChange)="catalogForm.value = $event" placeholder="chiave catalogo"></ui-input>
+          </ui-field>
+          <ui-field label="Etichetta">
+            <ui-input [value]="catalogForm.label" (valueChange)="catalogForm.label = $event" placeholder="etichetta visibile"></ui-input>
+          </ui-field>
+          <ui-field label="Descrizione">
+            <ui-input [value]="catalogForm.description" (valueChange)="catalogForm.description = $event" placeholder="descrizione opzionale"></ui-input>
+          </ui-field>
+          <div class="flex justify-end">
+            <ui-button tone="neutral" variant="outlined" (buttonClick)="saveCatalogItem()">Salva valore</ui-button>
+          </div>
+          <div class="grid gap-2">
+            <div *ngFor="let item of activeCatalogItems()" class="flex items-center justify-between rounded-xl bg-[color:var(--surface-2)] px-3 py-2 text-sm">
+              <div>
+                <p class="font-medium text-[color:var(--text-1)]">{{ item.label }}</p>
+                <p class="text-xs text-[color:var(--text-2)]">{{ item.value }}</p>
+              </div>
+              <button type="button" class="text-red-600 hover:underline" (click)="removeCatalogItem(item.id)">Elimina</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </ng-container>
     <ng-template #noSelectedUser>
       <p class="text-sm text-[color:var(--text-2)]">Seleziona un utente per vedere il riepilogo rapido.</p>
     </ng-template>
+    </div>
   </ui-surface>
 
   <ui-confirm-dialog
@@ -113,7 +142,7 @@
 
   <ui-modal [visible]="formOpen()" (visibleChange)="formOpen.set($event)" [title]="editingId() ? 'Modifica utente' : 'Nuovo utente'" eyebrow="Superuser" subtitle="Gestisci profilo, ruolo e team dell'account." icon="pi pi-user-plus" tone="info" [hasFooter]="true" width="72rem" maxWidth="96vw" (closeRequested)="formOpen.set(false)">
       <div class="grid gap-4">
-        <app-user-profile-editor [profileForm]="form" [showSubmit]="false" [teamPreferenceOptions]="preferredTeamOptions()" [dutyPreferenceOptions]="preferredDutyOptions()"></app-user-profile-editor>
+        <app-user-profile-editor [profileForm]="form" [showSubmit]="false" [shiftPreferenceOptions]="shiftPreferenceOptions()" [competencyOptions]="competencyOptions()" [locationPreferenceOptions]="locationOptions()" [teamPreferenceOptions]="preferredTeamOptions()" [dutyPreferenceOptions]="preferredDutyOptions()"></app-user-profile-editor>
         <div class="grid gap-4 md:grid-cols-2">
           <ui-field label="Ruolo account">
             <ui-select [options]="accountRoleOptions" [value]="form.role" (valueChange)="form.role = $any($event)"></ui-select>

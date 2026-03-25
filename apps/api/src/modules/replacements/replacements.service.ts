@@ -2,14 +2,18 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ReplacementStatus, Role } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { toJsonValue } from '../../common/utils/json.util';
+import { DomainSyncService } from '../domain-sync/domain-sync.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { SchedulingService } from '../scheduling/scheduling.service';
 import { CreateReplacementDto, ResolveReplacementDto } from '@shift-complete/shared-types';
 
 @Injectable()
 export class ReplacementsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService
+    private readonly notificationsService: NotificationsService,
+    private readonly schedulingService: SchedulingService,
+    private readonly domainSync: DomainSyncService
   ) {}
 
   private async getReplacementCandidates(slot: { id: string; teamId: string; duty?: { id?: string | null; name?: string | null } | null; startsAt: Date; endsAt: Date }, replacementAssignmentId: string) {
@@ -67,10 +71,10 @@ export class ReplacementsService {
         continue;
       }
 
-      const preferredShifts = (candidate.settings?.preferredShifts as string[] | null) ?? [];
+      const preferredShifts = ((candidate.settings?.preferredShifts as string[] | null) ?? []).filter((value) => ['morning', 'afternoon', 'evening', 'weekend'].includes(value));
       const preferredTeamIds = (candidate.settings?.preferredTeamIds as string[] | null) ?? [];
       const preferredDutyIds = (candidate.settings?.preferredDutyIds as string[] | null) ?? [];
-      const competencies = (candidate.settings?.competencies as string[] | null) ?? [];
+      const competencies = ((candidate.settings?.competencies as string[] | null) ?? []).filter((value) => ['audio', 'lights', 'welcome', 'medical', 'logistics', 'security'].includes(value));
 
       let score = 100;
       const reasons: string[] = ['base:100'];
@@ -242,6 +246,17 @@ export class ReplacementsService {
       }
     });
 
+    await this.domainSync.syncReplacementMutation({
+      action: 'replacement.created',
+      entityId: replacement.id,
+      eventIds: [assignment.slot.eventId],
+      teamIds: [assignment.slot.teamId],
+      userIds: [actorId, assignment.assigneeId].filter((id): id is string => Boolean(id)),
+      startsAt: assignment.slot.startsAt,
+      endsAt: assignment.slot.endsAt,
+      reason: 'replacement-created',
+    });
+
     if (assignment.slot.team.leaderId) {
       await this.notificationsService.pushSystemNotification(
         assignment.slot.team.leaderId,
@@ -395,9 +410,20 @@ export class ReplacementsService {
     await this.notificationsService.pushSystemNotification(
       replacement.requestedBy.id,
       'Richiesta sostituzione aggiornata',
-      `La richiesta per ${replacement.assignment.slot.event.title} e ora ${payload.status}${payload.replacementAssigneeId ? ' con sostituto assegnato' : ''}`,
+      `La richiesta per ${replacement.assignment.slot.event.title} e stata ${payload.status === 'APPROVED' ? 'approvata' : 'rifiutata'}${payload.replacementAssigneeId ? ' con sostituto assegnato' : ''}.`,
       '/replacements'
     );
+
+    await this.domainSync.syncReplacementMutation({
+      action: `replacement.${payload.status.toLowerCase()}`,
+      entityId: replacementId,
+      eventIds: [replacement.assignment.slot.eventId],
+      teamIds: [replacement.assignment.slot.teamId],
+      userIds: [replacement.requestedBy.id, payload.replacementAssigneeId, replacement.assignment.assignee?.id].filter((id): id is string => Boolean(id)),
+      startsAt: replacement.assignment.slot.startsAt,
+      endsAt: replacement.assignment.slot.endsAt,
+      reason: `replacement-${payload.status.toLowerCase()}`,
+    });
 
     return updated;
   }

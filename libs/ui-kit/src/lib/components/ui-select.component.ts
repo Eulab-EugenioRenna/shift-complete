@@ -22,6 +22,9 @@ import { DropdownModule } from 'primeng/dropdown';
         [optionLabel]="optionLabel"
         [optionValue]="optionValue"
         [optionDisabled]="optionDisabled"
+        [filter]="filter"
+        [filterBy]="filterBy"
+        [filterPlaceholder]="filterPlaceholder"
         [placeholder]="placeholder"
         [appendTo]="appendTo"
         [(ngModel)]="value"
@@ -38,6 +41,9 @@ export class UiSelectComponent {
   @Input() optionLabel = 'label';
   @Input() optionValue = 'value';
   @Input() optionDisabled?: string;
+  @Input() filter = true;
+  @Input() filterBy = 'label';
+  @Input() filterPlaceholder = 'Cerca...';
   @Input() value: unknown;
   @Output() valueChange = new EventEmitter<unknown>();
 }

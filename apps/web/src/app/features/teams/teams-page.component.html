@@ -7,13 +7,72 @@
         headerClass="py-2"
       >
         <div page-actions class="flex gap-2 flex-wrap" *ngIf="canManageTeams()">
+          <div class="flex items-center gap-1 rounded-lg border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-0.5 mr-2">
+            <button type="button" class="rounded-md px-3 py-1.5 text-xs font-medium transition" [ngClass]="!orgChartView() ? 'bg-[color:var(--surface-1)] text-[color:var(--text-1)] shadow-sm' : 'text-[color:var(--text-3)] hover:text-[color:var(--text-1)]'" (click)="orgChartView.set(false)">
+              <i class="pi pi-list mr-1"></i> Lista
+            </button>
+            <button type="button" class="rounded-md px-3 py-1.5 text-xs font-medium transition" [ngClass]="orgChartView() ? 'bg-[color:var(--surface-1)] text-[color:var(--text-1)] shadow-sm' : 'text-[color:var(--text-3)] hover:text-[color:var(--text-1)]'" (click)="orgChartView.set(true)">
+              <i class="pi pi-sitemap mr-1"></i> Organigramma
+            </button>
+          </div>
           <ui-button icon="pi pi-plus" (buttonClick)="openTeamDialog()">Nuovo team</ui-button>
+          <ui-button tone="neutral" variant="outlined" icon="pi pi-file-export" (buttonClick)="openTeamReport()" [disabled]="!selectedTeam()">Report team</ui-button>
           <ui-button tone="neutral" variant="outlined" icon="pi pi-briefcase" (buttonClick)="openDutyDialog()">Nuova mansione</ui-button>
         </div>
       </ui-page-header>
 
       <app-team-scope-chips [teams]="teams()"></app-team-scope-chips>
-      <div class="grid gap-4 xl:grid-cols-[1.4fr_0.6fr]">
+
+      <!-- ORG CHART VIEW -->
+      <ng-container *ngIf="orgChartView()">
+        <ui-surface surfaceClass="overflow-hidden">
+          <div class="border-b border-[color:var(--border-soft)] px-5 py-4 flex items-center justify-between gap-3">
+            <div>
+              <h3 class="text-base font-semibold text-[color:var(--text-1)]">Organigramma team</h3>
+              <p class="mt-0.5 text-sm text-[color:var(--text-2)]">Vista locale del team selezionato con leader, volontari e gruppo di appartenenza.</p>
+            </div>
+            <a routerLink="/org-chart" class="inline-flex items-center gap-2 rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-2 text-sm font-medium text-[color:var(--text-2)] transition hover:bg-[color:var(--surface-2)] hover:text-[color:var(--text-1)]">
+              <i class="pi pi-external-link text-xs"></i>
+              Generale
+            </a>
+          </div>
+          <div class="p-5">
+            <app-org-chart [teams]="selectedTeam() ? [selectedTeam()!] : []" [groups]="selectedTeamOrgGroups()" [meetingGroups]="selectedTeamMeetingGroups()" mode="team"></app-org-chart>
+          </div>
+        </ui-surface>
+        <ui-surface surfaceClass="overflow-hidden">
+          <div class="border-b border-[color:var(--border-soft)] px-5 py-4 flex items-center justify-between gap-3">
+            <div>
+              <h3 class="text-base font-semibold text-[color:var(--text-1)]">Struttura estesa</h3>
+              <p class="mt-0.5 text-sm text-[color:var(--text-2)]">Per gestire gruppi generali e gruppi riunione usa le pagine dedicate.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <a routerLink="/org-chart" class="inline-flex items-center gap-2 rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-2 text-sm font-medium text-[color:var(--text-2)] transition hover:bg-[color:var(--surface-2)] hover:text-[color:var(--text-1)]">
+                <i class="pi pi-sitemap text-xs"></i>
+                Organigramma generale
+              </a>
+              <a routerLink="/meetings" class="inline-flex items-center gap-2 rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-2 text-sm font-medium text-[color:var(--text-2)] transition hover:bg-[color:var(--surface-2)] hover:text-[color:var(--text-1)]">
+                <i class="pi pi-calendar text-xs"></i>
+                Riunioni
+              </a>
+            </div>
+          </div>
+          <div class="grid gap-4 p-5 md:grid-cols-2">
+            <div class="rounded-2xl bg-[color:var(--surface-2)] p-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Gruppo generale</p>
+              <p class="mt-2 text-sm font-medium text-[color:var(--text-1)]">{{ selectedTeam()?.group?.name || 'Nessun gruppo assegnato' }}</p>
+            </div>
+            <div class="rounded-2xl bg-[color:var(--surface-2)] p-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Gruppi riunione collegati</p>
+              <p class="mt-2 text-sm font-medium text-[color:var(--text-1)]">{{ selectedTeamMeetingGroups().length }}</p>
+            </div>
+          </div>
+        </ui-surface>
+      </ng-container>
+
+      <!-- LIST VIEW (original) -->
+      <ng-container *ngIf="!orgChartView()">
+      <div class="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
         <!-- LEFT COLUMN: Team list -->
         <ui-surface surfaceClass="overflow-hidden">
           <div class="border-b border-[color:var(--border-soft)] px-5 py-4">
@@ -188,6 +247,7 @@
           </ng-template>
         </ui-surface>
       </div>
+      </ng-container> <!-- end list view -->
 
       <div class="grid gap-6 md:grid-cols-3">
         <ui-stat-card label="Replacement pending" [value]="pendingReplacements()" detail="richieste che aspettano una decisione"></ui-stat-card>
@@ -401,6 +461,7 @@
         </div>
       </ui-modal>
 
+
       <ui-modal [(visible)]="dutyDialogVisible" title="Mansione team" eyebrow="Gestione mansioni" subtitle="Definisci ruolo operativo, colore e semantica visiva della mansione." icon="pi pi-briefcase" tone="info" [hasFooter]="true" width="40rem" maxWidth="95vw" (closeRequested)="dutyDialogVisible = false">
         <div class="grid gap-4">
           <ui-select label="Team" [options]="teamOptions()" [value]="dutyForm.teamId" (valueChange)="dutyForm.teamId = castString($event)"></ui-select>
@@ -418,6 +479,7 @@
               <ui-input [value]="dutyForm.icon" (valueChange)="dutyForm.icon = $event" placeholder="pi pi-volume-up"></ui-input>
             </ui-field>
           </div>
+          <ui-multi-select label="Competenze richieste" [options]="competencyOptions()" [value]="dutyForm.requiredCompetencies" placeholder="Seleziona competenze" (valueChange)="dutyForm.requiredCompetencies = $any($event)"></ui-multi-select>
         </div>
         <div dialog-footer class="flex justify-end gap-2">
           <ui-button tone="neutral" variant="outlined" (buttonClick)="dutyDialogVisible = false">Annulla</ui-button>
@@ -439,4 +501,6 @@
         (cancel)="closeConfirm()"
         (confirm)="confirmPendingAction()"
       ></ui-confirm-dialog>
+
+      <app-report-modal [visible]="reportVisible()" (visibleChange)="reportVisible.set($event)" [report]="teamReport()"></app-report-modal>
     </section>

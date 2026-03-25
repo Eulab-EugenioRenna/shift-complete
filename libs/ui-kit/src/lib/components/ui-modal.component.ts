@@ -35,7 +35,12 @@ import { UiDialogShellComponent } from './ui-dialog-shell.component';
         [closable]="closable"
         (closeRequested)="closeRequested.emit()"
       >
-        <ng-content></ng-content>
+        <div dialog-body>
+          <ng-content select=":not([dialog-footer])"></ng-content>
+        </div>
+        <div dialog-footer-slot>
+          <ng-content select="[dialog-footer]"></ng-content>
+        </div>
       </ui-dialog-shell>
     </p-dialog>
   `

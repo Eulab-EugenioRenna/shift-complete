@@ -3,6 +3,10 @@ import { IsBoolean, IsDateString, IsOptional, IsString } from 'class-validator';
 export class GenerateScheduleDto {
   @IsOptional()
   @IsString()
+  planId?: string;
+
+  @IsOptional()
+  @IsString()
   teamId?: string;
 
   @IsOptional()
@@ -28,6 +32,9 @@ export class GenerateScheduleDto {
   includeExistingAssignments?: boolean;
 
   @IsOptional()
-  @IsBoolean()
-  apply?: boolean;
+  manualSelections?: Array<{ slotId: string; assigneeId: string }>;
+
+  @IsOptional()
+  @IsString()
+  applyScope?: 'event' | 'month' | 'cycle' | 'year' | 'all';
 }

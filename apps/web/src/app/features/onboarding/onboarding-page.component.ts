@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { UiButtonComponent, UiCardComponent, UiConfirmDialogComponent, UiDatePickerComponent, UiFieldComponent, UiFormSectionComponent, UiInputComponent, UiLabelComponent, UiPageHeaderComponent, UiSelectComponent, UiTableShellComponent, UiToggleComponent } from '@shift-complete/ui-kit';
-import { UserProfile } from '@shift-complete/shared-types';
+import { UserPreferenceCatalogItem, UserProfile } from '@shift-complete/shared-types';
 import { ApiErrorService } from '../../core/services/api-error.service';
 import { SessionService } from '../../core/services/session.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
@@ -35,6 +35,7 @@ export class OnboardingPageComponent {
 
   protected readonly availability = signal<AvailabilityRow[]>([]);
   protected readonly users = signal<UserProfile[]>([]);
+  protected readonly preferenceCatalog = signal<UserPreferenceCatalogItem[]>([]);
   protected readonly teams = signal<Array<{ id: string; name: string }>>([]);
   protected readonly selectedUserId = signal<string | null>(null);
   protected readonly editingAvailabilityId = signal<string | null>(null);
@@ -52,6 +53,9 @@ export class OnboardingPageComponent {
   });
   protected readonly teamOptions = computed(() => this.teams().map((team) => ({ label: team.name, value: team.id })));
   protected readonly personOptions = computed(() => this.users().map((user) => ({ label: `${user.fullName} · ${user.role}`, value: user.id })));
+  protected readonly shiftPreferenceOptions = computed(() => this.preferenceCatalog().filter((item): item is UserPreferenceCatalogItem & { type: 'shift' } => item.type === 'shift').map((item) => ({ label: item.label, value: item.value })));
+  protected readonly competencyOptions = computed(() => this.preferenceCatalog().filter((item): item is UserPreferenceCatalogItem & { type: 'competency' } => item.type === 'competency').map((item) => ({ label: item.label, value: item.value })));
+  protected readonly locationPreferenceOptions = computed(() => this.preferenceCatalog().filter((item): item is UserPreferenceCatalogItem & { type: 'location' } => item.type === 'location').map((item) => ({ label: item.label, value: item.value })));
   protected readonly typeOptions = [
     { label: 'Disponibile', value: 'AVAILABLE' },
     { label: 'Non disponibile', value: 'UNAVAILABLE' },
@@ -67,6 +71,7 @@ export class OnboardingPageComponent {
     preferredShifts: [] as string[],
     preferredTeamIds: [] as string[],
     preferredDutyIds: [] as string[],
+    preferredLocationValues: [] as string[],
     competencies: [] as string[],
     serviceNotes: '',
   };
@@ -178,6 +183,7 @@ export class OnboardingPageComponent {
       emergencyPhone: this.profileForm.emergencyPhone || undefined,
       preferredShifts: this.profileForm.preferredShifts,
       preferredTeamIds: this.session.getCurrentUser()?.activeTeamIds ?? [],
+      preferredLocationValues: this.profileForm.preferredLocationValues,
       competencies: this.profileForm.competencies,
       serviceNotes: this.profileForm.serviceNotes || undefined,
     }).subscribe({
@@ -206,6 +212,7 @@ export class OnboardingPageComponent {
   }
 
   private loadContext(): void {
+    this.api.userPreferenceCatalog().subscribe({ next: (items) => this.preferenceCatalog.set(items) });
     this.api.teams().subscribe({ next: (teams) => this.teams.set(teams.map((team) => ({ id: team.id, name: team.name }))) });
 
     this.api.users().subscribe({
@@ -244,6 +251,7 @@ export class OnboardingPageComponent {
       preferredShifts: user.preferredShifts ?? [],
       preferredTeamIds: user.preferredTeamIds ?? [],
       preferredDutyIds: user.preferredDutyIds ?? [],
+      preferredLocationValues: user.preferredLocationValues ?? [],
       competencies: user.competencies ?? [],
       serviceNotes: user.serviceNotes ?? '',
     };

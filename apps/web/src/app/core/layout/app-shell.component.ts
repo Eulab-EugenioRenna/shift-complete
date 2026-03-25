@@ -44,6 +44,8 @@ export class AppShellComponent {
         { label: 'Eventi', path: '/events', roles: [ROLES.ADMINISTRATOR, ROLES.SERVICE_LEADER, ROLES.VOLUNTEER] },
         { label: 'Sostituzioni', path: '/replacements', roles: [ROLES.ADMINISTRATOR, ROLES.SERVICE_LEADER] },
         { label: 'Team', path: '/teams', roles: [ROLES.ADMINISTRATOR, ROLES.SERVICE_LEADER] },
+        { label: 'Organigramma', path: '/org-chart', roles: [ROLES.ADMINISTRATOR, ROLES.SERVICE_LEADER] },
+        { label: 'Riunioni', path: '/meetings', roles: [ROLES.ADMINISTRATOR, ROLES.SERVICE_LEADER] },
         { label: 'Inventario', path: '/inventory', roles: [ROLES.ADMINISTRATOR, ROLES.SERVICE_LEADER] },
       { label: 'Utenti', path: '/admin/users', roles: [ROLES.ADMINISTRATOR] },
       { label: 'Risorse', path: '/resources', roles: [ROLES.ADMINISTRATOR, ROLES.SERVICE_LEADER, ROLES.VOLUNTEER] },

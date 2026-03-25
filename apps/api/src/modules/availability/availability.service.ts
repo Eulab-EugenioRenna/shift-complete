@@ -2,11 +2,15 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { toJsonValue } from '../../common/utils/json.util';
+import { DomainSyncService } from '../domain-sync/domain-sync.service';
 import { CreateAvailabilityDto, UpdateAvailabilityDto } from '@shift-complete/shared-types';
 
 @Injectable()
 export class AvailabilityService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly domainSync: DomainSyncService
+  ) {}
 
   async list(actorId: string, role: Role, userId?: string) {
     const effectiveUserId = await this.resolveTargetUserId(actorId, role, userId);
@@ -45,6 +49,16 @@ export class AvailabilityService {
       }
     });
 
+    await this.domainSync.syncAvailabilityMutation({
+      action: 'availability.created',
+      entityId: availability.id,
+      teamIds: payload.teamId ? [payload.teamId] : [],
+      userIds: [effectiveUserId],
+      startsAt: new Date(payload.startsAt),
+      endsAt: new Date(payload.endsAt),
+      reason: 'availability-created',
+    });
+
     return availability;
   }
 
@@ -76,6 +90,16 @@ export class AvailabilityService {
       }
     });
 
+    await this.domainSync.syncAvailabilityMutation({
+      action: 'availability.updated',
+      entityId: availabilityId,
+      teamIds: [updated.teamId].filter((id): id is string => Boolean(id)),
+      userIds: [availability.userId],
+      startsAt: updated.startsAt,
+      endsAt: updated.endsAt,
+      reason: 'availability-updated',
+    });
+
     return updated;
   }
 
@@ -95,6 +119,16 @@ export class AvailabilityService {
         entityId: availabilityId,
         metadata: toJsonValue({ availabilityId })
       }
+    });
+
+    await this.domainSync.syncAvailabilityMutation({
+      action: 'availability.deleted',
+      entityId: availabilityId,
+      teamIds: [availability.teamId].filter((id): id is string => Boolean(id)),
+      userIds: [availability.userId],
+      startsAt: availability.startsAt,
+      endsAt: availability.endsAt,
+      reason: 'availability-deleted',
     });
 
     return { deleted: true, id: availabilityId };

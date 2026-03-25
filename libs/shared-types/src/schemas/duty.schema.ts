@@ -6,6 +6,7 @@ export const CreateDutySchema = z.object({
   description: z.string().optional(),
   color: z.string().optional(),
   icon: z.string().optional(),
+  requiredCompetencies: z.array(z.string()).optional(),
 });
 export type CreateDutyDto = z.infer<typeof CreateDutySchema>;
 

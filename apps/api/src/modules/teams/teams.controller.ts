@@ -14,6 +14,8 @@ import {
   CreateTeamJoinRequestSchema,
   ResolveTeamJoinRequestDto,
   ResolveTeamJoinRequestSchema,
+  UpdateTeamCompetenciesDto,
+  UpdateTeamCompetenciesSchema,
 } from '@shift-complete/shared-types';
 
 @Controller('teams')
@@ -84,6 +86,13 @@ export class TeamsController {
   @Patch(':teamId')
   update(@Param('teamId') teamId: string, @Body() body: UpdateTeamDto, @CurrentUser() user: { sub: string }) {
     return this.teamsService.update(teamId, body, user.sub);
+  }
+
+  @Roles(Role.administrator, Role.service_leader)
+  @Patch(':teamId/competencies')
+  @UsePipes(new ZodValidationPipe(UpdateTeamCompetenciesSchema))
+  updateCompetencies(@Param('teamId') teamId: string, @Body() body: UpdateTeamCompetenciesDto, @CurrentUser() user: { sub: string; role: Role }) {
+    return this.teamsService.updateCompetencies(teamId, body.competencyValues, user.sub, user.role);
   }
 
   @Roles(Role.administrator)

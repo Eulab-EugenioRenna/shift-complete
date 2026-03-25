@@ -24,7 +24,7 @@
     </ui-card>
 
     <ui-card title="Profilo volontario" subtitle="Contatti, competenze e preferenze di servizio" surfaceClass="p-5 min-h-[34rem] max-h-[42rem]" bodyClass="overflow-y-auto pr-1">
-      <app-user-profile-editor [profileForm]="profileForm" [saving]="savingProfile()" [showIdentityFields]="false" submitLabel="Salva profilo" (save)="saveProfile()"></app-user-profile-editor>
+      <app-user-profile-editor [profileForm]="profileForm" [saving]="savingProfile()" [showIdentityFields]="false" [shiftPreferenceOptions]="shiftPreferenceOptions()" [competencyOptions]="competencyOptions()" [locationPreferenceOptions]="locationPreferenceOptions()" [teamPreferenceOptions]="teamOptions()" submitLabel="Salva profilo" (save)="saveProfile()"></app-user-profile-editor>
     </ui-card>
 
     <ui-card title="Gestione disponibilita" subtitle="Creazione, modifica inline e collegamento al team" surfaceClass="p-5 min-h-[34rem] max-h-[42rem]" bodyClass="overflow-y-auto pr-1">

@@ -4,13 +4,15 @@ import { PrismaService } from '../../database/prisma.service';
 import { toJsonValue } from '../../common/utils/json.util';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
+import { DomainSyncService } from '../domain-sync/domain-sync.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class TeamsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService
+    private readonly notificationsService: NotificationsService,
+    private readonly domainSync: DomainSyncService,
   ) {}
 
   async list(actorId: string, actorRole: Role) {
@@ -28,6 +30,12 @@ export class TeamsService {
           }
         : undefined,
       include: {
+        group: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
         leader: {
           select: {
             id: true,
@@ -65,7 +73,8 @@ export class TeamsService {
             id: true,
             name: true,
             color: true,
-            icon: true
+            icon: true,
+            requiredCompetencies: true,
           },
           orderBy: {
             name: 'asc'
@@ -75,11 +84,14 @@ export class TeamsService {
       orderBy: {
         name: 'asc'
       }
-    }).then((teams) =>
+    } as any).then((teams: any[]) =>
       teams.map((team) => ({
         id: team.id,
         name: team.name,
         description: team.description,
+        requiredCompetencies: (team.requiredCompetencies as string[] | null) ?? [],
+        groupId: team.groupId,
+        group: team.group,
         leader: team.leader,
         memberCount: team.memberships.length,
         members: team.memberships.map((membership) => ({
@@ -88,6 +100,7 @@ export class TeamsService {
           duties: membership.duties.map((item) => item.duty)
         })),
         duties: team.duties
+          .map((duty) => ({ ...duty, requiredCompetencies: (duty.requiredCompetencies as string[] | null) ?? [] }))
       }))
     );
   }
@@ -103,6 +116,7 @@ export class TeamsService {
       data: {
         name: payload.name,
         description: payload.description,
+        requiredCompetencies: payload.requiredCompetencies,
         leaderId,
         memberships: leaderId
           ? {
@@ -111,7 +125,7 @@ export class TeamsService {
               }
             }
           : undefined
-      }
+      } as any
     });
 
     await this.prisma.auditLog.create({
@@ -122,6 +136,13 @@ export class TeamsService {
         entityId: team.id,
         metadata: toJsonValue({ ...payload, leaderId })
       }
+    });
+
+    await this.domainSync.syncPlanningContextMutation({
+      action: 'team.created',
+      entityId: team.id,
+      teamIds: [team.id],
+      reason: 'team-created',
     });
 
     return team;
@@ -166,6 +187,14 @@ export class TeamsService {
       { template: 'team', teamName: team?.name ?? null }
     );
 
+    await this.domainSync.syncPlanningContextMutation({
+      action: 'team.member.added',
+      entityId: membership.id,
+      teamIds: [teamId],
+      userIds: [userId],
+      reason: 'team-membership-updated',
+    });
+
     return membership;
   }
 
@@ -205,6 +234,14 @@ export class TeamsService {
       '/teams',
       { template: 'team', teamName: team?.name ?? null }
     );
+
+    await this.domainSync.syncPlanningContextMutation({
+      action: 'team.member.removed',
+      entityId: membership.id,
+      teamIds: [teamId],
+      userIds: [userId],
+      reason: 'team-membership-updated',
+    });
 
     return { deleted: true, teamId, userId };
   }
@@ -265,6 +302,14 @@ export class TeamsService {
         entityId: membership.id,
         metadata: toJsonValue({ teamId, userId, dutyIds })
       }
+    });
+
+    await this.domainSync.syncPlanningContextMutation({
+      action: 'team.member.duties.updated',
+      entityId: membership.id,
+      teamIds: [teamId],
+      userIds: [userId],
+      reason: 'team-duty-membership-updated',
     });
 
     return { updated: true, teamId, userId, dutyIds };
@@ -430,10 +475,11 @@ export class TeamsService {
     });
 
     if (request.targetUserId) {
+      const statusLabel = status === 'APPROVED' ? 'approvata' : 'rifiutata';
       await this.notificationsService.pushSystemNotification(
         request.targetUserId,
         'Richiesta team aggiornata',
-        `La richiesta per il team ${request.team.name} e stata ${status.toLowerCase()}`,
+        `La richiesta per il team ${request.team.name} e stata ${statusLabel}.`,
         '/teams?tab=requests'
       );
     }
@@ -467,7 +513,43 @@ export class TeamsService {
       }
     });
 
+    await this.domainSync.syncPlanningContextMutation({
+      action: 'team.updated',
+      entityId: team.id,
+      teamIds: [team.id],
+      reason: 'team-updated',
+    });
+
     return team;
+  }
+
+  async updateCompetencies(teamId: string, competencyValues: string[], actorId: string, actorRole: Role) {
+    await this.assertManageMemberAccess(teamId, actorId, actorRole);
+    const updated = await this.prisma.team.update({
+      where: { id: teamId },
+      data: {
+        requiredCompetencies: competencyValues,
+      } as any,
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actorId,
+        action: 'team.competencies.updated',
+        entityType: 'team',
+        entityId: teamId,
+        metadata: toJsonValue({ competencyValues }),
+      }
+    });
+
+    await this.domainSync.syncPlanningContextMutation({
+      action: 'team.competencies.updated',
+      entityId: teamId,
+      teamIds: [teamId],
+      reason: 'team-competencies-updated',
+    });
+
+    return updated;
   }
 
   async remove(teamId: string, actorId: string) {
@@ -483,6 +565,13 @@ export class TeamsService {
         entityId: teamId,
         metadata: toJsonValue({ teamId })
       }
+    });
+
+    await this.domainSync.syncPlanningContextMutation({
+      action: 'team.deleted',
+      entityId: teamId,
+      teamIds: [teamId],
+      reason: 'team-deleted',
     });
 
     return { deleted: true, id: teamId };

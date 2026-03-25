@@ -764,11 +764,49 @@ body {
 .p-multiselect,
 .p-datepicker-input,
 .p-inputtext,
+.p-dropdown-filter,
+.p-multiselect-filter,
 .p-dropdown-label,
 .p-multiselect-label {
   background: var(--surface-1) !important;
   color: var(--text-1) !important;
   border-color: var(--border-soft) !important;
+}
+
+.p-dropdown-filter,
+.p-multiselect-filter {
+  width: 100% !important;
+  border-radius: 0.75rem !important;
+  padding: 0.72rem 0.95rem 0.72rem 2.75rem !important;
+  font-size: 0.875rem !important;
+  box-shadow: none !important;
+}
+
+.p-dropdown-filter-container,
+.p-multiselect-filter-container {
+  position: relative;
+}
+
+.p-dropdown-filter-icon,
+.p-multiselect-filter-icon {
+  position: absolute !important;
+  top: 50%;
+  left: 0.95rem;
+  transform: translateY(-50%);
+  color: var(--text-3) !important;
+  font-size: 0.85rem !important;
+  pointer-events: none;
+}
+
+.p-dropdown-filter::placeholder,
+.p-multiselect-filter::placeholder {
+  color: var(--text-3) !important;
+}
+
+.p-dropdown-filter:focus,
+.p-multiselect-filter:focus {
+  border-color: var(--accent-1) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-1) 14%, transparent) !important;
 }
 
 .p-dropdown-item,

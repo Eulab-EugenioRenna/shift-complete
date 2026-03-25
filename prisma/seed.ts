@@ -1,5 +1,6 @@
 import { OnboardingState, PrismaClient, Role } from '@prisma/client';
 import { hashPassword } from '../apps/api/src/common/utils/password.util';
+import { USER_PREFERENCE_CATALOG } from '../apps/api/src/modules/users/user-preference-catalog';
 
 const prisma = new PrismaClient();
 const DEFAULT_PASSWORD = process.env.SEED_PASSWORD ?? 'ChangeMe123!';
@@ -10,12 +11,14 @@ type SeedUser = {
   role: Role;
   competencies?: string[];
   preferredShifts?: string[];
+  preferredLocationValues?: string[];
 };
 
 type SeedTeam = {
   name: string;
   description: string;
-  duties: Array<{ name: string; description: string }>;
+  requiredCompetencies?: string[];
+  duties: Array<{ name: string; description: string; requiredCompetencies?: string[] }>;
   leader: SeedUser;
   volunteers: SeedUser[];
 };
@@ -24,60 +27,164 @@ const teamSeeds: SeedTeam[] = [
   {
     name: 'Logistica eventi',
     description: 'Setup, accoglienza materiali e presidio operativo.',
+    requiredCompetencies: ['logistics', 'security'],
     duties: [
-      { name: 'Capo squadra', description: 'Coordina il setup e i check finali.' },
-      { name: 'Runner palco', description: 'Supporta palco, sedie e flussi rapidi.' },
+      { name: 'Capo squadra', description: 'Coordina il setup e i check finali.', requiredCompetencies: ['logistics', 'security'] },
+      { name: 'Runner palco', description: 'Supporta palco, sedie e flussi rapidi.', requiredCompetencies: ['logistics'] },
     ],
-    leader: { email: 'leader.logistica@shift.local', fullName: 'Luca Bianchi', role: Role.service_leader, competencies: ['logistica'], preferredShifts: ['morning'] },
+    leader: { email: 'leader.logistica@shift.local', fullName: 'Luca Bianchi', role: Role.service_leader, competencies: ['logistics', 'security'], preferredShifts: ['morning'], preferredLocationValues: ['sede_a'] },
     volunteers: [
-      { email: 'marta.logistica@shift.local', fullName: 'Marta Rossi', role: Role.volunteer, competencies: ['runner', 'accoglienza'], preferredShifts: ['morning'] },
-      { email: 'simone.logistica@shift.local', fullName: 'Simone Gallo', role: Role.volunteer, competencies: ['palco'], preferredShifts: ['afternoon'] },
-      { email: 'elisa.logistica@shift.local', fullName: 'Elisa Conti', role: Role.volunteer, competencies: ['logistica'], preferredShifts: ['evening'] },
+      { email: 'marta.logistica@shift.local', fullName: 'Marta Rossi', role: Role.volunteer, competencies: ['logistics', 'welcome'], preferredShifts: ['morning'], preferredLocationValues: ['sede_a'] },
+      { email: 'simone.logistica@shift.local', fullName: 'Simone Gallo', role: Role.volunteer, competencies: ['logistics'], preferredShifts: ['afternoon'], preferredLocationValues: ['sede_b'] },
+      { email: 'elisa.logistica@shift.local', fullName: 'Elisa Conti', role: Role.volunteer, competencies: ['logistics', 'security'], preferredShifts: ['evening'], preferredLocationValues: ['sede_a'] },
     ],
   },
   {
     name: 'Supporto sanitario',
     description: 'Presidio sanitario, triage e gestione presidi.',
+    requiredCompetencies: ['medical'],
     duties: [
-      { name: 'Referente sanitario', description: 'Coordina il punto medico.' },
-      { name: 'Supporto triage', description: 'Accoglienza e filtro persone.' },
+      { name: 'Referente sanitario', description: 'Coordina il punto medico.', requiredCompetencies: ['medical'] },
+      { name: 'Supporto triage', description: 'Accoglienza e filtro persone.', requiredCompetencies: ['medical', 'welcome'] },
     ],
-    leader: { email: 'leader.sanita@shift.local', fullName: 'Giulia Ferri', role: Role.service_leader, competencies: ['sanitario'], preferredShifts: ['morning'] },
+    leader: { email: 'leader.sanita@shift.local', fullName: 'Giulia Ferri', role: Role.service_leader, competencies: ['medical'], preferredShifts: ['morning'], preferredLocationValues: ['sede_a'] },
     volunteers: [
-      { email: 'davide.sanita@shift.local', fullName: 'Davide Serra', role: Role.volunteer, competencies: ['triage'], preferredShifts: ['morning'] },
-      { email: 'chiara.sanita@shift.local', fullName: 'Chiara Neri', role: Role.volunteer, competencies: ['sanitario'], preferredShifts: ['afternoon'] },
-      { email: 'paolo.sanita@shift.local', fullName: 'Paolo Villa', role: Role.volunteer, competencies: ['supporto'], preferredShifts: ['evening'] },
+      { email: 'davide.sanita@shift.local', fullName: 'Davide Serra', role: Role.volunteer, competencies: ['medical', 'welcome'], preferredShifts: ['morning'], preferredLocationValues: ['sede_a'] },
+      { email: 'chiara.sanita@shift.local', fullName: 'Chiara Neri', role: Role.volunteer, competencies: ['medical'], preferredShifts: ['afternoon'], preferredLocationValues: ['sede_b'] },
+      { email: 'paolo.sanita@shift.local', fullName: 'Paolo Villa', role: Role.volunteer, competencies: ['medical', 'logistics'], preferredShifts: ['evening'], preferredLocationValues: ['sede_a'] },
     ],
   },
   {
     name: 'Accoglienza',
     description: 'Front desk, accessi, info point e flussi ospiti.',
+    requiredCompetencies: ['welcome'],
     duties: [
-      { name: 'Desk ingresso', description: 'Gestisce accessi e accrediti.' },
-      { name: 'Info point', description: 'Supporta ospiti e orientamento.' },
+      { name: 'Desk ingresso', description: 'Gestisce accessi e accrediti.', requiredCompetencies: ['welcome', 'security'] },
+      { name: 'Info point', description: 'Supporta ospiti e orientamento.', requiredCompetencies: ['welcome'] },
     ],
-    leader: { email: 'leader.accoglienza@shift.local', fullName: 'Sara Moretti', role: Role.service_leader, competencies: ['accoglienza'], preferredShifts: ['afternoon'] },
+    leader: { email: 'leader.accoglienza@shift.local', fullName: 'Sara Moretti', role: Role.service_leader, competencies: ['welcome', 'security'], preferredShifts: ['afternoon'], preferredLocationValues: ['sede_b'] },
     volunteers: [
-      { email: 'anna.accoglienza@shift.local', fullName: 'Anna Greco', role: Role.volunteer, competencies: ['desk'], preferredShifts: ['morning'] },
-      { email: 'marco.accoglienza@shift.local', fullName: 'Marco Fontana', role: Role.volunteer, competencies: ['info'], preferredShifts: ['afternoon'] },
-      { email: 'irene.accoglienza@shift.local', fullName: 'Irene Villa', role: Role.volunteer, competencies: ['ospitalita'], preferredShifts: ['evening'] },
+      { email: 'anna.accoglienza@shift.local', fullName: 'Anna Greco', role: Role.volunteer, competencies: ['welcome', 'security'], preferredShifts: ['morning'], preferredLocationValues: ['sede_a'] },
+      { email: 'marco.accoglienza@shift.local', fullName: 'Marco Fontana', role: Role.volunteer, competencies: ['welcome'], preferredShifts: ['afternoon'], preferredLocationValues: ['sede_b'] },
+      { email: 'irene.accoglienza@shift.local', fullName: 'Irene Villa', role: Role.volunteer, competencies: ['welcome'], preferredShifts: ['evening'], preferredLocationValues: ['sede_b'] },
     ],
   },
   {
     name: 'Media e streaming',
     description: 'Regia, audio/video, streaming e contenuti live.',
+    requiredCompetencies: ['audio', 'lights'],
     duties: [
-      { name: 'Regia streaming', description: 'Supervisiona messa in onda e scaletta.' },
-      { name: 'Camera mobile', description: 'Gestisce riprese in movimento.' },
+      { name: 'Regia streaming', description: 'Supervisiona messa in onda e scaletta.', requiredCompetencies: ['audio', 'lights'] },
+      { name: 'Camera mobile', description: 'Gestisce riprese in movimento.', requiredCompetencies: ['audio'] },
     ],
-    leader: { email: 'leader.media@shift.local', fullName: 'Andrea Leone', role: Role.service_leader, competencies: ['streaming'], preferredShifts: ['evening'] },
+    leader: { email: 'leader.media@shift.local', fullName: 'Andrea Leone', role: Role.service_leader, competencies: ['audio', 'lights'], preferredShifts: ['evening'], preferredLocationValues: ['sede_a'] },
     volunteers: [
-      { email: 'federica.media@shift.local', fullName: 'Federica Riva', role: Role.volunteer, competencies: ['camera'], preferredShifts: ['afternoon'] },
-      { email: 'matteo.media@shift.local', fullName: 'Matteo Costa', role: Role.volunteer, competencies: ['audio'], preferredShifts: ['evening'] },
-      { email: 'silvia.media@shift.local', fullName: 'Silvia Orsi', role: Role.volunteer, competencies: ['streaming'], preferredShifts: ['morning'] },
+      { email: 'federica.media@shift.local', fullName: 'Federica Riva', role: Role.volunteer, competencies: ['audio'], preferredShifts: ['afternoon'], preferredLocationValues: ['sede_a'] },
+      { email: 'matteo.media@shift.local', fullName: 'Matteo Costa', role: Role.volunteer, competencies: ['audio', 'lights'], preferredShifts: ['evening'], preferredLocationValues: ['sede_b'] },
+      { email: 'silvia.media@shift.local', fullName: 'Silvia Orsi', role: Role.volunteer, competencies: ['lights'], preferredShifts: ['morning'], preferredLocationValues: ['sede_a'] },
     ],
   },
 ];
+
+async function seedPreferenceCatalog() {
+  const items = [
+    ...USER_PREFERENCE_CATALOG.shifts.map((item) => ({ ...item, type: 'shift' })),
+    ...USER_PREFERENCE_CATALOG.competencies.map((item) => ({ ...item, type: 'competency' })),
+    ...USER_PREFERENCE_CATALOG.locations.map((item) => ({ ...item, type: 'location' })),
+  ];
+
+  for (const item of items) {
+    await (prisma as any).userPreferenceCatalogItem.upsert({
+      where: { type_value: { type: item.type, value: item.value } },
+      update: {
+        label: item.label,
+        description: item.description,
+        keywords: item.keywords ?? [],
+        active: true,
+        sortOrder: item.sortOrder,
+      },
+      create: {
+        type: item.type,
+        value: item.value,
+        label: item.label,
+        description: item.description,
+        keywords: item.keywords ?? [],
+        active: true,
+        sortOrder: item.sortOrder,
+      },
+    });
+  }
+}
+
+async function seedHolidayCalendar(years: number[]) {
+  for (const year of years) {
+    try {
+      const response = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/IT`);
+      if (!response.ok) {
+        throw new Error(`holiday fetch failed for ${year}`);
+      }
+
+      const items = await response.json() as Array<{ date: string; localName: string; name: string }>;
+      for (const item of items) {
+        await (prisma as any).holidayCalendarDay.upsert({
+          where: { date: new Date(item.date) },
+          update: {
+            countryCode: 'IT',
+            localName: item.localName,
+            name: item.name,
+            isPublicHoliday: true,
+            source: 'nager',
+          },
+          create: {
+            date: new Date(item.date),
+            countryCode: 'IT',
+            localName: item.localName,
+            name: item.name,
+            isPublicHoliday: true,
+            source: 'nager',
+          },
+        });
+      }
+      continue;
+    } catch (error) {
+      console.warn(`Holiday sync skipped for ${year}:`, error instanceof Error ? error.message : error);
+    }
+
+    const fallbackItems = [
+      { date: `${year}-01-01`, localName: 'Capodanno', name: 'New Year\'s Day' },
+      { date: `${year}-01-06`, localName: 'Epifania', name: 'Epiphany' },
+      { date: `${year}-04-25`, localName: 'Festa della Liberazione', name: 'Liberation Day' },
+      { date: `${year}-05-01`, localName: 'Festa dei Lavoratori', name: 'Labour Day' },
+      { date: `${year}-06-02`, localName: 'Festa della Repubblica', name: 'Republic Day' },
+      { date: `${year}-08-15`, localName: 'Ferragosto', name: 'Assumption Day' },
+      { date: `${year}-11-01`, localName: 'Ognissanti', name: 'All Saints\' Day' },
+      { date: `${year}-12-08`, localName: 'Immacolata Concezione', name: 'Immaculate Conception' },
+      { date: `${year}-12-25`, localName: 'Natale', name: 'Christmas Day' },
+      { date: `${year}-12-26`, localName: 'Santo Stefano', name: 'St. Stephen\'s Day' },
+    ];
+
+    for (const item of fallbackItems) {
+      await (prisma as any).holidayCalendarDay.upsert({
+        where: { date: new Date(item.date) },
+        update: {
+          countryCode: 'IT',
+          localName: item.localName,
+          name: item.name,
+          isPublicHoliday: true,
+          source: 'seed-fallback',
+        },
+        create: {
+          date: new Date(item.date),
+          countryCode: 'IT',
+          localName: item.localName,
+          name: item.name,
+          isPublicHoliday: true,
+          source: 'seed-fallback',
+        },
+      });
+    }
+  }
+}
 
 async function upsertUser(user: SeedUser) {
   return prisma.user.upsert({
@@ -104,6 +211,7 @@ async function upsertUserSettings(userId: string, user: SeedUser, teamIds: strin
       preferredShifts: user.preferredShifts ?? [],
       preferredTeamIds: teamIds,
       preferredDutyIds: dutyIds,
+      preferredLocationValues: user.preferredLocationValues ?? [],
       competencies: user.competencies ?? [],
       aiAutoSchedule: true,
       aiEnabled: true,
@@ -113,6 +221,7 @@ async function upsertUserSettings(userId: string, user: SeedUser, teamIds: strin
       preferredShifts: user.preferredShifts ?? [],
       preferredTeamIds: teamIds,
       preferredDutyIds: dutyIds,
+      preferredLocationValues: user.preferredLocationValues ?? [],
       competencies: user.competencies ?? [],
       aiAutoSchedule: true,
       aiEnabled: true,
@@ -149,15 +258,18 @@ async function main() {
     },
   });
 
+  await seedPreferenceCatalog();
+  await seedHolidayCalendar([new Date().getFullYear(), new Date().getFullYear() + 1]);
+
   const teams: Array<{ team: any; leader: any; duties: any[]; volunteers: any[] }> = [];
 
   for (const seed of teamSeeds) {
     const leader = await upsertUser(seed.leader);
     const team = await prisma.team.upsert({
       where: { name: seed.name },
-      update: { description: seed.description, leaderId: leader.id },
-      create: { name: seed.name, description: seed.description, leaderId: leader.id },
-    });
+      update: { description: seed.description, leaderId: leader.id, requiredCompetencies: seed.requiredCompetencies ?? [] } as any,
+      create: { name: seed.name, description: seed.description, leaderId: leader.id, requiredCompetencies: seed.requiredCompetencies ?? [] } as any,
+    } as any);
 
     await prisma.teamMembership.upsert({
       where: { teamId_userId: { teamId: team.id, userId: leader.id } },
@@ -174,20 +286,25 @@ async function main() {
       if (existingDuty) {
         duties.push(await prisma.duty.update({
           where: { id: existingDuty.id },
-          data: { description: dutySeed.description },
+          data: { description: dutySeed.description, requiredCompetencies: dutySeed.requiredCompetencies ?? [] } as any,
         }));
         continue;
       }
 
       duties.push(await prisma.duty.create({
-        data: { teamId: team.id, name: dutySeed.name, description: dutySeed.description },
-      }));
+        data: { teamId: team.id, name: dutySeed.name, description: dutySeed.description, requiredCompetencies: dutySeed.requiredCompetencies ?? [] } as any,
+      } as any));
     }
 
     await upsertUserSettings(leader.id, seed.leader, [team.id], duties.map((duty) => duty.id));
+    const leaderMembership = await prisma.teamMembership.findUniqueOrThrow({ where: { teamId_userId: { teamId: team.id, userId: leader.id } } });
+    await prisma.teamMembershipDuty.deleteMany({ where: { membershipId: leaderMembership.id } });
+    await prisma.teamMembershipDuty.create({
+      data: { membershipId: leaderMembership.id, dutyId: duties[0].id },
+    });
 
     const volunteers = [];
-    for (const volunteerSeed of seed.volunteers) {
+    for (const [volunteerIndex, volunteerSeed] of seed.volunteers.entries()) {
       const volunteer = await upsertUser(volunteerSeed);
       await prisma.teamMembership.upsert({
         where: { teamId_userId: { teamId: team.id, userId: volunteer.id } },
@@ -195,6 +312,14 @@ async function main() {
         create: { teamId: team.id, userId: volunteer.id },
       });
       await upsertUserSettings(volunteer.id, volunteerSeed, [team.id], duties.map((duty) => duty.id));
+      const membership = await prisma.teamMembership.findUniqueOrThrow({ where: { teamId_userId: { teamId: team.id, userId: volunteer.id } } });
+      const assignedDutyIds = volunteerIndex === 0
+        ? duties.map((duty) => duty.id)
+        : [duties[volunteerIndex % duties.length].id];
+      await prisma.teamMembershipDuty.deleteMany({ where: { membershipId: membership.id } });
+      await prisma.teamMembershipDuty.createMany({
+        data: assignedDutyIds.map((dutyId) => ({ membershipId: membership.id, dutyId })),
+      });
       volunteers.push(volunteer);
     }
 
@@ -209,6 +334,33 @@ async function main() {
     });
   }
 
+  // Create team groups
+  const mediaGroup = await prisma.teamGroup.upsert({
+    where: { id: 'seed-group-media' },
+    update: { name: 'Media', description: 'Regia, streaming e produzione contenuti.' },
+    create: { id: 'seed-group-media', name: 'Media', description: 'Regia, streaming e produzione contenuti.', sortOrder: 0 },
+  } as any);
+
+  const operazioniGroup = await prisma.teamGroup.upsert({
+    where: { id: 'seed-group-operazioni' },
+    update: { name: 'Operazioni', description: 'Logistica, accoglienza e presidio operativo.' },
+    create: { id: 'seed-group-operazioni', name: 'Operazioni', description: 'Logistica, accoglienza e presidio operativo.', sortOrder: 1 },
+  } as any);
+
+  // Assign teams to groups (Media e streaming → Media group, Logistica + Accoglienza → Operazioni group)
+  const mediaTeam = teams.find((t) => t.team.name === 'Media e streaming');
+  if (mediaTeam) {
+    await prisma.team.update({ where: { id: mediaTeam.team.id }, data: { groupId: mediaGroup.id } });
+  }
+  const logisticaTeam = teams.find((t) => t.team.name === 'Logistica eventi');
+  const accoglienzaTeam = teams.find((t) => t.team.name === 'Accoglienza');
+  if (logisticaTeam) {
+    await prisma.team.update({ where: { id: logisticaTeam.team.id }, data: { groupId: operazioniGroup.id } });
+  }
+  if (accoglienzaTeam) {
+    await prisma.team.update({ where: { id: accoglienzaTeam.team.id }, data: { groupId: operazioniGroup.id } });
+  }
+
   const baseDate = new Date();
   baseDate.setHours(9, 0, 0, 0);
 
@@ -218,6 +370,7 @@ async function main() {
       title: 'Servizio domenicale principale',
       description: 'Serie ricorrente seed con copertura multi-team.',
       type: 'recurring',
+      locationValue: 'sede_a',
       startsAt: atHour(baseDate, 4, 10, 0),
       endsAt: atHour(baseDate, 4, 12, 30),
       recurrenceRule: 'FREQ=WEEKLY;BYDAY=SU',
@@ -232,6 +385,7 @@ async function main() {
       title: 'Servizio domenicale principale',
       description: 'Serie ricorrente seed con copertura multi-team.',
       type: 'recurring',
+      locationValue: 'sede_a',
       startsAt: atHour(baseDate, 4, 10, 0),
       endsAt: atHour(baseDate, 4, 12, 30),
       recurrenceRule: 'FREQ=WEEKLY;BYDAY=SU',
@@ -250,6 +404,7 @@ async function main() {
       title: 'Briefing logistico del venerdi',
       description: 'Allineamento operativo per leader e capi turno.',
       type: 'recurring',
+      locationValue: 'sede_b',
       startsAt: atHour(baseDate, 2, 19, 0),
       endsAt: atHour(baseDate, 2, 20, 0),
       recurrenceRule: 'FREQ=WEEKLY;BYDAY=FR',
@@ -264,6 +419,7 @@ async function main() {
       title: 'Briefing logistico del venerdi',
       description: 'Allineamento operativo per leader e capi turno.',
       type: 'recurring',
+      locationValue: 'sede_b',
       startsAt: atHour(baseDate, 2, 19, 0),
       endsAt: atHour(baseDate, 2, 20, 0),
       recurrenceRule: 'FREQ=WEEKLY;BYDAY=FR',
@@ -282,6 +438,7 @@ async function main() {
       title: 'Formazione volontari nuovi ingressi',
       description: 'Sessione singola di onboarding operativo.',
       type: 'single',
+      locationValue: 'sede_a',
       startsAt: atHour(baseDate, 7, 18, 30),
       endsAt: atHour(baseDate, 7, 21, 0),
     },
@@ -290,6 +447,7 @@ async function main() {
       title: 'Formazione volontari nuovi ingressi',
       description: 'Sessione singola di onboarding operativo.',
       type: 'single',
+      locationValue: 'sede_a',
       startsAt: atHour(baseDate, 7, 18, 30),
       endsAt: atHour(baseDate, 7, 21, 0),
       createdById: admin.id,

@@ -4,6 +4,12 @@ import { PrismaService } from '../../database/prisma.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { NotificationDispatchService } from './notification-dispatch.service';
 
+type NotificationBackfillMatch = {
+  notificationId: string;
+  dutyId: string;
+  teamName: string;
+};
+
 @Injectable()
 export class NotificationsService {
   constructor(
@@ -96,5 +102,63 @@ export class NotificationsService {
         readAt: new Date()
       }
     });
+  }
+
+  async backfillAssignmentDutyIds(): Promise<{ updated: number }> {
+    const notifications = await this.prisma.notification.findMany({
+      where: {
+        subject: 'Nuova assegnazione turno',
+      },
+      select: {
+        id: true,
+        body: true,
+      },
+    });
+
+    const matches = notifications
+      .map((notification) => this.extractAssignmentBodyMatch(notification.id, notification.body))
+      .filter((item): item is NotificationBackfillMatch => Boolean(item));
+
+    if (!matches.length) {
+      return { updated: 0 };
+    }
+
+    const dutyIds = Array.from(new Set(matches.map((item) => item.dutyId)));
+    const duties = await this.prisma.duty.findMany({
+      where: { id: { in: dutyIds } },
+      select: { id: true, name: true },
+    });
+    const dutyMap = new Map(duties.map((duty) => [duty.id, duty.name]));
+
+    let updated = 0;
+    for (const match of matches) {
+      const dutyName = dutyMap.get(match.dutyId);
+      if (!dutyName) {
+        continue;
+      }
+
+      await this.prisma.notification.update({
+        where: { id: match.notificationId },
+        data: {
+          body: `Sei stato assegnato al servizio ${dutyName} del team ${match.teamName}.`,
+        },
+      });
+      updated += 1;
+    }
+
+    return { updated };
+  }
+
+  private extractAssignmentBodyMatch(notificationId: string, body: string): NotificationBackfillMatch | null {
+    const match = body.match(/^Sei stato assegnato al servizio ([a-z0-9]+) del team (.+)\.$/i);
+    if (!match) {
+      return null;
+    }
+
+    return {
+      notificationId,
+      dutyId: match[1],
+      teamName: match[2],
+    };
   }
 }

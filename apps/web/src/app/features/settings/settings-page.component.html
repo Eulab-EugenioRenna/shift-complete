@@ -334,6 +334,26 @@
           <label class="text-sm font-medium text-[color:var(--text-2)]">AI queue concurrency</label>
           <ui-input [value]="'' + aiJobConcurrency" (valueChange)="aiJobConcurrency = +$event" type="number" [mono]="true"></ui-input>
         </div>
+        <div class="grid gap-2">
+          <label class="text-sm font-medium text-[color:var(--text-2)]">Scheduling preview transport</label>
+          <ui-select [options]="schedulingTransportOptions" [value]="schedulingPreviewTransport" (valueChange)="setSchedulingPreviewTransport($event)"></ui-select>
+        </div>
+        <div class="grid gap-2">
+          <label class="text-sm font-medium text-[color:var(--text-2)]">Scheduling retry count</label>
+          <ui-input [value]="'' + schedulingPreviewRetryCount" (valueChange)="schedulingPreviewRetryCount = +$event" type="number" [mono]="true"></ui-input>
+        </div>
+        <div class="grid gap-2">
+          <label class="text-sm font-medium text-[color:var(--text-2)]">Scheduling poll interval (ms)</label>
+          <ui-input [value]="'' + schedulingPreviewPollIntervalMs" (valueChange)="schedulingPreviewPollIntervalMs = +$event" type="number" [mono]="true"></ui-input>
+        </div>
+        <div class="grid gap-2">
+          <label class="text-sm font-medium text-[color:var(--text-2)]">Async threshold giorni</label>
+          <ui-input [value]="'' + schedulingAsyncRangeDays" (valueChange)="schedulingAsyncRangeDays = +$event" type="number" [mono]="true"></ui-input>
+        </div>
+        <div class="grid gap-2">
+          <label class="text-sm font-medium text-[color:var(--text-2)]">Async threshold manual selections</label>
+          <ui-input [value]="'' + schedulingAsyncManualSelections" (valueChange)="schedulingAsyncManualSelections = +$event" type="number" [mono]="true"></ui-input>
+        </div>
         <ui-surface surfaceClass="flex items-center justify-between rounded-2xl bg-[color:var(--surface-2)] px-4 py-3 shadow-none">
           <div>
             <p class="text-sm font-medium text-[color:var(--text-1)]">SMTP secure</p>
@@ -368,6 +388,13 @@
             <p class="text-xs text-[color:var(--text-2)]">Pubblica eventi realtime verso il frontend.</p>
           </div>
           <ui-toggle label="" [value]="websocketNotificationsEnabled()" (valueChange)="websocketNotificationsEnabled.set($event)"></ui-toggle>
+        </ui-surface>
+        <ui-surface surfaceClass="flex items-center justify-between rounded-2xl bg-[color:var(--surface-2)] px-4 py-3 shadow-none">
+          <div>
+            <p class="text-sm font-medium text-[color:var(--text-1)]">Async scheduling senza eventId</p>
+            <p class="text-xs text-[color:var(--text-2)]">Forza background job per preview aggregate o range non ancorati a un singolo evento.</p>
+          </div>
+          <ui-toggle label="" [value]="schedulingAsyncWithoutEvent()" (valueChange)="schedulingAsyncWithoutEvent.set($event)"></ui-toggle>
         </ui-surface>
         <ui-surface surfaceClass="flex items-center justify-between rounded-2xl bg-[color:var(--surface-2)] px-4 py-3 shadow-none">
           <div>
@@ -443,6 +470,62 @@
           <span class="text-xs text-[color:var(--text-3)]">I valori persistono nel DB e fanno fallback su .env solo se assenti.</span>
       </div>
     </div>
+  </ui-surface>
+
+  <ui-surface surfaceClass="overflow-hidden" *ngIf="activeTab() === 'observability'">
+    <div class="flex items-center justify-between border-b border-[color:var(--border-soft)] px-6 py-4">
+      <div>
+        <h3 class="flex items-center gap-2 text-base font-semibold text-[color:var(--text-1)]">
+          <i class="pi pi-chart-line text-[#4979e6]"></i> Scheduling metrics
+        </h3>
+        <p class="mt-0.5 text-sm text-[color:var(--text-2)]">Hit ratio cache, code preview e tempi medi del planner.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <ui-button tone="neutral" variant="text" size="sm" (buttonClick)="loadSchedulingMetrics()">Aggiorna metriche</ui-button>
+        <ui-button tone="danger" variant="text" size="sm" (buttonClick)="resetSchedulingMetrics()">Reset</ui-button>
+      </div>
+    </div>
+    <div class="grid gap-4 px-6 py-5 md:grid-cols-3" *ngIf="schedulingMetrics() as metrics; else noSchedulingMetrics">
+      <ui-surface surfaceClass="rounded-2xl bg-[color:var(--surface-2)] p-4 shadow-none">
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Preview</p>
+        <p class="mt-2 text-2xl font-semibold text-[color:var(--text-1)]">{{ metrics.previewRequests }}</p>
+        <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ metrics.completedPreviews }} completate · {{ metrics.failedPreviews }} fallite</p>
+      </ui-surface>
+      <ui-surface surfaceClass="rounded-2xl bg-[color:var(--surface-2)] p-4 shadow-none">
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Cache hit ratio</p>
+        <p class="mt-2 text-2xl font-semibold text-[color:var(--text-1)]">{{ (metrics.previewCacheHitRate * 100) | number:'1.0-0' }}%</p>
+        <p class="mt-1 text-xs text-[color:var(--text-2)]">Hit {{ metrics.previewCacheHits }} · miss {{ metrics.previewCacheMisses }}</p>
+      </ui-surface>
+      <ui-surface surfaceClass="rounded-2xl bg-[color:var(--surface-2)] p-4 shadow-none">
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Durata media</p>
+        <p class="mt-2 text-2xl font-semibold text-[color:var(--text-1)]">{{ metrics.averagePreviewDurationMs }} ms</p>
+        <p class="mt-1 text-xs text-[color:var(--text-2)]">Queue {{ metrics.queuedJobs }} · running {{ metrics.runningJobs }}</p>
+      </ui-surface>
+      <ui-surface surfaceClass="rounded-2xl bg-[color:var(--surface-2)] p-4 shadow-none md:col-span-3">
+        <div class="grid gap-3 md:grid-cols-4">
+          <div>
+            <p class="text-xs uppercase tracking-[0.18em] text-[color:var(--text-3)]">Candidate pool</p>
+            <p class="mt-1 text-sm font-medium text-[color:var(--text-1)]">{{ metrics.candidatePoolCacheHits }} hit · {{ metrics.candidatePoolCacheMisses }} miss</p>
+          </div>
+          <div>
+            <p class="text-xs uppercase tracking-[0.18em] text-[color:var(--text-3)]">Cycle state</p>
+            <p class="mt-1 text-sm font-medium text-[color:var(--text-1)]">{{ metrics.cycleStateCacheHits }} hit · {{ metrics.cycleStateCacheMisses }} miss</p>
+          </div>
+          <div>
+            <p class="text-xs uppercase tracking-[0.18em] text-[color:var(--text-3)]">Queue dedup</p>
+            <p class="mt-1 text-sm font-medium text-[color:var(--text-1)]">{{ metrics.queueDedupHits }} richieste riusate</p>
+          </div>
+          <div>
+            <p class="text-xs uppercase tracking-[0.18em] text-[color:var(--text-3)]">Piani persistiti</p>
+            <p class="mt-1 text-sm font-medium text-[color:var(--text-1)]">{{ metrics.plansPersisted }}</p>
+          </div>
+        </div>
+        <p class="mt-4 text-xs text-[color:var(--text-2)]">Metriche cumulative dalla piattaforma o dall'ultimo reset{{ metrics.lastResetAt ? (' · reset ' + (metrics.lastResetAt | date:'short')) : '' }}.</p>
+      </ui-surface>
+    </div>
+    <ng-template #noSchedulingMetrics>
+      <div class="px-6 py-8 text-sm text-[color:var(--text-3)]">Metriche scheduling non ancora disponibili.</div>
+    </ng-template>
   </ui-surface>
 
   <ui-surface surfaceClass="overflow-hidden" *ngIf="activeTab() === 'observability'">

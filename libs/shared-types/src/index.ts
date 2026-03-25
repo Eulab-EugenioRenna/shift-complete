@@ -7,8 +7,10 @@ export * from './schemas/duty.schema';
 export * from './schemas/availability.schema';
 export * from './schemas/replacement.schema';
 export * from './schemas/team-request.schema';
+export * from './schemas/team-group.schema';
 export * from './schemas/user-profile.schema';
-
+export * from './schemas/catalog.schema';
+export * from './schemas/meeting.schema';
 import type { AvailabilityType, ReplacementStatus, Role } from './schemas/core.schema';
 
 // Keeping these for backwards compatibility if needed, but should be replaced eventually
@@ -32,8 +34,20 @@ export interface UserProfile {
   preferredShifts?: string[] | null;
   preferredTeamIds?: string[] | null;
   preferredDutyIds?: string[] | null;
+  preferredLocationValues?: string[] | null;
   competencies?: string[] | null;
   serviceNotes?: string | null;
+}
+
+export interface UserPreferenceCatalogItem {
+  id: string;
+  type: 'shift' | 'competency' | 'location';
+  value: string;
+  label: string;
+  description?: string | null;
+  keywords?: string[] | null;
+  active: boolean;
+  sortOrder: number;
 }
 
 export interface TeamSummary {
@@ -47,6 +61,9 @@ export interface TeamListItem {
   id: string;
   name: string;
   description?: string | null;
+  requiredCompetencies?: string[] | null;
+  groupId?: string | null;
+  group?: { id: string; name: string | null } | null;
   leader?: {
     id: string;
     fullName: string;
@@ -71,7 +88,71 @@ export interface TeamListItem {
     name: string;
     color?: string | null;
     icon?: string | null;
+    requiredCompetencies?: string[] | null;
   }>;
+}
+
+export interface TeamGroupItem {
+  id: string;
+  name: string | null;
+  description?: string | null;
+  sortOrder: number;
+  teams: TeamListItem[];
+  meetingGroups: MeetingGroupItem[];
+}
+
+export interface MeetingGroupItem {
+  id: string;
+  name: string;
+  description?: string | null;
+  leaderId?: string | null;
+  groupId?: string | null;
+  leader?: { id: string; fullName: string; email: string } | null;
+  members: Array<{
+    id: string;
+    fullName: string;
+    email: string;
+    role: Role;
+  }>;
+}
+
+export interface MeetingListItem {
+  id: string;
+  meetingGroupId: string;
+  title: string;
+  description?: string | null;
+  locationValue?: string | null;
+  startsAt: string;
+  endsAt: string;
+  type: 'single' | 'recurring';
+  recurrenceRule?: string | null;
+  recurrenceTz?: string | null;
+  recurrenceUntil?: string | null;
+  recurrenceDurationMonths?: number | null;
+  recurrenceAutoRenew?: boolean | null;
+  recurrenceRenewMonths?: number | null;
+  occurrenceStart?: string;
+  isOccurrence?: boolean;
+  isVirtualOccurrence?: boolean;
+  seriesId?: string;
+  parentMeetingId?: string | null;
+  seriesTemplate?: {
+    title: string;
+    description?: string | null;
+    locationValue?: string | null;
+    startsAt: string;
+    endsAt: string;
+    recurrenceRule?: string | null;
+    recurrenceTz?: string | null;
+    recurrenceUntil?: string | null;
+    recurrenceDurationMonths?: number | null;
+    recurrenceAutoRenew?: boolean | null;
+    recurrenceRenewMonths?: number | null;
+  } | null;
+  meetingGroup?: {
+    id: string;
+    name: string;
+  };
 }
 
 export interface AvailabilityItem {
@@ -156,12 +237,108 @@ export interface InventorySummary {
 export interface SchedulePreviewRequest {
   from: string;
   to: string;
-  teamId?: string;
+  planId?: string;
   eventId?: string;
   occurrenceStart?: string;
+  teamId?: string;
   scope?: 'single' | 'series' | 'range';
-  apply?: boolean;
   includeExistingAssignments?: boolean;
+  manualSelections?: ScheduleManualSelection[];
+}
+
+export type ScheduleApplyScope = 'event' | 'month' | 'cycle' | 'year' | 'all';
+
+export interface ScheduleManualSelection {
+  slotId: string;
+  assigneeId: string;
+}
+
+export interface ScheduleCandidate {
+  id: string;
+  fullName: string;
+  score: number;
+  reasons: string[];
+}
+
+export interface ScheduleSuggestionItem {
+  slotId: string;
+  eventId: string;
+  eventTitle: string;
+  teamId: string;
+  teamName: string;
+  dutyId: string;
+  roleName: string;
+  startsAt: string;
+  endsAt: string;
+  coverageStatus: 'covered' | 'suggested' | 'manual' | 'open';
+  strategy: string;
+  assigneeId: string | null;
+  assigneeName?: string | null;
+  score?: number | null;
+  reasons?: string[];
+  candidates?: ScheduleCandidate[];
+  cycleKey: string;
+  cycleIndex: number;
+  cycleLength: number;
+  cycleNumber: number;
+  selectionSource: 'existing' | 'suggested' | 'manual' | 'open';
+  existingAssignmentId?: string | null;
+  existingAssigneeId?: string | null;
+  existingAssigneeName?: string | null;
+  drift?: {
+    status: 'match' | 'changed' | 'missing';
+    currentAssigneeId?: string | null;
+    currentAssigneeName?: string | null;
+  };
+}
+
+export interface SchedulePlanResponse {
+  planId?: string;
+  status?: 'completed' | 'queued' | 'running';
+  jobId?: string;
+  cacheHit?: boolean;
+  message: string;
+  criteria: string[];
+  generatedAt: string;
+  anchorEventId: string;
+  anchorEventTitle?: string;
+  invalidatedAt?: string | null;
+  invalidationReason?: string | null;
+  suggestions: ScheduleSuggestionItem[];
+  summary: {
+    events: number;
+    slots: number;
+    covered: number;
+    proposed: number;
+    open: number;
+    changed?: number;
+    missing?: number;
+  };
+}
+
+export interface SchedulePlanListItem {
+  id: string;
+  anchorEventId: string;
+  anchorEventTitle: string;
+  createdAt: string;
+  updatedAt: string;
+  invalidatedAt?: string | null;
+  invalidationReason?: string | null;
+  scope: string;
+  applyScope?: string | null;
+  summary: {
+    events: number;
+    slots: number;
+    covered: number;
+    proposed: number;
+    open: number;
+    changed?: number;
+    missing?: number;
+  };
+}
+
+export interface ScheduleApplyRequest extends SchedulePreviewRequest {
+  applyScope: ScheduleApplyScope;
 }
 
 export interface EventRoleAssignment {

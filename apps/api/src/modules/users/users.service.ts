@@ -5,6 +5,8 @@ import { PrismaService } from '../../database/prisma.service';
 import { ChangeMyPasswordDto, UpdateUserProfileDto } from '@shift-complete/shared-types';
 import { toJsonValue } from '../../common/utils/json.util';
 import { hashPassword, verifyPassword } from '../../common/utils/password.util';
+import { CatalogService } from '../catalog/catalog.service';
+import { DomainSyncService } from '../domain-sync/domain-sync.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateManagedUserDto } from './dto/create-managed-user.dto';
 import { UpdateManagedUserDto } from './dto/update-managed-user.dto';
@@ -13,10 +15,13 @@ import { UpdateManagedUserDto } from './dto/update-managed-user.dto';
 export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService
+    private readonly notificationsService: NotificationsService,
+    private readonly catalogService: CatalogService,
+    private readonly domainSync: DomainSyncService,
   ) {}
 
   async list(actorId: string, actorRole: Role, role?: string, teamId?: string) {
+    await this.ensurePreferenceCatalog();
     const normalizedRole = Object.values(Role).includes(role as Role) ? (role as Role) : undefined;
     const teamFilter = teamId ? await this.resolveTeamFilter(actorId, actorRole, teamId) : await this.resolveTeamFilter(actorId, actorRole);
 
@@ -48,6 +53,7 @@ export class UsersService {
             preferredShifts: true,
             preferredTeamIds: true,
             preferredDutyIds: true,
+            preferredLocationValues: true,
             competencies: true,
             serviceNotes: true
           }
@@ -69,7 +75,8 @@ export class UsersService {
         preferredShifts: (user.settings?.preferredShifts as string[] | null) ?? null,
         preferredTeamIds: (user.settings?.preferredTeamIds as string[] | null) ?? null,
         preferredDutyIds: (user.settings?.preferredDutyIds as string[] | null) ?? null,
-        competencies: (user.settings?.competencies as string[] | null) ?? null,
+        preferredLocationValues: this.normalizeCatalogValues((user.settings?.preferredLocationValues as string[] | null) ?? null, 'location'),
+        competencies: this.normalizeCatalogValues((user.settings?.competencies as string[] | null) ?? null, 'competency'),
         serviceNotes: user.settings?.serviceNotes ?? null
       }))
       .filter((user) => !teamFilter || user.activeTeamIds.some((id) => teamFilter.includes(id)))
@@ -77,54 +84,74 @@ export class UsersService {
   }
 
   findById(id: string) {
-    return this.prisma.user.findUniqueOrThrow({
-      where: { id },
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-        role: true,
-        suspendedAt: true,
-        onboardingState: true,
-        memberships: {
-          select: {
-            teamId: true
-          }
-        },
-        leadingTeams: {
-          select: {
-            id: true
-          }
-        },
-        settings: {
-          select: {
-            phone: true,
-            address: true,
-            emergencyName: true,
-            emergencyPhone: true,
-            preferredShifts: true,
-            preferredTeamIds: true,
-            preferredDutyIds: true,
-            competencies: true,
-            serviceNotes: true
+    return this.ensurePreferenceCatalog().then(() =>
+      this.prisma.user.findUniqueOrThrow({
+        where: { id },
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          role: true,
+          suspendedAt: true,
+          onboardingState: true,
+          memberships: {
+            select: {
+              teamId: true
+            }
+          },
+          leadingTeams: {
+            select: {
+              id: true
+            }
+          },
+          settings: {
+            select: {
+              phone: true,
+              address: true,
+              emergencyName: true,
+              emergencyPhone: true,
+              preferredShifts: true,
+              preferredTeamIds: true,
+              preferredDutyIds: true,
+              preferredLocationValues: true,
+              competencies: true,
+              serviceNotes: true
+            }
           }
         }
-      }
-    }).then((user) => ({
-      ...user,
-      onboardingCompleted: user.onboardingState === OnboardingState.FULLY_ONBOARDED,
-      suspended: Boolean(user.suspendedAt),
-      activeTeamIds: Array.from(new Set([...user.memberships.map((membership) => membership.teamId), ...user.leadingTeams.map((team) => team.id)])),
-      phone: user.settings?.phone ?? null,
-      address: user.settings?.address ?? null,
-      emergencyName: user.settings?.emergencyName ?? null,
-      emergencyPhone: user.settings?.emergencyPhone ?? null,
-      preferredShifts: (user.settings?.preferredShifts as string[] | null) ?? null,
-      preferredTeamIds: (user.settings?.preferredTeamIds as string[] | null) ?? null,
-      preferredDutyIds: (user.settings?.preferredDutyIds as string[] | null) ?? null,
-      competencies: (user.settings?.competencies as string[] | null) ?? null,
-      serviceNotes: user.settings?.serviceNotes ?? null
-    }));
+      }).then((user) => ({
+        ...user,
+        onboardingCompleted: user.onboardingState === OnboardingState.FULLY_ONBOARDED,
+        suspended: Boolean(user.suspendedAt),
+        activeTeamIds: Array.from(new Set([...user.memberships.map((membership) => membership.teamId), ...user.leadingTeams.map((team) => team.id)])),
+        phone: user.settings?.phone ?? null,
+        address: user.settings?.address ?? null,
+        emergencyName: user.settings?.emergencyName ?? null,
+        emergencyPhone: user.settings?.emergencyPhone ?? null,
+        preferredShifts: this.normalizeCatalogValues((user.settings?.preferredShifts as string[] | null) ?? null, 'shift'),
+        preferredTeamIds: (user.settings?.preferredTeamIds as string[] | null) ?? null,
+        preferredDutyIds: (user.settings?.preferredDutyIds as string[] | null) ?? null,
+        preferredLocationValues: this.normalizeCatalogValues((user.settings?.preferredLocationValues as string[] | null) ?? null, 'location'),
+        competencies: this.normalizeCatalogValues((user.settings?.competencies as string[] | null) ?? null, 'competency'),
+        serviceNotes: user.settings?.serviceNotes ?? null
+      }))
+    );
+  }
+
+  async preferenceCatalog() {
+    await this.ensurePreferenceCatalog();
+    return this.catalogService.listCatalog().then((items: any[]) =>
+      items.map((item) => ({
+        id: item.id,
+        type: item.type,
+        value: item.value,
+        label: item.label,
+        description: item.description ?? null,
+        keywords: Array.isArray(item.keywords) ? item.keywords : [],
+        active: item.active,
+        sortOrder: item.sortOrder,
+      }))
+    );
   }
 
   async detail(actorId: string, userId: string) {
@@ -195,6 +222,7 @@ export class UsersService {
   }
 
   async updateProfile(userId: string, payload: UpdateUserProfileDto) {
+    const planningTeamIds = await this.resolveUserPlanningTeamIds(userId);
     await this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -210,10 +238,11 @@ export class UsersService {
         address: payload.address,
         emergencyName: payload.emergencyName,
         emergencyPhone: payload.emergencyPhone,
-        preferredShifts: payload.preferredShifts,
+        preferredShifts: this.normalizeCatalogValues(payload.preferredShifts, 'shift'),
         preferredTeamIds: payload.preferredTeamIds,
         preferredDutyIds: payload.preferredDutyIds,
-        competencies: payload.competencies,
+        preferredLocationValues: this.normalizeCatalogValues(payload.preferredLocationValues, 'location'),
+        competencies: this.normalizeCatalogValues(payload.competencies, 'competency'),
         serviceNotes: payload.serviceNotes
       },
       create: {
@@ -222,10 +251,11 @@ export class UsersService {
         address: payload.address,
         emergencyName: payload.emergencyName,
         emergencyPhone: payload.emergencyPhone,
-        preferredShifts: payload.preferredShifts,
+        preferredShifts: this.normalizeCatalogValues(payload.preferredShifts, 'shift'),
         preferredTeamIds: payload.preferredTeamIds,
         preferredDutyIds: payload.preferredDutyIds,
-        competencies: payload.competencies,
+        preferredLocationValues: this.normalizeCatalogValues(payload.preferredLocationValues, 'location'),
+        competencies: this.normalizeCatalogValues(payload.competencies, 'competency'),
         serviceNotes: payload.serviceNotes
       }
     });
@@ -245,6 +275,14 @@ export class UsersService {
         entityId: userId,
         metadata: toJsonValue(payload)
       }
+    });
+
+    await this.domainSync.syncPlanningContextMutation({
+      action: 'user.profile.updated',
+      entityId: userId,
+      teamIds: planningTeamIds,
+      userIds: [userId],
+      reason: 'user-preferences-updated',
     });
 
     return this.findById(userId);
@@ -293,10 +331,11 @@ export class UsersService {
             address: payload.address,
             emergencyName: payload.emergencyName,
             emergencyPhone: payload.emergencyPhone,
-            preferredShifts: payload.preferredShifts,
+            preferredShifts: this.normalizeCatalogValues(payload.preferredShifts, 'shift'),
             preferredTeamIds: payload.preferredTeamIds,
             preferredDutyIds: payload.preferredDutyIds,
-            competencies: payload.competencies,
+            preferredLocationValues: this.normalizeCatalogValues(payload.preferredLocationValues, 'location'),
+            competencies: this.normalizeCatalogValues(payload.competencies, 'competency'),
             serviceNotes: payload.serviceNotes
           }
         },
@@ -322,10 +361,18 @@ export class UsersService {
     await this.notificationsService.pushSystemNotification(
       user.id,
       'Credenziali create',
-      `Il tuo account e stato creato con ruolo ${payload.role}. Password temporanea: ${password}`,
+      `Il tuo account e stato creato con ruolo ${this.roleLabel(payload.role as Role)}. Password temporanea: ${password}`,
       '/auth',
       { template: 'credentials', tempPassword: password }
     );
+
+    await this.domainSync.syncPlanningContextMutation({
+      action: 'user.created',
+      entityId: user.id,
+      teamIds: payload.teamIds ?? [],
+      userIds: [user.id],
+      reason: 'user-created',
+    });
 
     return {
       ...(await this.findById(user.id)),
@@ -355,29 +402,30 @@ export class UsersService {
 
       await tx.userSettings.upsert({
         where: { userId },
-        update: {
-          phone: payload.phone,
-          address: payload.address,
-          emergencyName: payload.emergencyName,
-          emergencyPhone: payload.emergencyPhone,
-          preferredShifts: payload.preferredShifts,
-          preferredTeamIds: payload.preferredTeamIds,
-          preferredDutyIds: payload.preferredDutyIds,
-          competencies: payload.competencies,
-          serviceNotes: payload.serviceNotes
-        },
-        create: {
-          userId,
-          phone: payload.phone,
-          address: payload.address,
-          emergencyName: payload.emergencyName,
-          emergencyPhone: payload.emergencyPhone,
-          preferredShifts: payload.preferredShifts,
-          preferredTeamIds: payload.preferredTeamIds,
-          preferredDutyIds: payload.preferredDutyIds,
-          competencies: payload.competencies,
-          serviceNotes: payload.serviceNotes
-        }
+          update: {
+            phone: payload.phone,
+            address: payload.address,
+            emergencyName: payload.emergencyName,
+            emergencyPhone: payload.emergencyPhone,
+            preferredShifts: this.normalizeCatalogValues(payload.preferredShifts, 'shift'),
+            preferredTeamIds: payload.preferredTeamIds,
+            preferredDutyIds: payload.preferredDutyIds,
+            preferredLocationValues: this.normalizeCatalogValues(payload.preferredLocationValues, 'location'),
+            competencies: this.normalizeCatalogValues(payload.competencies, 'competency'),
+            serviceNotes: payload.serviceNotes
+          },
+          create: {
+            userId,
+            phone: payload.phone,
+            address: payload.address,
+            emergencyName: payload.emergencyName,
+            emergencyPhone: payload.emergencyPhone,
+            preferredShifts: this.normalizeCatalogValues(payload.preferredShifts, 'shift'),
+            preferredTeamIds: payload.preferredTeamIds,
+            preferredDutyIds: payload.preferredDutyIds,
+            competencies: this.normalizeCatalogValues(payload.competencies, 'competency'),
+            serviceNotes: payload.serviceNotes
+          }
       });
 
       if (payload.teamIds) {
@@ -408,6 +456,14 @@ export class UsersService {
       { template: 'user-update' }
     );
 
+    await this.domainSync.syncPlanningContextMutation({
+      action: 'user.updated',
+      entityId: userId,
+      teamIds: Array.from(new Set([...(previousTeamIds ?? []), ...((payload.teamIds ?? previousTeamIds) ?? [])])),
+      userIds: [userId],
+      reason: 'managed-user-updated',
+    });
+
     return this.findById(userId);
   }
 
@@ -417,6 +473,7 @@ export class UsersService {
       throw new NotFoundException('Utente non trovato');
     }
 
+    const planningTeamIds = await this.resolveUserPlanningTeamIds(userId);
     await this.prisma.user.delete({ where: { id: userId } });
     await this.prisma.auditLog.create({
       data: {
@@ -426,6 +483,14 @@ export class UsersService {
         entityId: userId,
         metadata: toJsonValue({ email: user.email })
       }
+    });
+
+    await this.domainSync.syncPlanningContextMutation({
+      action: 'user.deleted',
+      entityId: userId,
+      teamIds: planningTeamIds,
+      userIds: [userId],
+      reason: 'managed-user-deleted',
     });
 
     return { deleted: true, id: userId };
@@ -534,6 +599,18 @@ export class UsersService {
     return `Shift-${randomBytes(6).toString('base64url')}`;
   }
 
+  private roleLabel(role: Role): string {
+    switch (role) {
+      case Role.administrator:
+        return 'amministratore';
+      case Role.service_leader:
+        return 'leader di servizio';
+      case Role.volunteer:
+      default:
+        return 'volontario';
+    }
+  }
+
   private buildManagedUserUpdateMessage(previousRole: Role, nextRole?: Role, previousTeamIds: string[] = [], nextTeamIds?: string[]) {
     const changes: string[] = ['I tuoi dati utente sono stati aggiornati dall’amministratore.'];
 
@@ -588,5 +665,38 @@ export class UsersService {
     ];
 
     return items.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()).slice(0, 50);
+  }
+
+  private async ensurePreferenceCatalog() {
+    await this.catalogService.bootstrapDefaults();
+  }
+
+  private normalizeCatalogValues(values: string[] | null | undefined, type: 'shift' | 'competency' | 'location') {
+    if (!values) {
+      return values ?? undefined;
+    }
+
+    return Array.from(new Set(
+      values
+        .map((value) => String(value).trim())
+        .filter((value) => value.length > 0)
+    ));
+  }
+
+  private async resolveUserPlanningTeamIds(userId: string): Promise<string[]> {
+    const memberships = await this.prisma.teamMembership.findMany({
+      where: { userId },
+      select: { teamId: true },
+    });
+
+    const ledTeams = await this.prisma.team.findMany({
+      where: { leaderId: userId },
+      select: { id: true },
+    });
+
+    return Array.from(new Set([
+      ...memberships.map((membership) => membership.teamId),
+      ...ledTeams.map((team) => team.id),
+    ]));
   }
 }

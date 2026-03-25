@@ -3,6 +3,7 @@ import { Role } from '@prisma/client';
 import { toJsonValue } from '../../common/utils/json.util';
 import { PrismaService } from '../../database/prisma.service';
 import { CreateEventDto, UpdateEventDto, AssignVolunteerDto } from '@shift-complete/shared-types';
+import { DomainSyncService } from '../domain-sync/domain-sync.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
 const RECURRENCE_LOOKAHEAD_MONTHS = 12;
@@ -13,7 +14,8 @@ const DEFAULT_RECURRENCE_DURATION_MONTHS = 12;
 export class EventsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService
+    private readonly notificationsService: NotificationsService,
+    private readonly domainSync: DomainSyncService
   ) {}
 
   list(actorId: string, actorRole: Role) {
@@ -135,6 +137,7 @@ export class EventsService {
           description: event.description,
           color: event.color,
           icon: event.icon,
+          locationValue: event.locationValue,
           startsAt: event.startsAt,
           endsAt: event.endsAt,
           type: event.type,
@@ -199,11 +202,12 @@ export class EventsService {
         title: payload.title,
         description: payload.description,
         type: payload.type as any, // mapping between string and enum
+        locationValue: payload.locationValue,
         startsAt,
         endsAt,
         recurrenceRule: recurrence.recurrenceRule,
         recurrenceTz: recurrence.recurrenceTz,
-        recurrenceUntil: recurrence.recurrenceUntil,
+        recurrenceUntil: recurrence.recurrenceUntil as any,
         recurrenceDurationMonths: recurrence.recurrenceDurationMonths,
         recurrenceAutoRenew: recurrence.recurrenceAutoRenew,
         recurrenceRenewMonths: recurrence.recurrenceRenewMonths,
@@ -225,7 +229,7 @@ export class EventsService {
             required: slot.required ?? true
           }))
         }
-      },
+      } as any,
       include: {
         slots: true
       }
@@ -241,6 +245,16 @@ export class EventsService {
       }
     });
 
+    await this.domainSync.syncEventMutation({
+      action: 'event.created',
+      entityId: event.id,
+      eventIds: [event.id],
+      teamIds: payload.slots.map((slot) => slot.teamId),
+      startsAt,
+      endsAt,
+      reason: 'event-created',
+    });
+
     return event;
   }
 
@@ -249,6 +263,12 @@ export class EventsService {
       where: { id: payload.slotId },
       include: {
         team: true,
+        duty: true,
+        event: {
+          select: {
+            title: true,
+          },
+        },
         assignments: true
       }
     });
@@ -357,13 +377,31 @@ export class EventsService {
       }
     });
 
+    const eventSlot = await this.prisma.eventSlot.findUnique({
+      where: { id: payload.slotId },
+      select: { eventId: true, teamId: true, startsAt: true, endsAt: true },
+    });
+
+    await this.domainSync.syncAssignmentMutation({
+      action: existingAssignment ? 'assignment.updated' : 'assignment.created',
+      entityId: assignment.id,
+      eventIds: eventSlot?.eventId ? [eventSlot.eventId] : [],
+      teamIds: eventSlot?.teamId ? [eventSlot.teamId] : [],
+      userIds: payload.assigneeId ? [payload.assigneeId] : [],
+      startsAt: eventSlot?.startsAt ?? null,
+      endsAt: eventSlot?.endsAt ?? null,
+      reason: existingAssignment ? 'manual-assignment-updated' : 'manual-assignment-created',
+    });
+
     if (payload.assigneeId) {
+      const dutyLabel = slot.duty?.name || 'servizio';
+      const eventLabel = slot.event?.title ? ` per ${slot.event.title}` : '';
       await this.notificationsService.pushSystemNotification(
         payload.assigneeId,
         'Nuova assegnazione turno',
-        `Sei stato assegnato al servizio ${slot.dutyId} del team ${slot.team.name}.`,
+        `Sei stato assegnato al servizio ${dutyLabel} del team ${slot.team.name}${eventLabel}.`,
         '/events',
-        { template: 'assignment', teamName: slot.team.name }
+        { template: 'assignment', teamName: slot.team.name, dutyName: dutyLabel, eventTitle: slot.event?.title }
       );
     }
 
@@ -402,11 +440,12 @@ export class EventsService {
         title: payload.title,
         description: payload.description,
         type: payload.type as any,
+        locationValue: payload.locationValue,
         startsAt: payload.startsAt ? new Date(payload.startsAt) : undefined,
         endsAt: payload.endsAt ? new Date(payload.endsAt) : undefined,
         recurrenceRule: recurrence.recurrenceRule,
         recurrenceTz: recurrence.recurrenceTz,
-        recurrenceUntil: recurrence.recurrenceUntil,
+        recurrenceUntil: recurrence.recurrenceUntil as any,
         recurrenceDurationMonths: recurrence.recurrenceDurationMonths,
         recurrenceAutoRenew: recurrence.recurrenceAutoRenew,
         recurrenceRenewMonths: recurrence.recurrenceRenewMonths,
@@ -430,7 +469,7 @@ export class EventsService {
               }))
             }
           : undefined
-      }
+      } as any
     });
 
     await this.prisma.auditLog.create({
@@ -441,6 +480,16 @@ export class EventsService {
         entityId: targetEvent.id,
         metadata: toJsonValue(payload)
       }
+    });
+
+    await this.domainSync.syncEventMutation({
+      action: 'event.updated',
+      entityId: targetEvent.id,
+      eventIds: [targetEvent.id],
+      teamIds: payload.slots?.map((slot) => slot.teamId) ?? targetEvent.slots.map((slot: any) => slot.teamId),
+      startsAt: payload.startsAt ? new Date(payload.startsAt) : new Date(targetEvent.startsAt),
+      endsAt: payload.endsAt ? new Date(payload.endsAt) : new Date(targetEvent.endsAt),
+      reason: 'event-updated',
     });
 
     const assignments = await this.prisma.assignment.findMany({
@@ -506,6 +555,16 @@ export class EventsService {
       }
     });
 
+    await this.domainSync.syncEventMutation({
+      action: 'event.deleted',
+      entityId: targetEvent.id,
+      eventIds: [targetEvent.id],
+      teamIds: targetEvent.slots.map((slot: any) => slot.teamId),
+      startsAt: targetEvent.startsAt,
+      endsAt: targetEvent.endsAt,
+      reason: 'event-deleted',
+    });
+
     const assigneeIds = Array.from(new Set(targetEvent.slots.flatMap((slot: any) => slot.assignments?.map((assignment: any) => assignment.assigneeId).filter((id: string | null): id is string => Boolean(id)) ?? [])));
     await Promise.all(assigneeIds.map((assigneeId) =>
       this.notificationsService.pushSystemNotification(
@@ -525,6 +584,7 @@ export class EventsService {
     const childEvents = events.filter((event) => event.parentEventId);
     const childBySeriesOccurrence = new Map<string, any>();
     const cancelledOccurrences = new Set<string>();
+    const firstOccurrenceBySeries = new Map<string, any>();
 
     for (const child of childEvents) {
       const snapshot = this.readHistoricalSnapshot(child.historicalSnapshot);
@@ -537,8 +597,33 @@ export class EventsService {
       childBySeriesOccurrence.set(key, child);
     }
 
+    for (const event of baseEvents) {
+      if (event.type !== 'recurring') {
+        continue;
+      }
+
+      const firstKey = `${event.id}:${new Date(event.startsAt).toISOString()}`;
+      const firstOccurrence = childBySeriesOccurrence.get(firstKey);
+      if (firstOccurrence) {
+        firstOccurrenceBySeries.set(event.id, firstOccurrence);
+      }
+    }
+
     const expanded = childEvents
-      .filter((child) => this.readHistoricalSnapshot(child.historicalSnapshot)?.mode !== 'cancelled')
+      .filter((child) => {
+        const snapshot = this.readHistoricalSnapshot(child.historicalSnapshot);
+        if (snapshot?.mode === 'cancelled') {
+          return false;
+        }
+
+        const occurrenceStart = snapshot?.occurrenceStart ?? child.startsAt?.toISOString?.() ?? child.startsAt;
+        const firstOccurrence = firstOccurrenceBySeries.get(child.parentEventId);
+        if (firstOccurrence && occurrenceStart === (this.readHistoricalSnapshot(firstOccurrence.historicalSnapshot)?.occurrenceStart ?? firstOccurrence.startsAt?.toISOString?.() ?? firstOccurrence.startsAt)) {
+          return false;
+        }
+
+        return true;
+      })
       .map((child) => this.mapPersistedOccurrence(child));
 
     for (const event of baseEvents) {
@@ -547,10 +632,14 @@ export class EventsService {
         continue;
       }
 
-      expanded.push(this.mapStandaloneEvent(event));
+      const firstOccurrence = firstOccurrenceBySeries.get(event.id);
+      expanded.push(firstOccurrence ? this.mapSeriesRootEvent(event, firstOccurrence) : this.mapStandaloneEvent(event));
 
       for (const occurrence of this.generateOccurrences(event)) {
         const key = `${event.id}:${occurrence.startsAt.toISOString()}`;
+        if (occurrence.startsAt.toISOString() === new Date(event.startsAt).toISOString()) {
+          continue;
+        }
         if (cancelledOccurrences.has(key) || childBySeriesOccurrence.has(key)) {
           continue;
         }
@@ -564,11 +653,31 @@ export class EventsService {
   private mapStandaloneEvent(event: any) {
     return {
       ...event,
+      locationValue: event.locationValue,
       seriesId: event.id,
       occurrenceStart: event.startsAt,
       isOccurrence: false,
       isVirtualOccurrence: false,
       seriesTemplate: null,
+    };
+  }
+
+  private mapSeriesRootEvent(event: any, firstOccurrence: any) {
+    const mappedOccurrence = this.mapPersistedOccurrence(firstOccurrence);
+    return {
+      ...mappedOccurrence,
+      id: event.id,
+      parentEventId: null,
+      startsAt: event.startsAt,
+      endsAt: event.endsAt,
+      title: mappedOccurrence.title ?? event.title,
+      description: mappedOccurrence.description ?? event.description,
+      locationValue: mappedOccurrence.locationValue ?? event.locationValue,
+      occurrenceStart: event.startsAt,
+      isOccurrence: false,
+      isVirtualOccurrence: false,
+      canManageAssignments: true,
+      seriesId: event.id,
     };
   }
 
@@ -591,6 +700,7 @@ export class EventsService {
         ? {
             title: event.parentEvent.title,
             description: event.parentEvent.description,
+            locationValue: event.parentEvent.locationValue,
             startsAt: event.parentEvent.startsAt,
             endsAt: event.parentEvent.endsAt,
             recurrenceRule: event.parentEvent.recurrenceRule,
@@ -626,6 +736,7 @@ export class EventsService {
       seriesTemplate: {
         title: event.title,
         description: event.description,
+        locationValue: event.locationValue,
         startsAt: event.startsAt,
         endsAt: event.endsAt,
         recurrenceRule: event.recurrenceRule,
@@ -777,7 +888,10 @@ export class EventsService {
         }
         where.eventId = occurrenceEvent.id;
       } else if ((event as any).type === 'recurring') {
-        where.event = { parentEventId: ref.eventId };
+        where.OR = [
+          { eventId: ref.eventId },
+          { event: { parentEventId: ref.eventId } },
+        ];
       } else {
         where.eventId = ref.eventId;
       }
@@ -794,11 +908,20 @@ export class EventsService {
       where,
       include: {
         assignments: true,
+        event: {
+          select: {
+            id: true,
+            title: true,
+            startsAt: true,
+            endsAt: true,
+            locationValue: true,
+          },
+        },
         team: {
-          select: { name: true },
+          select: { name: true, requiredCompetencies: true },
         },
         duty: {
-          select: { id: true, name: true },
+          select: { id: true, name: true, requiredCompetencies: true },
         },
       },
       orderBy: { startsAt: 'asc' },
@@ -883,6 +1006,16 @@ export class EventsService {
       }
     });
 
+    await this.domainSync.syncEventMutation({
+      action: 'event.occurrence.updated',
+      entityId: updated.id,
+      eventIds: [series.id, updated.id],
+      teamIds: slotPayload.map((slot) => slot.teamId),
+      startsAt: occurrenceStart,
+      endsAt: occurrenceEnd,
+      reason: 'occurrence-updated',
+    });
+
     return this.prisma.event.findUniqueOrThrow({
       where: { id: updated.id },
       include: { slots: true, parentEvent: { include: { slots: true } } }
@@ -934,6 +1067,16 @@ export class EventsService {
         entityId: series.id,
         metadata: toJsonValue({ seriesId: series.id, occurrenceStart })
       }
+    });
+
+    await this.domainSync.syncEventMutation({
+      action: 'event.occurrence.deleted',
+      entityId: series.id,
+      eventIds: [series.id],
+      teamIds: series.slots.map((slot: any) => slot.teamId),
+      startsAt: start,
+      endsAt: end,
+      reason: 'occurrence-deleted',
     });
 
     return { deleted: true, id: `${series.id}::${occurrenceStart}` };

@@ -24,6 +24,21 @@ export class LiveNotificationsService {
     this.socket.on('scheduling.updated', (payload) => {
       this.feedSignal.update((items) => [{ type: payload.kind ?? 'scheduling.updated', payload }, ...items].slice(0, 20));
     });
+    this.socket.on('events.changed', (payload) => {
+      this.feedSignal.update((items) => [{ type: 'events.changed', payload }, ...items].slice(0, 20));
+    });
+    this.socket.on('assignments.changed', (payload) => {
+      this.feedSignal.update((items) => [{ type: 'assignments.changed', payload }, ...items].slice(0, 20));
+    });
+    this.socket.on('replacements.changed', (payload) => {
+      this.feedSignal.update((items) => [{ type: 'replacements.changed', payload }, ...items].slice(0, 20));
+    });
+    this.socket.on('availability.changed', (payload) => {
+      this.feedSignal.update((items) => [{ type: 'availability.changed', payload }, ...items].slice(0, 20));
+    });
+    this.socket.on('stats.changed', (payload) => {
+      this.feedSignal.update((items) => [{ type: 'stats.changed', payload }, ...items].slice(0, 20));
+    });
     this.socket.on('notification.created', (payload) => {
       this.feedSignal.update((items) => [{ type: 'notification.created', payload }, ...items].slice(0, 20));
     });

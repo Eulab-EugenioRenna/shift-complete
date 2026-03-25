@@ -1,0 +1,129 @@
+<section class="grid gap-6 text-[color:var(--text-1)]">
+  <ui-page-header
+    eyebrow="Organigramma generale"
+    eyebrowClass="text-orange-500"
+    title="Struttura condivisa di gruppi, team e gruppi riunione."
+    subtitle="Ogni gruppo puo' coordinare sia team operativi sia gruppi riunione."
+    [hasActions]="true"
+  >
+    <div page-actions class="flex flex-wrap items-center gap-2">
+      <ui-button icon="pi pi-folder-plus" (buttonClick)="openGroupDialog()">Nuovo gruppo</ui-button>
+      <a routerLink="/meetings" class="inline-flex items-center gap-2 rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-4 py-2 text-sm font-medium text-[color:var(--text-2)] transition hover:bg-[color:var(--surface-2)] hover:text-[color:var(--text-1)] shadow-[var(--shadow-soft)]">
+        <i class="pi pi-calendar text-xs"></i>
+        Apri riunioni
+      </a>
+    </div>
+  </ui-page-header>
+
+  <div class="grid gap-4 md:grid-cols-3">
+    <ui-stat-card *ngFor="let card of overviewCards()" [label]="card.label" [value]="card.value" [detail]="card.detail"></ui-stat-card>
+  </div>
+
+  <div class="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(20rem,0.7fr)] xl:items-start">
+    <ui-surface surfaceClass="overflow-hidden border border-orange-100 bg-[linear-gradient(180deg,rgba(255,247,237,0.95)_0%,rgba(255,255,255,1)_100%)] p-5">
+      <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.24em] text-orange-600">Vista generale</p>
+          <h3 class="mt-2 text-xl font-semibold text-[color:var(--text-1)]">Gruppi, team e riunioni nello stesso quadro</h3>
+          <p class="mt-1 max-w-2xl text-sm text-[color:var(--text-2)]">Il root mostra la somma complessiva e ogni gruppo puo' guidare sia team operativi sia gruppi riunione.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <ui-label tone="info">Root riepilogativo</ui-label>
+          <ui-label tone="warn">Gruppi misti</ui-label>
+          <ui-label tone="danger">Badge Tu dinamico</ui-label>
+        </div>
+      </div>
+      <app-org-chart [teams]="teams()" [groups]="groups()" [meetingGroups]="meetingGroups()" mode="general"></app-org-chart>
+    </ui-surface>
+
+    <div class="grid gap-4 xl:sticky xl:top-24">
+      <ui-surface surfaceClass="overflow-hidden p-5">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <h3 class="text-base font-semibold text-[color:var(--text-1)]">Gruppi configurati</h3>
+            <p class="mt-1 text-sm text-[color:var(--text-2)]">Contenitori misti per team e gruppi riunione.</p>
+          </div>
+          <ui-button tone="neutral" variant="outlined" size="sm" icon="pi pi-plus" (buttonClick)="openGroupDialog()">Nuovo</ui-button>
+        </div>
+
+        <div class="mt-4 divide-y divide-[color:var(--border-soft)]">
+          <div *ngFor="let group of groups()" class="flex items-start justify-between gap-3 py-4">
+            <div>
+              <p class="font-semibold text-[color:var(--text-1)]">{{ group.name || 'Gruppo senza nome' }}</p>
+              <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ group.teams.length }} team · {{ group.meetingGroups.length }} gruppi riunione</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <ui-button tone="neutral" variant="text" size="sm" icon="pi pi-pencil" (buttonClick)="editGroup(group)"></ui-button>
+              <ui-button tone="danger" variant="text" size="sm" icon="pi pi-trash" (buttonClick)="deleteGroup(group.id)"></ui-button>
+            </div>
+          </div>
+          <div *ngIf="!groups().length" class="py-6 text-sm text-[color:var(--text-3)]">Nessun gruppo configurato.</div>
+        </div>
+      </ui-surface>
+
+      <ui-surface surfaceClass="overflow-hidden p-5">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <h3 class="text-base font-semibold text-[color:var(--text-1)]">Gruppi in evidenza</h3>
+            <p class="mt-1 text-sm text-[color:var(--text-2)]">Quelli con piu' elementi collegati.</p>
+          </div>
+          <ui-label tone="info">Top 3</ui-label>
+        </div>
+
+        <div class="mt-4 grid gap-3">
+          <div *ngFor="let group of highlightedGroups()" class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-4">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="font-semibold text-[color:var(--text-1)]">{{ group.name || 'Gruppo senza nome' }}</p>
+                <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ group.description || 'Nessuna descrizione disponibile' }}</p>
+              </div>
+              <ui-label tone="neutral">{{ group.teams.length + group.meetingGroups.length }} nodi</ui-label>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-2 text-xs">
+              <ui-label tone="info">{{ group.teams.length }} team</ui-label>
+              <ui-label tone="warn">{{ group.meetingGroups.length }} riunioni</ui-label>
+            </div>
+          </div>
+          <p *ngIf="!highlightedGroups().length" class="text-sm text-[color:var(--text-3)]">Aggiungi gruppi per vedere una panoramica piu' ricca.</p>
+        </div>
+      </ui-surface>
+
+      <ui-surface surfaceClass="overflow-hidden p-5">
+        <h3 class="text-base font-semibold text-[color:var(--text-1)]">Elementi non assegnati</h3>
+        <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-1">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Team</p>
+            <div class="mt-2 grid gap-2">
+              <div *ngFor="let team of ungroupedTeams()" class="rounded-xl bg-[color:var(--surface-2)] px-3 py-2 text-sm">{{ team.name }}</div>
+              <p *ngIf="!ungroupedTeams().length" class="text-sm text-[color:var(--text-3)]">Tutti i team sono assegnati.</p>
+            </div>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Gruppi riunione</p>
+            <div class="mt-2 grid gap-2">
+              <div *ngFor="let group of ungroupedMeetingGroups()" class="rounded-xl bg-[color:var(--surface-2)] px-3 py-2 text-sm">{{ group.name }}</div>
+              <p *ngIf="!ungroupedMeetingGroups().length" class="text-sm text-[color:var(--text-3)]">Tutti i gruppi riunione sono assegnati.</p>
+            </div>
+          </div>
+        </div>
+      </ui-surface>
+    </div>
+  </div>
+
+  <ui-modal [(visible)]="groupDialogVisible" title="Gruppo generale" eyebrow="Organigramma" subtitle="Raggruppa team e gruppi riunione nello stesso nodo." icon="pi pi-sitemap" tone="info" [hasFooter]="true" width="40rem" maxWidth="95vw" (closeRequested)="groupDialogVisible = false">
+    <div class="grid gap-4">
+      <ui-field label="Nome gruppo">
+        <ui-input [value]="groupForm.name" (valueChange)="groupForm.name = $event" placeholder="Es. Direzione, Area operativa"></ui-input>
+      </ui-field>
+      <ui-field label="Descrizione">
+        <ui-textarea [value]="groupForm.description" (valueChange)="groupForm.description = $event" placeholder="Descrizione del gruppo" [rows]="4"></ui-textarea>
+      </ui-field>
+      <ui-multi-select label="Team" [options]="teamOptions()" [value]="groupForm.teamIds" placeholder="Seleziona team" (valueChange)="groupForm.teamIds = $any($event) || []"></ui-multi-select>
+      <ui-multi-select label="Gruppi riunione" [options]="meetingGroupOptions()" [value]="groupForm.meetingGroupIds" placeholder="Seleziona gruppi riunione" (valueChange)="groupForm.meetingGroupIds = $any($event) || []"></ui-multi-select>
+    </div>
+    <div modal-footer class="flex justify-end gap-2">
+      <ui-button tone="neutral" variant="outlined" (buttonClick)="groupDialogVisible = false">Annulla</ui-button>
+      <ui-button tone="info" (buttonClick)="saveGroup()">{{ editingGroupId() ? 'Salva gruppo' : 'Crea gruppo' }}</ui-button>
+    </div>
+  </ui-modal>
+</section>

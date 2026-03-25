@@ -11,6 +11,10 @@ import {
   UiFormSectionComponent,
   UiInputComponent,
   UiLabelComponent,
+  UiListPanelBodyDirective,
+  UiListPanelComponent,
+  UiListPanelFooterDirective,
+  UiListPanelHeaderActionsDirective,
   UiPageHeaderComponent,
   UiSurfaceComponent,
   UiTextareaComponent,
@@ -35,6 +39,10 @@ type Tone = 'neutral' | 'info' | 'success' | 'warn' | 'danger';
     UiFormSectionComponent,
     UiInputComponent,
     UiLabelComponent,
+    UiListPanelBodyDirective,
+    UiListPanelComponent,
+    UiListPanelFooterDirective,
+    UiListPanelHeaderActionsDirective,
     UiPageHeaderComponent,
     UiSurfaceComponent,
     UiTextareaComponent,
@@ -51,6 +59,8 @@ export class DesignManualPageComponent {
   protected readonly tones: Tone[] = ['neutral', 'info', 'success', 'warn', 'danger'];
   protected readonly activeFilter = signal<Tone>('info');
   protected readonly activeSegment = signal<'tag' | 'filter' | 'feedback'>('tag');
+  protected readonly confirmPreviewVisible = signal(false);
+  protected readonly dangerPreviewVisible = signal(false);
   protected readonly masonrySpans = signal<Record<string, number>>({});
   protected readonly visibleCards = signal<Record<string, boolean>>({});
 
@@ -83,6 +93,14 @@ export class DesignManualPageComponent {
         this.feedback.info('Informazione disponibile', 'Info identifica suggerimenti, evidenze e azioni primarie.');
         break;
     }
+  }
+
+  protected openConfirmPreview(): void {
+    this.confirmPreviewVisible.set(true);
+  }
+
+  protected openDangerPreview(): void {
+    this.dangerPreviewVisible.set(true);
   }
 
   ngAfterViewInit(): void {

@@ -10,6 +10,26 @@ export class RealtimeGateway {
     this.server.emit('scheduling.updated', payload);
   }
 
+  broadcastEventsChanged(payload: unknown) {
+    this.server.emit('events.changed', payload);
+  }
+
+  broadcastAssignmentsChanged(payload: unknown) {
+    this.server.emit('assignments.changed', payload);
+  }
+
+  broadcastReplacementsChanged(payload: unknown) {
+    this.server.emit('replacements.changed', payload);
+  }
+
+  broadcastAvailabilityChanged(payload: unknown) {
+    this.server.emit('availability.changed', payload);
+  }
+
+  broadcastStatsChanged(payload: unknown) {
+    this.server.emit('stats.changed', payload);
+  }
+
   broadcastNotificationCreated(payload: unknown) {
     this.server.emit('notification.created', payload);
   }

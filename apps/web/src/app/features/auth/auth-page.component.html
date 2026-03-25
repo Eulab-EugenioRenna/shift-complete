@@ -1,4 +1,4 @@
-<section class="relative flex min-h-screen items-center justify-center overflow-hidden bg-transparent px-4 py-12 text-[color:var(--text-1)]">
+<section class="relative flex min-h-screen items-start justify-center overflow-x-hidden overflow-y-auto bg-transparent px-4 py-6 text-[color:var(--text-1)] md:items-center md:py-12">
   <div class="absolute inset-0 bg-[linear-gradient(120deg,rgba(73,121,230,0.08),transparent_35%,rgba(56,189,248,0.06))]"></div>
   <div class="relative flex w-full max-w-5xl flex-col overflow-hidden rounded-[28px] border border-white/40 bg-[color:var(--surface-overlay)] shadow-[0_24px_80px_rgba(45,76,145,0.18)] backdrop-blur md:flex-row">
     
@@ -23,27 +23,35 @@
     </div>
 
     <!-- Form Pane -->
-    <div class="flex flex-col justify-center p-8 md:w-7/12 md:p-10">
-      <div class="inline-flex w-fit rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-1 text-sm">
-        <button type="button" class="rounded-full px-4 py-2 font-medium transition" [ngClass]="mode() === 'login' ? 'bg-[color:var(--surface-1)] text-[color:var(--text-1)] shadow-sm' : 'text-[color:var(--text-2)]'" (click)="mode.set('login')">Accesso</button>
-        <button type="button" class="rounded-full px-4 py-2 font-medium transition" [ngClass]="mode() === 'register' ? 'bg-[color:var(--surface-1)] text-[color:var(--text-1)] shadow-sm' : 'text-[color:var(--text-2)]'" (click)="mode.set('register')">Registrazione</button>
+    <div class="flex min-w-0 flex-col justify-center p-8 md:w-7/12 md:p-10">
+      <div class="mb-2 inline-flex w-fit self-start rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-1 text-sm">
+        <button type="button" class="min-w-0 rounded-full px-3 py-2 font-medium transition" [ngClass]="mode() === 'login' ? 'bg-[color:var(--surface-1)] text-[color:var(--text-1)] shadow-sm' : 'text-[color:var(--text-2)]'" (click)="mode.set('login')">Accedi</button>
+        <button type="button" class="min-w-0 rounded-full px-3 py-2 font-medium transition" [ngClass]="mode() === 'register' ? 'bg-[color:var(--surface-1)] text-[color:var(--text-1)] shadow-sm' : 'text-[color:var(--text-2)]'" (click)="mode.set('register')">Registrati</button>
       </div>
       <h2 class="ui-page-title mt-6">{{ mode() === 'login' ? 'Accedi al tuo spazio operativo' : 'Crea una richiesta di accesso' }}</h2>
       <p class="ui-page-subtitle mt-2">
         {{ mode() === 'login' ? 'Entra con il tuo account e riprendi i flussi del tuo ruolo.' : 'Invia la richiesta di accesso come volontario o crea il tuo account per iniziare l\'onboarding.' }}
       </p>
-      <div class="mt-8 grid gap-5">
-        <div class="grid gap-4">
-          <ui-input *ngIf="mode() === 'register'" [value]="fullName" (valueChange)="fullName = $event" placeholder="Nome completo"></ui-input>
+      <div class="mt-8 grid min-w-0 gap-5 overflow-x-hidden">
+        <div class="grid min-w-0 gap-4 overflow-x-hidden">
+          <ui-input *ngIf="mode() === 'register'" class="min-w-0 max-w-full" [value]="fullName" (valueChange)="fullName = $event" placeholder="Nome completo"></ui-input>
           <ui-input [value]="email" (valueChange)="email = $event" placeholder="Email" autocomplete="email"></ui-input>
-          <div class="relative">
-            <ui-input class="block" [value]="password" (valueChange)="password = $event" placeholder="Password" [type]="showPassword() ? 'text' : 'password'"></ui-input>
+          <div class="relative min-w-0 overflow-hidden" *ngIf="mode() === 'register'; else loginPasswordField">
+            <ui-input class="block min-w-0 max-w-full" [value]="password" (valueChange)="password = $event" placeholder="Password" [type]="showPassword() ? 'text' : 'password'"></ui-input>
             <button type="button" class="absolute inset-y-0 right-0 flex items-center px-3 text-[color:var(--text-3)] transition hover:text-[#4979e6]" (click)="showPassword.set(!showPassword())" [attr.aria-label]="showPassword() ? 'Nascondi password' : 'Mostra password'">
               <i class="pi" [class.pi-eye]="!showPassword()" [class.pi-eye-slash]="showPassword()"></i>
             </button>
           </div>
-          <ui-select *ngIf="mode() === 'register'" label="Team richiesto" [options]="teamOptions()" [value]="teamId" (valueChange)="teamId = castString($event)"></ui-select>
-          <ui-label *ngIf="mode() === 'register'" tone="warn">Se selezioni un team, la richiesta dovra essere approvata da leader o amministratore prima del login.</ui-label>
+          <ng-template #loginPasswordField>
+            <div class="relative min-w-0">
+              <ui-input class="block" [value]="password" (valueChange)="password = $event" placeholder="Password" [type]="showPassword() ? 'text' : 'password'"></ui-input>
+              <button type="button" class="absolute inset-y-0 right-0 flex items-center px-3 text-[color:var(--text-3)] transition hover:text-[#4979e6]" (click)="showPassword.set(!showPassword())" [attr.aria-label]="showPassword() ? 'Nascondi password' : 'Mostra password'">
+                <i class="pi" [class.pi-eye]="!showPassword()" [class.pi-eye-slash]="showPassword()"></i>
+              </button>
+            </div>
+          </ng-template>
+          <ui-select *ngIf="mode() === 'register'" class="min-w-0 max-w-full" label="Team richiesto" [options]="teamOptions()" [value]="teamId" (valueChange)="teamId = castString($event)"></ui-select>
+          <ui-label *ngIf="mode() === 'register'" class="block min-w-0 max-w-full overflow-hidden" tone="warn">Con team serve approvazione prima del login.</ui-label>
         </div>
 
         <div class="grid gap-3 pt-2">

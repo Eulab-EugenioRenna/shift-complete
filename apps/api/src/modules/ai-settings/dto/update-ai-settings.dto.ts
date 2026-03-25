@@ -148,6 +148,35 @@ export class UpdateAiSettingsDto {
   aiJobConcurrency?: number;
 
   @IsOptional()
+  @IsString()
+  @IsIn(['polling', 'websocket', 'hybrid'])
+  schedulingPreviewTransport?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  schedulingPreviewRetryCount?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(500)
+  schedulingPreviewPollIntervalMs?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  schedulingAsyncRangeDays?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  schedulingAsyncManualSelections?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  schedulingAsyncWithoutEvent?: boolean;
+
+  @IsOptional()
   @IsBoolean()
   inAppNotificationsEnabled?: boolean;
 

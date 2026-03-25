@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { UiButtonComponent, UiCardComponent, UiFieldComponent, UiInputComponent, UiLabelComponent, UiPageHeaderComponent, UiStatCardComponent, UiSurfaceComponent } from '@shift-complete/ui-kit';
-import { UserProfile } from '@shift-complete/shared-types';
+import { UserPreferenceCatalogItem, UserProfile } from '@shift-complete/shared-types';
 import { ApiErrorService } from '../../core/services/api-error.service';
 import { SessionService } from '../../core/services/session.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
@@ -23,6 +23,7 @@ export class UserPageComponent {
 
   protected readonly profile = signal<UserProfile | null>(this.session.getCurrentUser());
   protected readonly teams = signal<Array<{ id: string; name: string }>>([]);
+  protected readonly preferenceCatalog = signal<UserPreferenceCatalogItem[]>([]);
   protected readonly savingProfile = signal(false);
   protected readonly savingPassword = signal(false);
   protected readonly showCurrentPassword = signal(false);
@@ -43,8 +44,13 @@ export class UserPageComponent {
   protected readonly identityComplete = computed(() => Boolean(this.profileForm.fullName.trim() && this.profileForm.email.trim() && this.profileForm.phone.trim()));
   protected readonly emergencyComplete = computed(() => Boolean(this.profileForm.emergencyName.trim() && this.profileForm.emergencyPhone.trim()));
   protected readonly preferencesComplete = computed(() => this.profileForm.preferredShifts.length > 0 && this.profileForm.competencies.length > 0);
+  protected readonly shiftPreferenceOptions = computed(() => this.preferenceCatalog().filter((item) => item.type === 'shift').map((item) => ({ label: item.label, value: item.value })));
+  protected readonly competencyOptions = computed(() => this.preferenceCatalog().filter((item) => item.type === 'competency').map((item) => ({ label: item.label, value: item.value })));
+  protected readonly locationPreferenceOptions = computed(() => this.preferenceCatalog().filter((item) => item.type === 'location').map((item) => ({ label: item.label, value: item.value })));
+  protected readonly preferredTeamOptions = computed(() => this.teams().map((team) => ({ label: team.name, value: team.id })));
 
   constructor() {
+    this.api.userPreferenceCatalog().subscribe({ next: (items) => this.preferenceCatalog.set(items) });
     this.api.me().subscribe({
       next: (profile) => {
         this.profile.set(profile);
@@ -82,6 +88,7 @@ export class UserPageComponent {
       emergencyPhone: this.profileForm.emergencyPhone.trim() || undefined,
       preferredShifts: this.profileForm.preferredShifts,
       preferredTeamIds: currentProfile.activeTeamIds,
+      preferredLocationValues: this.profileForm.preferredLocationValues,
       competencies: this.profileForm.competencies,
       serviceNotes: this.profileForm.serviceNotes.trim() || undefined,
     }).subscribe({
@@ -135,6 +142,7 @@ export class UserPageComponent {
       preferredShifts: profile.preferredShifts ?? [],
       preferredTeamIds: profile.preferredTeamIds ?? [],
       preferredDutyIds: profile.preferredDutyIds ?? [],
+      preferredLocationValues: profile.preferredLocationValues ?? [],
       competencies: profile.competencies ?? [],
       serviceNotes: profile.serviceNotes ?? '',
     };
@@ -151,6 +159,7 @@ export class UserPageComponent {
       preferredShifts: [] as string[],
       preferredTeamIds: [] as string[],
       preferredDutyIds: [] as string[],
+      preferredLocationValues: [] as string[],
       competencies: [] as string[],
       serviceNotes: '',
     };

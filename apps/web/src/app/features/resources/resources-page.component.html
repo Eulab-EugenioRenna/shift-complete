@@ -6,15 +6,18 @@
     [hasActions]="canManageResources()"
   >
     <div page-actions class="flex flex-wrap items-center gap-2" *ngIf="canManageResources()">
-      <ui-select
-        [options]="uploadTeamOptions()"
-        [value]="uploadTeamId"
-        (valueChange)="uploadTeamId = $any($event)"
-      ></ui-select>
-      <label class="cursor-pointer rounded-md bg-[#4979e6] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700">
-        <i class="pi pi-upload mr-2 text-xs"></i> Carica file
-        <input type="file" multiple class="hidden" (change)="onFileSelect($event)" />
-      </label>
+      <div class="flex flex-wrap items-center gap-2">
+        <ui-select
+          [options]="uploadTeamOptions()"
+          [value]="uploadTeamId"
+          placeholder="Destinazione libreria"
+          (valueChange)="uploadTeamId = $any($event)"
+        ></ui-select>
+        <label class="cursor-pointer rounded-md bg-[#4979e6] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700">
+          <i class="pi pi-upload mr-2 text-xs"></i> Carica file
+          <input type="file" multiple class="hidden" (change)="onFileSelect($event)" />
+        </label>
+      </div>
     </div>
   </ui-page-header>
 
@@ -24,16 +27,22 @@
     <ui-stat-card *ngFor="let card of summaryCards()" [label]="card.label" [value]="card.value" [detail]="card.detail"></ui-stat-card>
   </div>
 
-  <div class="grid gap-4 xl:grid-cols-[1.65fr_0.85fr]">
+  <div class="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
     <div class="flex flex-col gap-4">
-      <ui-surface surfaceClass="px-4 py-3">
-        <div class="flex flex-col gap-3">
-          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <ui-button tone="neutral" variant="outlined" icon="pi pi-search" (buttonClick)="openSpotlight()">Cerca file</ui-button>
-            <p class="text-xs text-[color:var(--text-3)]">{{ filteredResources().length }} file visibili</p>
-          </div>
+      <ui-filter-bar title="Upload e librerie" subtitle="Globale per tutti, librerie team visibili solo a leader e assegnati." fieldsClass="md:grid-cols-1">
+        <div
+          class="rounded-[20px] border border-dashed px-5 py-6 text-center transition"
+          [ngClass]="dragActive() ? 'border-[#4979e6] bg-blue-50' : 'border-[color:var(--border-soft)] bg-[color:var(--surface-2)]'"
+          (dragover)="$event.preventDefault(); setDragActive(true)"
+          (dragleave)="setDragActive(false)"
+          (drop)="onDropFiles($event)"
+        >
+          <i class="pi pi-cloud-upload text-2xl text-[#4979e6]"></i>
+          <p class="mt-2 text-sm font-medium text-[color:var(--text-1)]">Trascina qui i file da caricare</p>
+          <p class="mt-1 text-xs text-[color:var(--text-3)]">La destinazione dipende dalla libreria selezionata sopra.</p>
         </div>
-      </ui-surface>
+        <p class="text-xs text-[color:var(--text-3)]">{{ filteredResources().length }} file visibili</p>
+      </ui-filter-bar>
 
       <div class="grid gap-4" *ngIf="groupedResources().length; else noFiles">
         <ui-surface *ngFor="let group of groupedResources()" surfaceClass="overflow-hidden">
@@ -79,12 +88,12 @@
                    <td class="px-5 py-3 text-[color:var(--text-3)]">{{ resource.uploadedAt | date:'short' }}</td>
                   <td class="px-5 py-3 text-right">
                       <div class="flex items-center justify-end gap-3">
-                        <button type="button" class="text-sm text-[#4979e6] hover:underline" (click)="queueDownload(resource)">Scarica</button>
-                        <button *ngIf="canManageResources()" type="button" class="text-sm text-[color:var(--text-2)] hover:underline" (click)="startRename(resource); $event.stopPropagation()">Rinomina</button>
-                        <button *ngIf="canManageResources()" type="button" class="text-sm text-red-600 hover:underline" (click)="deleteResource(resource.id); $event.stopPropagation()">Elimina</button>
-                      </div>
-                  </td>
-                </tr>
+                         <button type="button" class="rounded-md p-2 text-[#4979e6] transition hover:bg-blue-50" title="Scarica" (click)="queueDownload(resource)"><i class="pi pi-download text-sm"></i></button>
+                         <button *ngIf="canManageResources()" type="button" class="rounded-md p-2 text-[color:var(--text-2)] transition hover:bg-[color:var(--surface-2)]" title="Rinomina" (click)="startRename(resource); $event.stopPropagation()"><i class="pi pi-pencil text-sm"></i></button>
+                         <button *ngIf="canManageResources()" type="button" class="rounded-md p-2 text-red-600 transition hover:bg-red-50" title="Elimina" (click)="deleteResource(resource.id); $event.stopPropagation()"><i class="pi pi-trash text-sm"></i></button>
+                       </div>
+                   </td>
+                 </tr>
               </tbody>
             </table>
           </div>
@@ -135,6 +144,36 @@
             </p>
           </div>
           <div *ngIf="!transferQueue.items().length" class="px-5 py-10 text-center text-sm text-[color:var(--text-3)]">Nessun trasferimento in coda.</div>
+        </div>
+      </ui-surface>
+
+      <ui-surface surfaceClass="sticky top-24 overflow-hidden p-5 xl:max-h-[calc(100vh-8rem)]">
+        <div class="xl:max-h-[calc(100vh-12.5rem)] xl:min-h-0 xl:overflow-y-auto xl:pr-3 xl:pb-4">
+        <ng-container *ngIf="selectedResource() as resource; else noResourceSelected">
+          <p class="text-xs font-semibold uppercase tracking-widest text-[color:var(--text-3)]">Dettaglio file</p>
+          <h3 class="mt-2 text-lg font-semibold text-[color:var(--text-1)]">{{ resource.name }}</h3>
+          <div class="mt-4 grid gap-3 text-sm text-[color:var(--text-2)]">
+            <div>
+              <p class="text-xs uppercase tracking-widest text-[color:var(--text-3)]">Libreria</p>
+              <p class="mt-1">{{ resource.team?.name || 'Libreria globale' }}</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-widest text-[color:var(--text-3)]">Mime type</p>
+              <p class="mt-1 font-mono">{{ resource.mimeType || 'n/a' }}</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-widest text-[color:var(--text-3)]">Dimensione</p>
+              <p class="mt-1">{{ formatSize(resource.sizeBytes) }}</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-widest text-[color:var(--text-3)]">Aggiornato</p>
+              <p class="mt-1">{{ resource.uploadedAt | date:'fullDate' }}</p>
+            </div>
+          </div>
+        </ng-container>
+        <ng-template #noResourceSelected>
+          <p class="text-sm text-[color:var(--text-2)]">Seleziona un file dalla lista per vedere il dettaglio.</p>
+        </ng-template>
         </div>
       </ui-surface>
 
@@ -222,37 +261,6 @@
         </div>
       </ui-surface>
 
-      <ui-surface surfaceClass="p-5">
-        <ng-container *ngIf="selectedResource() as resource; else noResourceSelected">
-          <p class="text-xs font-semibold uppercase tracking-widest text-[color:var(--text-3)]">Dettaglio file</p>
-          <h3 class="mt-2 text-base font-semibold text-[color:var(--text-1)]">{{ resource.name }}</h3>
-          <div class="mt-4 grid gap-3 text-sm text-[color:var(--text-2)]">
-            <div>
-              <p class="text-xs uppercase tracking-widest text-[color:var(--text-3)]">Team</p>
-              <p class="mt-1">{{ resource.team?.name || 'Libreria globale' }}</p>
-            </div>
-            <div>
-              <p class="text-xs uppercase tracking-widest text-[color:var(--text-3)]">Tipo</p>
-              <p class="mt-1 font-mono text-xs">{{ resource.mimeType || 'n/a' }}</p>
-            </div>
-            <div>
-              <p class="text-xs uppercase tracking-widest text-[color:var(--text-3)]">Dimensione</p>
-              <p class="mt-1">{{ formatSize(resource.sizeBytes) }}</p>
-            </div>
-            <div>
-              <p class="text-xs uppercase tracking-widest text-[color:var(--text-3)]">Aggiornato</p>
-              <p class="mt-1">{{ resource.uploadedAt | date:'fullDate' }} · {{ resource.uploadedAt | date:'shortTime' }}</p>
-            </div>
-            <div>
-              <p class="text-xs uppercase tracking-widest text-[color:var(--text-3)]">Cartella logica</p>
-              <p class="mt-1">{{ resourceFolder(resource) }}</p>
-            </div>
-          </div>
-        </ng-container>
-        <ng-template #noResourceSelected>
-          <p class="text-sm text-[color:var(--text-2)]">Seleziona un file per vedere dettagli e contesto del team.</p>
-        </ng-template>
-      </ui-surface>
     </aside>
   </div>
 

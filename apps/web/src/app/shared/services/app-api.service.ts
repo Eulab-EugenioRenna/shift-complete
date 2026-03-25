@@ -1,4 +1,4 @@
-import { HttpClient, HttpEvent } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
@@ -7,23 +7,40 @@ import {
   CreateAvailabilityDto,
   CreateDutyDto,
   CreateReplacementDto,
+  CreateTeamGroupDto,
   AssignVolunteerDto,
   CreateEventDto,
   CreateTeamDto,
   InventorySummary,
   NotificationItem,
   ReplacementItem,
+  ScheduleApplyRequest,
+  SchedulePlanListItem,
+  SchedulePlanResponse,
   SchedulePreviewRequest,
   TeamAccessRequestItem,
+  TeamGroupItem,
   TeamListItem,
   UpdateAvailabilityDto,
   UpdateDutyDto,
   UpdateEventDto,
   UpdateTeamDto,
+  UpdateTeamGroupDto,
   UserProfile,
   ResolveReplacementDto,
+  UserPreferenceCatalogItem,
   ManagedUserProfileDto,
   UpdateManagedUserProfileDto,
+  SyncHolidayCalendarDto,
+  UpsertPreferenceCatalogItemDto,
+  MeetingGroupItem,
+  MeetingListItem,
+  CreateMeetingGroupDto,
+  UpdateMeetingGroupDto,
+  AddMeetingGroupMemberDto,
+  CreateMeetingDto,
+  UpdateMeetingDto,
+  ExtendedUpdateMeetingDto,
 } from '@shift-complete/shared-types';
 import { resolveApiBaseUrl } from '../../core/config/api-base-url';
 
@@ -71,6 +88,10 @@ export class AppApiService {
     return this.http.patch<DutyListItem>(`${this.apiBaseUrl}/duties/${dutyId}`, payload);
   }
 
+  updateDutyCompetencies(dutyId: string, competencyValues: string[]): Observable<DutyListItem> {
+    return this.http.patch<DutyListItem>(`${this.apiBaseUrl}/duties/${dutyId}/competencies`, { competencyValues });
+  }
+
   deleteDuty(dutyId: string): Observable<{ deleted: boolean; id: string }> {
     return this.http.delete<{ deleted: boolean; id: string }>(`${this.apiBaseUrl}/duties/${dutyId}`);
   }
@@ -107,8 +128,36 @@ export class AppApiService {
     return this.http.patch<TeamListItem>(`${this.apiBaseUrl}/teams/${teamId}`, payload);
   }
 
+  updateTeamCompetencies(teamId: string, competencyValues: string[]): Observable<TeamListItem> {
+    return this.http.patch<TeamListItem>(`${this.apiBaseUrl}/teams/${teamId}/competencies`, { competencyValues });
+  }
+
   deleteTeam(teamId: string): Observable<{ deleted: boolean; id: string }> {
     return this.http.delete<{ deleted: boolean; id: string }>(`${this.apiBaseUrl}/teams/${teamId}`);
+  }
+
+  teamGroups(): Observable<TeamGroupItem[]> {
+    return this.http.get<TeamGroupItem[]>(`${this.apiBaseUrl}/team-groups`);
+  }
+
+  createTeamGroup(payload: CreateTeamGroupDto): Observable<TeamGroupItem> {
+    return this.http.post<TeamGroupItem>(`${this.apiBaseUrl}/team-groups`, payload);
+  }
+
+  updateTeamGroup(id: string, payload: UpdateTeamGroupDto): Observable<TeamGroupItem> {
+    return this.http.patch<TeamGroupItem>(`${this.apiBaseUrl}/team-groups/${id}`, payload);
+  }
+
+  deleteTeamGroup(id: string): Observable<{ deleted: boolean; id: string }> {
+    return this.http.delete<{ deleted: boolean; id: string }>(`${this.apiBaseUrl}/team-groups/${id}`);
+  }
+
+  assignTeamsToGroup(groupId: string, teamIds: string[]): Observable<{ updated: boolean }> {
+    return this.http.put<{ updated: boolean }>(`${this.apiBaseUrl}/team-groups/${groupId}/teams`, { teamIds });
+  }
+
+  assignMeetingGroupsToGroup(groupId: string, meetingGroupIds: string[]): Observable<{ updated: boolean }> {
+    return this.http.put<{ updated: boolean }>(`${this.apiBaseUrl}/team-groups/${groupId}/meeting-groups`, { meetingGroupIds });
   }
 
   users(role?: string): Observable<UserProfile[]> {
@@ -122,6 +171,26 @@ export class AppApiService {
     if (teamId) params.set('teamId', teamId);
     const suffix = params.toString() ? `?${params.toString()}` : '';
     return this.http.get<UserProfile[]>(`${this.apiBaseUrl}/users${suffix}`);
+  }
+
+  userPreferenceCatalog(): Observable<UserPreferenceCatalogItem[]> {
+    return this.http.get<UserPreferenceCatalogItem[]>(`${this.apiBaseUrl}/users/preferences/catalog`);
+  }
+
+  upsertPreferenceCatalogItem(payload: UpsertPreferenceCatalogItemDto): Observable<UserPreferenceCatalogItem> {
+    return this.http.post<UserPreferenceCatalogItem>(`${this.apiBaseUrl}/catalog/preferences`, payload);
+  }
+
+  deletePreferenceCatalogItem(id: string): Observable<{ deleted: boolean }> {
+    return this.http.delete<{ deleted: boolean }>(`${this.apiBaseUrl}/catalog/preferences/${id}`);
+  }
+
+  holidayCalendar(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiBaseUrl}/catalog/holidays`);
+  }
+
+  syncHolidayCalendar(payload: SyncHolidayCalendarDto): Observable<any[]> {
+    return this.http.post<any[]>(`${this.apiBaseUrl}/catalog/holidays/sync`, payload);
   }
 
   createManagedUser(payload: ManagedUserProfileDto): Observable<UserProfile & { generatedPassword?: string }> {
@@ -210,7 +279,7 @@ export class AppApiService {
     return this.http.get(`${this.apiBaseUrl}/ai-settings`);
   }
 
-  updateAiSettings(payload: { provider: string; apiKey?: string; ollamaUrl?: string; agnostic?: boolean; model?: string; automationMode?: string; remindersEnabled?: boolean; quietHours?: boolean; smtpHost?: string; smtpPort?: number; smtpSecure?: boolean; smtpUser?: string; smtpPassword?: string; smtpFromEmail?: string; smtpFromName?: string; smtpReplyTo?: string; redisUrl?: string; webAppUrl?: string; resourceStorageDriver?: string; totalStorageLimitBytes?: number; defaultTeamStorageLimitBytes?: number; resourceTeamQuotaRules?: Array<{ teamId: string; storageLimitBytes?: number }>; resourceS3Endpoint?: string; resourceS3Region?: string; resourceS3Bucket?: string; resourceS3AccessKey?: string; resourceS3SecretKey?: string; resourceS3ForcePathStyle?: boolean; resourceS3UseSsl?: boolean; resourceJobConcurrency?: number; notificationJobConcurrency?: number; aiJobConcurrency?: number; inAppNotificationsEnabled?: boolean; websocketNotificationsEnabled?: boolean; emailNotificationsEnabled?: boolean; webhookEnabled?: boolean; webhookUrl?: string; webhookSecret?: string }): Observable<any> {
+  updateAiSettings(payload: { provider: string; apiKey?: string; ollamaUrl?: string; agnostic?: boolean; model?: string; automationMode?: string; remindersEnabled?: boolean; quietHours?: boolean; smtpHost?: string; smtpPort?: number; smtpSecure?: boolean; smtpUser?: string; smtpPassword?: string; smtpFromEmail?: string; smtpFromName?: string; smtpReplyTo?: string; redisUrl?: string; webAppUrl?: string; resourceStorageDriver?: string; totalStorageLimitBytes?: number; defaultTeamStorageLimitBytes?: number; resourceTeamQuotaRules?: Array<{ teamId: string; storageLimitBytes?: number }>; resourceS3Endpoint?: string; resourceS3Region?: string; resourceS3Bucket?: string; resourceS3AccessKey?: string; resourceS3SecretKey?: string; resourceS3ForcePathStyle?: boolean; resourceS3UseSsl?: boolean; resourceJobConcurrency?: number; notificationJobConcurrency?: number; aiJobConcurrency?: number; schedulingPreviewTransport?: 'polling' | 'websocket' | 'hybrid'; schedulingPreviewRetryCount?: number; schedulingPreviewPollIntervalMs?: number; schedulingAsyncRangeDays?: number; schedulingAsyncManualSelections?: number; schedulingAsyncWithoutEvent?: boolean; inAppNotificationsEnabled?: boolean; websocketNotificationsEnabled?: boolean; emailNotificationsEnabled?: boolean; webhookEnabled?: boolean; webhookUrl?: string; webhookSecret?: string }): Observable<any> {
     return this.http.patch(`${this.apiBaseUrl}/ai-settings`, payload);
   }
 
@@ -273,8 +342,29 @@ export class AppApiService {
     return this.http.patch<ReplacementItem>(`${this.apiBaseUrl}/replacements/${replacementId}/resolve`, payload);
   }
 
-  generateSchedulePreview(payload: SchedulePreviewRequest): Observable<any> {
-    return this.http.post<any>(`${this.apiBaseUrl}/scheduling/generate`, payload);
+  generateSchedulePreview(payload: SchedulePreviewRequest): Observable<SchedulePlanResponse> {
+    return this.http.post<SchedulePlanResponse>(`${this.apiBaseUrl}/scheduling/generate`, payload);
+  }
+
+  applySchedulePlan(payload: ScheduleApplyRequest): Observable<SchedulePlanResponse> {
+    return this.http.post<SchedulePlanResponse>(`${this.apiBaseUrl}/scheduling/apply`, payload);
+  }
+
+  schedulingPlans(eventId?: string): Observable<SchedulePlanListItem[]> {
+    const suffix = eventId ? `?eventId=${eventId}` : '';
+    return this.http.get<SchedulePlanListItem[]>(`${this.apiBaseUrl}/scheduling/plans${suffix}`);
+  }
+
+  schedulingPlan(planId: string): Observable<SchedulePlanResponse> {
+    return this.http.get<SchedulePlanResponse>(`${this.apiBaseUrl}/scheduling/plans/${planId}`);
+  }
+
+  schedulingMetrics(): Observable<any> {
+    return this.http.get<any>(`${this.apiBaseUrl}/scheduling/metrics`);
+  }
+
+  resetSchedulingMetrics(): Observable<any> {
+    return this.http.post<any>(`${this.apiBaseUrl}/scheduling/metrics/reset`, {});
   }
 
   recentAuditLogs(limit = 20): Observable<any[]> {
@@ -346,4 +436,52 @@ export class AppApiService {
   prepareResourceDownload(id: string): Observable<any> {
     return this.http.post<any>(`${this.apiBaseUrl}/resources/${id}/download-async`, {});
   }
+
+  // Meeting Groups
+
+  meetingGroups() {
+    return this.http.get<MeetingGroupItem[]>(`${this.apiBaseUrl}/meeting-groups`);
+  }
+
+  createMeetingGroup(payload: CreateMeetingGroupDto) {
+    return this.http.post<MeetingGroupItem>(`${this.apiBaseUrl}/meeting-groups`, payload);
+  }
+
+  updateMeetingGroup(id: string, payload: UpdateMeetingGroupDto) {
+    return this.http.patch<MeetingGroupItem>(`${this.apiBaseUrl}/meeting-groups/${id}`, payload);
+  }
+
+  deleteMeetingGroup(id: string) {
+    return this.http.delete<{ deleted: boolean; id: string }>(`${this.apiBaseUrl}/meeting-groups/${id}`);
+  }
+
+  assignMeetingGroupMembers(id: string, userIds: string[]) {
+    return this.http.put<{ updated: boolean }>(`${this.apiBaseUrl}/meeting-groups/${id}/members`, { userIds });
+  }
+
+  // Meetings
+
+  meetings(start?: string, end?: string) {
+    let params = new HttpParams();
+    if (start) params = params.set('start', start);
+    if (end) params = params.set('end', end);
+    return this.http.get<MeetingListItem[]>(`${this.apiBaseUrl}/meetings`, { params });
+  }
+
+  createMeeting(payload: CreateMeetingDto) {
+    return this.http.post<MeetingListItem>(`${this.apiBaseUrl}/meetings`, payload);
+  }
+
+  updateMeeting(id: string, payload: ExtendedUpdateMeetingDto) {
+    return this.http.patch<MeetingListItem>(`${this.apiBaseUrl}/meetings/${id}`, payload);
+  }
+
+  deleteMeeting(id: string, mode: 'single' | 'series' = 'single', occurrenceStart?: string) {
+    let params = new HttpParams().set('mode', mode);
+    if (occurrenceStart) {
+      params = params.set('occurrenceStart', occurrenceStart);
+    }
+    return this.http.delete<{ deleted: boolean; id: string }>(`${this.apiBaseUrl}/meetings/${id}`, { params });
+  }
 }
+

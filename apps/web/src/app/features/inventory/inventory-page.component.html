@@ -1,4 +1,4 @@
-<section class="grid gap-6 text-[color:var(--text-1)] xl:grid-cols-[1.4fr_0.6fr]">
+<section class="grid gap-6 text-[color:var(--text-1)] xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
   <div class="flex flex-col gap-6">
   <ui-page-header
     eyebrow="Inventario"
@@ -7,7 +7,7 @@
     [hasActions]="canManage()"
   >
     <div page-actions class="flex items-center gap-2" *ngIf="canManage()">
-      <ui-select [options]="teamSelectOptions()" [value]="form.teamId" placeholder="Seleziona team" (valueChange)="form.teamId = $any($event)"></ui-select>
+      <ui-button tone="neutral" variant="outlined" icon="pi pi-file-export" (buttonClick)="openInventoryReport()">Report inventario</ui-button>
       <ui-button icon="pi pi-plus" (buttonClick)="openForm()">Aggiungi dotazione</ui-button>
     </div>
   </ui-page-header>
@@ -15,12 +15,7 @@
   <app-team-scope-chips [teams]="teams()"></app-team-scope-chips>
 
   <ui-surface surfaceClass="px-4 py-3">
-    <div class="flex flex-col gap-3">
-      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <ui-button tone="neutral" variant="outlined" icon="pi pi-search" (buttonClick)="openSpotlight()">Cerca dotazioni</ui-button>
-        <p class="text-xs text-[color:var(--text-3)]">{{ filteredItems().length }} dotazioni visibili</p>
-      </div>
-    </div>
+    <p class="text-xs text-[color:var(--text-3)]">{{ filteredItems().length }} dotazioni visibili</p>
   </ui-surface>
 
   <div class="grid gap-4" *ngIf="groupedItems().length; else noItems">
@@ -70,7 +65,8 @@
   </ng-template>
   </div>
 
-  <ui-surface surfaceClass="sticky top-4 h-fit p-5">
+  <ui-surface surfaceClass="sticky top-24 self-start overflow-hidden p-5 xl:max-h-[calc(100vh-8rem)]">
+    <div class="xl:max-h-[calc(100vh-12.5rem)] xl:min-h-0 xl:overflow-y-auto xl:pr-3 xl:pb-4">
     <ng-container *ngIf="selectedItem() as item; else noItemSelected">
       <p class="text-xs font-semibold uppercase tracking-widest text-[color:var(--text-3)]">Dettaglio dotazione</p>
       <h3 class="mt-2 text-lg font-semibold text-[color:var(--text-1)]">{{ item.name }}</h3>
@@ -96,6 +92,7 @@
     <ng-template #noItemSelected>
       <p class="text-sm text-[color:var(--text-2)]">Seleziona una dotazione dalla lista per visualizzare il dettaglio.</p>
     </ng-template>
+    </div>
   </ui-surface>
 
   <ui-modal [visible]="formOpen()" (visibleChange)="formOpen.set($event)" [title]="editingId() ? 'Modifica dotazione' : 'Nuova dotazione'" eyebrow="Inventario" subtitle="Gestisci team, stato e manutenzione dell'asset." icon="pi pi-box" tone="info" [hasFooter]="true" width="72rem" maxWidth="96vw" (closeRequested)="formOpen.set(false)">
@@ -136,4 +133,6 @@
     (cancel)="closeDeleteConfirm()"
     (confirm)="confirmDeleteItem()"
   ></ui-confirm-dialog>
+
+  <app-report-modal [visible]="reportVisible()" (visibleChange)="reportVisible.set($event)" [report]="inventoryReport()"></app-report-modal>
 </section>

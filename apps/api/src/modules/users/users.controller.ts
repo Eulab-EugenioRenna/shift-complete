@@ -23,6 +23,11 @@ export class UsersController {
     return this.usersService.list(user.sub, user.role, role, teamId);
   }
 
+  @Get('preferences/catalog')
+  preferenceCatalog() {
+    return this.usersService.preferenceCatalog();
+  }
+
   @Roles(Role.administrator)
   @Post()
   createManagedUser(@CurrentUser() user: { sub: string }, @Body() body: CreateManagedUserDto) {

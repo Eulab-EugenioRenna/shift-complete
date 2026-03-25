@@ -1,12 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
-import { ReplacementItem } from '@shift-complete/shared-types';
+import { AvailabilityItem, CreateAvailabilityDto, ReplacementItem, ScheduleApplyScope, SchedulePlanListItem, SchedulePlanResponse, SchedulePreviewRequest, ScheduleSuggestionItem } from '@shift-complete/shared-types';
 import { map, of, switchMap, tap } from 'rxjs';
 import { ApiErrorService } from '../../core/services/api-error.service';
 import { GlobalTeamScopeService } from '../../core/services/global-team-scope.service';
+import { SchedulingPreviewDeliveryService } from '../../core/services/scheduling-preview-delivery.service';
 import { SessionService } from '../../core/services/session.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import { fromIsoDateTime, toIsoDateTime } from '../../core/utils/date-picker.util';
@@ -20,6 +21,9 @@ import {
   UiButtonComponent,
   UiChipComponent,
   UiConfirmDialogComponent,
+  UiDatePickerComponent,
+  UiFieldComponent,
+  UiFilterBarComponent,
   UiInputComponent,
   UiLabelComponent,
   UiModalComponent,
@@ -37,6 +41,7 @@ type CalendarEvent = {
   seriesId?: string;
   title: string;
   description?: string | null;
+  locationValue?: string | null;
   color?: string | null;
   icon?: string | null;
   startsAt: string;
@@ -91,7 +96,17 @@ type TeamOption = {
     name: string;
     color?: string | null;
     icon?: string | null;
-  }>;
+  }>; 
+};
+
+type ScheduleApplyOption = { label: string; value: ScheduleApplyScope };
+
+type AvailabilityForm = {
+  userId: string | null;
+  teamId: string | null;
+  startsAt: Date | null;
+  endsAt: Date | null;
+  reason: string;
 };
 
 @Component({
@@ -107,6 +122,9 @@ type TeamOption = {
     UiButtonComponent,
     UiChipComponent,
     UiConfirmDialogComponent,
+    UiDatePickerComponent,
+    UiFieldComponent,
+    UiFilterBarComponent,
     UiInputComponent,
     UiSidebarPanelComponent,
     UiModalComponent,
@@ -123,38 +141,53 @@ type TeamOption = {
   templateUrl: './calendar-view-page.component.html',
 })
 export class CalendarViewPageComponent {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly api = inject(AppApiService);
   private readonly apiError = inject(ApiErrorService);
   protected readonly live = inject(LiveNotificationsService);
+  private readonly schedulingDelivery = inject(SchedulingPreviewDeliveryService);
   private readonly feedback = inject(UiFeedbackService);
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
   private readonly session = inject(SessionService);
   protected readonly teamScope = inject(GlobalTeamScopeService);
 
   protected readonly events = signal<CalendarEvent[]>([]);
   protected readonly teams = signal<TeamOption[]>([]);
   protected readonly replacements = signal<ReplacementItem[]>([]);
-  protected readonly previewSuggestions = signal<any[]>([]);
+  protected readonly previewSuggestions = signal<ScheduleSuggestionItem[]>([]);
+  protected readonly planningSummary = signal<SchedulePlanResponse['summary'] | null>(null);
+  protected readonly planningHistory = signal<SchedulePlanListItem[]>([]);
+  protected readonly operationalAvailability = signal<AvailabilityItem[]>([]);
   protected readonly duties = signal<DutyListItem[]>([]);
+  protected readonly preferenceCatalog = signal<Array<{ id: string; type: 'shift' | 'competency' | 'location'; value: string; label: string }>>([]);
   protected readonly selectedEvent = signal<CalendarEvent | null>(null);
-  protected readonly assistantReplacement = signal<ReplacementItem | null>(null);
   protected readonly selectedUserFilter = signal<string>('');
   protected readonly occurrenceView = signal<'all' | 'series' | 'occurrences'>('all');
+  protected readonly selectedSeriesFilter = signal<string>('');
+  protected readonly eventTypeFilter = signal<'all' | 'event' | 'meeting'>('all');
+  protected readonly eventLocationFilter = signal<string>('all');
   protected readonly loading = signal(false);
   protected readonly savingEvent = signal(false);
   protected readonly scheduling = signal(false);
+  protected readonly savingAvailability = signal(false);
   protected readonly selectedDutyOption = signal<Record<string, unknown> | null>(null);
   protected readonly locallyReservedSuggestionIds = signal<string[]>([]);
   protected readonly confirmVisible = signal(false);
   protected readonly pendingConfirm = signal<PendingConfirmAction | null>(null);
   protected readonly currentView = signal('month');
   protected readonly calendarCursor = signal(this.startOfDay(new Date()));
+  protected readonly selectedApplyScope = signal<ScheduleApplyScope>('event');
+  protected readonly selectedManualAssignments = signal<Record<string, string>>({});
+  protected readonly currentPlanId = signal<string | null>(null);
+  protected readonly pendingPlanningJobId = signal<string | null>(null);
+  protected readonly planningHistoryFilter = signal<'all' | 'preview' | 'applied' | 'invalidated'>('all');
   protected previewVisible = false;
   protected assignmentBoardVisible = false;
   protected eventDialogVisible = false;
-  protected eventForm = { title: '', startsAt: null as Date | null, endsAt: null as Date | null, teamId: null as string | null, dutyId: '', isRecurring: false, recurrenceFrequency: 'WEEKLY' as 'WEEKLY' | 'MONTHLY' | 'YEARLY', recurrenceDurationMonths: 12 as RecurrenceDurationOption, recurrenceAutoRenew: true, recurrenceRenewMonths: 12 as RecurrenceDurationOption };
+  protected availabilityDialogVisible = false;
+  protected eventForm = { title: '', locationValue: '' as string, startsAt: null as Date | null, endsAt: null as Date | null, teamId: null as string | null, dutyId: '', isRecurring: false, recurrenceFrequency: 'WEEKLY' as 'WEEKLY' | 'MONTHLY' | 'YEARLY', recurrenceDurationMonths: 12 as RecurrenceDurationOption, recurrenceAutoRenew: true, recurrenceRenewMonths: 12 as RecurrenceDurationOption };
   protected replacementReason = '';
+  protected availabilityForm: AvailabilityForm = { userId: null, teamId: null, startsAt: null, endsAt: null, reason: '' };
   protected readonly replacementAssigneeId = signal<string | null>(null);
   protected readonly draggedVolunteerId = signal<string | null>(null);
   protected readonly dragHoverSlotId = signal<string | null>(null);
@@ -180,6 +213,13 @@ export class CalendarViewPageComponent {
     { label: '1 anno', value: 12 },
     { label: '2 anni', value: 24 },
   ];
+  protected readonly applyScopeOptions: ScheduleApplyOption[] = [
+    { label: 'Evento', value: 'event' },
+    { label: 'Mese', value: 'month' },
+    { label: 'Ciclo', value: 'cycle' },
+    { label: 'Anno', value: 'year' },
+    { label: 'Tutto', value: 'all' },
+  ];
 
   protected readonly teamOptions = computed(() => this.teams().map((team) => ({ label: team.name, value: team.id })));
   protected readonly dutyOptions = computed(() =>
@@ -192,6 +232,38 @@ export class CalendarViewPageComponent {
     }))
   );
   protected readonly selectableUsers = computed(() =>
+    [
+      { label: 'Tutti gli utenti', value: '' },
+      ...Array.from(
+        new Map(
+          this.teams()
+            .flatMap((team) => team.members ?? [])
+            .map((member) => [member.id, { label: member.fullName, value: member.id }])
+        ).values()
+      )
+    ]
+  );
+  protected readonly seriesOptions = computed(() =>
+    Array.from(
+      new Map(
+        this.events()
+          .filter((event) => event.type === 'recurring' && !event.isOccurrence)
+          .map((event) => [event.seriesId ?? event.id, { label: event.title, value: event.seriesId ?? event.id }])
+      ).values()
+    ).sort((left, right) => left.label.localeCompare(right.label, 'it'))
+  );
+  protected readonly locationOptions = computed(() => this.preferenceCatalog().filter((item) => item.type === 'location').map((item) => ({ label: item.label, value: item.value })));
+  protected readonly eventTypeFilterOptions = [
+    { label: 'Tutti (Eventi e Riunioni)', value: 'all' },
+    { label: 'Eventi', value: 'event' },
+    { label: 'Riunioni', value: 'meeting' },
+  ];
+  protected readonly eventLocationFilterOptions = computed(() => [
+    { label: 'Tutti i luoghi', value: 'all' },
+    { label: 'Senza luogo specificato', value: 'none' },
+    ...this.locationOptions()
+  ]);
+  protected readonly assignablePeople = computed(() =>
     Array.from(
       new Map(
         this.teams()
@@ -200,19 +272,51 @@ export class CalendarViewPageComponent {
       ).values()
     )
   );
+  protected readonly filteredPlanningHistory = computed(() => {
+    const filter = this.planningHistoryFilter();
+    return this.planningHistory().filter((plan) => {
+      if (filter === 'invalidated') {
+        return Boolean(plan.invalidatedAt);
+      }
+      if (filter === 'applied') {
+        return Boolean(plan.applyScope) && !plan.invalidatedAt;
+      }
+      if (filter === 'preview') {
+        return !plan.applyScope && !plan.invalidatedAt;
+      }
+      return true;
+    });
+  });
   protected readonly filteredEvents = computed(() => {
     const userId = this.selectedUserFilter();
+    const seriesId = this.selectedSeriesFilter();
 
     return this.events().filter((event) => {
       const scopedTeamId = this.teamScope.teamId();
       const teamMatch = !scopedTeamId || (event.slots ?? []).some((slot) => slot.teamId === scopedTeamId);
-      const userMatch = !userId || (event.slots ?? []).some((slot) => (slot.assignments ?? []).some((assignment) => assignment.assigneeId === userId));
+      const userMatch = !userId || this.eventAssigneeIds(event).includes(userId);
+      const seriesMatch = !seriesId || (event.seriesId ?? event.id) === seriesId;
       const occurrenceMatch = this.occurrenceView() === 'all'
         ? true
         : this.occurrenceView() === 'series'
           ? !event.isOccurrence
           : Boolean(event.isOccurrence);
-      return teamMatch && userMatch && occurrenceMatch;
+
+      const typeFilter = this.eventTypeFilter();
+      const typeMatch = typeFilter === 'all'
+        ? true
+        : typeFilter === 'meeting'
+          ? event.type === 'MEETING'
+          : event.type !== 'MEETING';
+
+      const locationFilter = this.eventLocationFilter();
+      const locationMatch = locationFilter === 'all'
+        ? true
+        : locationFilter === 'none'
+          ? !event.locationValue
+          : event.locationValue === locationFilter;
+
+      return teamMatch && userMatch && seriesMatch && occurrenceMatch && typeMatch && locationMatch;
     });
   });
   protected readonly eventsByDate = computed(() => {
@@ -269,6 +373,113 @@ export class CalendarViewPageComponent {
     return reason.includes(':+') ? 'success' : reason.includes(':-') ? 'warn' : 'neutral';
   }
 
+  protected planningCoverageTone(status: ScheduleSuggestionItem['coverageStatus']): 'success' | 'warn' | 'info' | 'neutral' {
+    if (status === 'covered') {
+      return 'success';
+    }
+    if (status === 'manual' || status === 'suggested') {
+      return 'info';
+    }
+    return 'warn';
+  }
+
+  protected planningCoverageLabel(status: ScheduleSuggestionItem['coverageStatus']): string {
+    if (status === 'covered') {
+      return 'Coperto';
+    }
+    if (status === 'manual') {
+      return 'Scelta manuale';
+    }
+    if (status === 'suggested') {
+      return 'Proposto';
+    }
+    return 'Scoperto';
+  }
+
+  protected selectedPlanningAssignee(slotId: string): string {
+    return this.selectedManualAssignments()[slotId] ?? '';
+  }
+
+  protected planningCandidateOptions(item: ScheduleSuggestionItem): Array<{ label: string; value: string }> {
+    return (item.candidates ?? []).map((candidate) => ({ label: candidate.fullName, value: candidate.id }));
+  }
+
+  protected loadPlan(planId: string): void {
+    this.scheduling.set(true);
+    this.api.schedulingPlan(planId).subscribe({
+      next: (result) => {
+        this.currentPlanId.set(result.planId ?? planId);
+        this.previewSuggestions.set(result.suggestions ?? []);
+        this.planningSummary.set(result.summary ?? null);
+        this.previewVisible = true;
+        this.scheduling.set(false);
+        this.loadPlanningHistory(result.anchorEventId || undefined);
+        this.feedback.success('Piano caricato');
+      },
+      error: (error) => {
+        this.scheduling.set(false);
+        this.feedback.error('Piano non disponibile', this.apiError.message(error, 'Impossibile caricare il piano selezionato.'));
+      }
+    });
+  }
+
+  protected cycleSummaryLabel(item: ScheduleSuggestionItem): string {
+    return `Ciclo ${item.cycleNumber} · passo ${item.cycleIndex}/${item.cycleLength}`;
+  }
+
+  protected planDriftTone(item: ScheduleSuggestionItem): 'success' | 'warn' | 'info' {
+    if (item.drift?.status === 'changed') {
+      return 'warn';
+    }
+    if (item.drift?.status === 'missing') {
+      return 'info';
+    }
+    return 'success';
+  }
+
+  protected planDriftLabel(item: ScheduleSuggestionItem): string {
+    if (item.drift?.status === 'changed') {
+      return `Reale: ${item.drift.currentAssigneeName || 'assegnazione diversa'}`;
+    }
+    if (item.drift?.status === 'missing') {
+      return 'Non ancora applicato nel reale';
+    }
+    return 'Allineato al reale';
+  }
+
+  protected updateApplyScope(value: unknown): void {
+    const normalized = this.castNullable(value);
+    if (normalized === 'month' || normalized === 'cycle' || normalized === 'year' || normalized === 'all') {
+      this.selectedApplyScope.set(normalized);
+      return;
+    }
+
+    this.selectedApplyScope.set('event');
+  }
+
+  protected updatePlanningHistoryFilter(value: unknown): void {
+    const normalized = this.castNullable(value);
+    if (normalized === 'preview' || normalized === 'applied' || normalized === 'invalidated') {
+      this.planningHistoryFilter.set(normalized);
+      return;
+    }
+
+    this.planningHistoryFilter.set('all');
+  }
+
+  protected updatePlanningSelection(slotId: string, value: unknown): void {
+    const assigneeId = this.castNullable(value);
+    this.selectedManualAssignments.update((current) => {
+      const next = { ...current };
+      if (assigneeId) {
+        next[slotId] = assigneeId;
+      } else {
+        delete next[slotId];
+      }
+      return next;
+    });
+  }
+
   protected readonly sortedEvents = computed(() =>
     [...this.filteredEvents()].sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())
   );
@@ -292,6 +503,17 @@ export class CalendarViewPageComponent {
     return value ? String(value) : null;
   }
 
+  protected castString(value: unknown): string {
+    return value == null ? '' : String(value);
+  }
+
+  protected setEventTypeFilter(value: unknown): void {
+    const normalized = this.castString(value);
+    if (normalized === 'event' || normalized === 'meeting' || normalized === 'all') {
+      this.eventTypeFilter.set(normalized);
+    }
+  }
+
   protected setOccurrenceView(value: unknown): void {
     const normalized = this.castNullable(value);
     if (normalized === 'series' || normalized === 'occurrences') {
@@ -301,8 +523,12 @@ export class CalendarViewPageComponent {
     this.occurrenceView.set('all');
   }
 
-  protected navigateToEvents(): void {
-    void this.router.navigate(['/events']);
+  protected resetFilters(): void {
+    this.selectedUserFilter.set('');
+    this.selectedSeriesFilter.set('');
+    this.occurrenceView.set('all');
+    this.eventTypeFilter.set('all');
+    this.eventLocationFilter.set('all');
   }
 
   protected navigateCalendar(direction: -1 | 1): void {
@@ -387,8 +613,20 @@ export class CalendarViewPageComponent {
   protected readonly visibleWeekEventCount = computed(() => this.eventsInCurrentWeek().length);
 
   constructor() {
+    this.destroyRef.onDestroy(() => this.schedulingDelivery.stopTracking(this.pendingPlanningJobId()));
     this.live.connect();
+    this.api.userPreferenceCatalog().subscribe({ next: (items) => this.preferenceCatalog.set(items) });
     this.loadData();
+    effect(() => {
+      const item = this.live.feed()[0];
+      if (!item) {
+        return;
+      }
+
+      if (['events.changed', 'assignments.changed', 'replacements.changed', 'availability.changed', 'stats.changed', 'planner.invalidated'].includes(item.type)) {
+        this.loadData();
+      }
+    });
     this.route.queryParamMap.subscribe(() => {
       this.applyRouteContext(this.events());
     });
@@ -404,6 +642,7 @@ export class CalendarViewPageComponent {
     const firstTeam = this.teams()[0]?.id ?? null;
     this.eventForm = {
       title: '',
+      locationValue: '',
       startsAt: now,
       endsAt: end,
       teamId: firstTeam,
@@ -445,6 +684,7 @@ export class CalendarViewPageComponent {
     this.savingEvent.set(true);
     this.api.createEvent({
       title: this.eventForm.title.trim(),
+      locationValue: this.eventForm.locationValue || undefined,
       type: this.eventForm.isRecurring ? 'recurring' : 'single',
       startsAt: toIsoDateTime(this.eventForm.startsAt),
       endsAt: toIsoDateTime(this.eventForm.endsAt),
@@ -620,27 +860,87 @@ export class CalendarViewPageComponent {
       return;
     }
 
-    const selectedTeamId = selected.slots?.[0]?.teamId ?? undefined;
     this.scheduling.set(true);
-    this.api.generateSchedulePreview({
-      from: selected.startsAt,
-      to: selected.endsAt,
-      teamId: selectedTeamId ?? undefined,
-      eventId: selected.seriesId ?? selected.id,
-      occurrenceStart: selected.isOccurrence ? (selected.occurrenceStart ?? selected.startsAt) : undefined,
-      scope: selected.isOccurrence ? 'single' : selected.type === 'recurring' ? 'series' : 'single',
-      apply: true,
+    this.runPlanningPreview(this.createPlanningRequest(selected), 'Proposta generata');
+  }
+
+  protected rerunPlanning(): void {
+    const selected = this.selectedEvent();
+    if (!selected) {
+      return;
+    }
+
+    this.scheduling.set(true);
+    this.runPlanningPreview(this.createPlanningRequest(selected), 'Planning ricalcolato con le scelte manuali');
+  }
+
+  protected applyPlanning(): void {
+    const selected = this.selectedEvent();
+    if (!selected) {
+      return;
+    }
+
+    this.scheduling.set(true);
+    this.api.applySchedulePlan({
+      ...this.createPlanningRequest(selected),
+      planId: this.currentPlanId() ?? undefined,
+      applyScope: this.selectedApplyScope(),
     }).subscribe({
       next: (result) => {
+        this.currentPlanId.set(result.planId ?? this.currentPlanId());
         this.previewSuggestions.set(result.suggestions ?? []);
+        this.planningSummary.set(result.summary ?? null);
         this.previewVisible = true;
         this.scheduling.set(false);
+        this.selectedManualAssignments.set({});
         this.loadData();
-        this.feedback.success('Auto assegnazione completata', `Generate ${result.suggestions?.length ?? 0} proposte operative.`);
+        this.feedback.success('Planning applicato', `Applicazione completata su scope ${this.selectedApplyScope()}.`);
       },
       error: (error) => {
         this.scheduling.set(false);
-        this.feedback.error('Scheduling non riuscito', this.apiError.message(error, 'Impossibile generare il piano automatico.'));
+        this.feedback.error('Applicazione non riuscita', this.apiError.message(error, 'Impossibile applicare il piano.'));
+      }
+    });
+  }
+
+  protected openAvailabilityDialog(): void {
+    const selected = this.selectedEvent();
+    const firstSlot = selected?.slots?.[0] ?? null;
+    this.availabilityForm = {
+      userId: null,
+      teamId: firstSlot?.teamId ?? null,
+      startsAt: selected ? new Date(selected.startsAt) : new Date(),
+      endsAt: selected ? new Date(selected.endsAt) : new Date(Date.now() + 2 * 60 * 60 * 1000),
+      reason: '',
+    };
+    this.availabilityDialogVisible = true;
+  }
+
+  protected saveAvailability(): void {
+    if (!this.availabilityForm.userId || !this.availabilityForm.startsAt || !this.availabilityForm.endsAt || this.availabilityForm.startsAt >= this.availabilityForm.endsAt) {
+      this.feedback.error('Assenza non valida', 'Seleziona persona e intervallo valido.');
+      return;
+    }
+
+    this.savingAvailability.set(true);
+    const payload: CreateAvailabilityDto = {
+      teamId: this.availabilityForm.teamId ?? undefined,
+      type: 'UNAVAILABLE',
+      startsAt: toIsoDateTime(this.availabilityForm.startsAt),
+      endsAt: toIsoDateTime(this.availabilityForm.endsAt),
+      reason: this.availabilityForm.reason.trim() || undefined,
+    };
+
+    this.api.createAvailability(payload, this.availabilityForm.userId).subscribe({
+      next: () => {
+        this.savingAvailability.set(false);
+        this.availabilityDialogVisible = false;
+        this.loadOperationalAvailability();
+        this.feedback.success('Assenza registrata', 'La nuova indisponibilita sara considerata nei prossimi calcoli.');
+      },
+      error: (error) => {
+        this.savingAvailability.set(false);
+        this.feedback.error('Assenza non salvata', this.apiError.message(error, 'Impossibile salvare l assenza.'));
       }
     });
   }
@@ -786,38 +1086,6 @@ export class CalendarViewPageComponent {
     this.confirmVisible.set(true);
   }
 
-  protected openReplacementAssistant(replacement: ReplacementItem): void {
-    this.assistantReplacement.set(replacement);
-  }
-
-  protected assistantScoreTone(score: number): 'success' | 'info' | 'warn' {
-    if (score >= 80) {
-      return 'success';
-    }
-
-    if (score >= 60) {
-      return 'info';
-    }
-
-    return 'warn';
-  }
-
-  protected assistantStatusLabel(replacement: ReplacementItem): string {
-    if (replacement.status === 'APPROVED') {
-      return 'Decisione presa';
-    }
-
-    if (replacement.status === 'DECLINED') {
-      return 'Richiesta chiusa';
-    }
-
-    return 'Decisione richiesta';
-  }
-
-  protected assistantCoverageLabel(replacement: ReplacementItem): string {
-    return replacement.replacementAssignee?.fullName ? `Copertura: ${replacement.replacementAssignee.fullName}` : 'Copertura da confermare';
-  }
-
   protected eventTypeLabel(type: string | undefined): string {
     if (type === 'single') {
       return 'Singolo';
@@ -838,6 +1106,38 @@ export class CalendarViewPageComponent {
     return 'neutral';
   }
 
+  protected eventDisplayTone(event: CalendarEvent): 'neutral' | 'info' | 'success' | 'warn' {
+    if (event.isOccurrence) {
+      return 'info';
+    }
+
+    return this.eventTypeTone(event.type);
+  }
+
+  protected eventDisplayLabel(event: CalendarEvent): string {
+    if (event.isOccurrence) {
+      return 'Occorrenza';
+    }
+
+    if (event.type === 'recurring') {
+      return 'Serie';
+    }
+
+    return this.eventTypeLabel(event.type);
+  }
+
+  protected calendarEventClasses(event: CalendarEvent): string {
+    if (event.isOccurrence) {
+      return 'border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100';
+    }
+
+    if (event.type === 'recurring') {
+      return 'border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100';
+    }
+
+    return 'border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100';
+  }
+
   protected replacementStatusLabel(status: ReplacementItem['status']): string {
     if (status === 'APPROVED') {
       return 'Approvata';
@@ -846,24 +1146,6 @@ export class CalendarViewPageComponent {
       return 'Rifiutata';
     }
     return 'In attesa';
-  }
-
-  protected assistantRecommendation(replacement: ReplacementItem): string {
-    if (replacement.status === 'APPROVED') {
-      return replacement.replacementAssignee?.fullName
-        ? `La copertura calendario e gia confermata con ${replacement.replacementAssignee.fullName}.`
-        : 'La richiesta e approvata: verifica che lo slot riceva il sostituto definitivo.';
-    }
-
-    if (replacement.status === 'DECLINED') {
-      return 'La richiesta e stata chiusa senza sostituzione: controlla rapidamente lo slot per evitare buchi di copertura.';
-    }
-
-    if (replacement.suggestedReplacement?.fullName) {
-      return `Per proteggere la copertura dello slot, ${replacement.suggestedReplacement.fullName} e la prima scelta da confermare.`;
-    }
-
-    return 'Non c e un suggerimento automatico forte: verifica disponibilita e conflitti direttamente dal calendario.';
   }
 
   canRequestReplacement(assignment: { id: string; assignee?: { id?: string | null } | null }): boolean {
@@ -923,6 +1205,79 @@ export class CalendarViewPageComponent {
         this.loading.set(false);
         this.feedback.error('Sostituzioni non caricate', this.apiError.message(error, 'Impossibile recuperare le sostituzioni.'));
       }
+    });
+    this.loadOperationalAvailability();
+    this.loadPlanningHistory(this.selectedEvent()?.seriesId ?? this.selectedEvent()?.id ?? undefined);
+  }
+
+  private createPlanningRequest(event: CalendarEvent): SchedulePreviewRequest {
+    return {
+      from: event.startsAt,
+      to: this.resolvePlanningWindowEnd(event),
+      eventId: event.seriesId ?? event.id,
+      occurrenceStart: event.isOccurrence ? (event.occurrenceStart ?? event.startsAt) : undefined,
+      scope: event.isOccurrence ? 'single' : event.type === 'recurring' ? 'series' : 'single',
+      includeExistingAssignments: true,
+      manualSelections: Object.entries(this.selectedManualAssignments()).map(([slotId, assigneeId]) => ({ slotId, assigneeId })),
+    };
+  }
+
+  private resolvePlanningWindowEnd(event: CalendarEvent): string {
+    const end = new Date(event.startsAt);
+    end.setFullYear(end.getFullYear() + 1);
+    return end.toISOString();
+  }
+
+  private runPlanningPreview(payload: SchedulePreviewRequest, successMessage: string): void {
+    this.api.generateSchedulePreview(payload).subscribe({
+      next: (result) => {
+        this.scheduling.set(false);
+        if (result.status === 'queued' && result.jobId) {
+          this.pendingPlanningJobId.set(result.jobId);
+          this.feedback.success('Scheduling avviato', 'Calcolo pesante inviato in background. Aggiorno la preview appena pronta.');
+          this.schedulingDelivery.trackJob({
+            jobId: result.jobId,
+            onCompleted: (jobResult) => this.applyPlanningResult(jobResult, payload.eventId, successMessage),
+            onFailed: (message) => {
+              this.pendingPlanningJobId.set(null);
+              this.feedback.error('Scheduling non riuscito', message);
+            },
+          });
+          return;
+        }
+
+        this.applyPlanningResult(result, payload.eventId, successMessage);
+      },
+      error: (error) => {
+        this.scheduling.set(false);
+        this.feedback.error('Scheduling non riuscito', this.apiError.message(error, 'Impossibile generare il piano automatico.'));
+      }
+    });
+  }
+
+  private applyPlanningResult(result: SchedulePlanResponse, eventId: string | undefined, successMessage: string): void {
+    this.pendingPlanningJobId.set(null);
+    this.schedulingDelivery.stopTracking(result.jobId ?? null);
+    this.currentPlanId.set(result.planId ?? null);
+    this.previewSuggestions.set(result.suggestions ?? []);
+    this.planningSummary.set(result.summary ?? null);
+    this.previewVisible = true;
+    this.loadPlanningHistory(eventId);
+    this.feedback.success(successMessage, `Generate ${result.summary?.slots ?? result.suggestions?.length ?? 0} proposte operative.`);
+  }
+
+
+  private loadOperationalAvailability(): void {
+    this.api.availability().subscribe({
+      next: (items) => this.operationalAvailability.set(items),
+      error: () => this.operationalAvailability.set([]),
+    });
+  }
+
+  private loadPlanningHistory(eventId?: string): void {
+    this.api.schedulingPlans(eventId).subscribe({
+      next: (plans) => this.planningHistory.set(plans),
+      error: () => this.planningHistory.set([]),
     });
   }
 
@@ -988,25 +1343,6 @@ export class CalendarViewPageComponent {
             }
           : item
       )
-    );
-    this.assistantReplacement.update((item) =>
-      item?.id === replacementId
-        ? {
-            ...item,
-            status,
-            resolvedAt,
-            replacementAssigneeId: replacementAssigneeId ?? item.replacementAssigneeId,
-            replacementAssignee: replacementAssigneeId
-              ? replacementAssignee
-                ? {
-                    id: replacementAssignee.id,
-                    fullName: replacementAssignee.fullName,
-                    email: replacementAssignee.email,
-                  }
-                : item.replacementAssignee
-              : item.replacementAssignee,
-          }
-        : item
     );
   }
 
@@ -1128,6 +1464,18 @@ export class CalendarViewPageComponent {
     return this.teams()
       .flatMap((team) => team.members ?? [])
       .find((member) => member.id === memberId) ?? null;
+  }
+
+  private eventAssigneeIds(event: CalendarEvent): string[] {
+    const fromSlots = (event.slots ?? []).flatMap((slot) =>
+      (slot.assignments ?? []).map((assignment) => assignment.assigneeId).filter((assigneeId): assigneeId is string => Boolean(assigneeId))
+    );
+    const members = this.teams().flatMap((team) => team.members ?? []);
+    const fromAssignments = (event.assignments ?? [])
+      .map((assignment) => members.find((member) => member.fullName === assignment.assignee)?.id ?? null)
+      .filter((assigneeId): assigneeId is string => Boolean(assigneeId));
+
+    return Array.from(new Set([...fromSlots, ...fromAssignments]));
   }
 
   private materializeEventIfNeeded(event: CalendarEvent) {

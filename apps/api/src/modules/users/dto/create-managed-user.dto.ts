@@ -45,6 +45,10 @@ export class CreateManagedUserDto {
 
   @IsOptional()
   @IsArray()
+  preferredLocationValues?: string[];
+
+  @IsOptional()
+  @IsArray()
   competencies?: string[];
 
   @IsOptional()

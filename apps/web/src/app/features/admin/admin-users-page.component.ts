@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { UiButtonComponent, UiConfirmDialogComponent, UiFieldComponent, UiModalComponent, UiMultiSelectComponent, UiPageHeaderComponent, UiSelectComponent, UiSurfaceComponent } from '@shift-complete/ui-kit';
+import { UiButtonComponent, UiConfirmDialogComponent, UiFieldComponent, UiFilterBarComponent, UiModalComponent, UiMultiSelectComponent, UiPageHeaderComponent, UiSelectComponent, UiSurfaceComponent } from '@shift-complete/ui-kit';
 import { GlobalTeamScopeService } from '../../core/services/global-team-scope.service';
 import { SpotlightSearchService } from '../../core/services/spotlight-search.service';
 import { EditableUserProfileForm, UserProfileEditorComponent } from '../../shared/components/user-profile-editor.component';
@@ -10,7 +10,7 @@ import { TeamScopeChipsComponent } from '../../shared/components/team-scope-chip
 import { ApiErrorService } from '../../core/services/api-error.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import { AppApiService, DutyListItem } from '../../shared/services/app-api.service';
-import { TeamListItem, UserProfile } from '@shift-complete/shared-types';
+import { TeamListItem, UserPreferenceCatalogItem, UserProfile } from '@shift-complete/shared-types';
 
 type ManagedUserForm = EditableUserProfileForm & {
   role: 'administrator' | 'service_leader' | 'volunteer';
@@ -22,7 +22,7 @@ type ManagedUserCreateResponse = UserProfile & { generatedPassword?: string };
 @Component({
   selector: 'app-admin-users-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, UiButtonComponent, UiConfirmDialogComponent, UiFieldComponent, UiModalComponent, UiMultiSelectComponent, UiPageHeaderComponent, UiSelectComponent, UiSurfaceComponent, UserProfileEditorComponent, TeamScopeChipsComponent],
+  imports: [CommonModule, FormsModule, RouterLink, UiButtonComponent, UiConfirmDialogComponent, UiFieldComponent, UiFilterBarComponent, UiModalComponent, UiMultiSelectComponent, UiPageHeaderComponent, UiSelectComponent, UiSurfaceComponent, UserProfileEditorComponent, TeamScopeChipsComponent],
   templateUrl: './admin-users-page.component.html',
 })
 
@@ -36,6 +36,9 @@ export class AdminUsersPageComponent {
   protected readonly users = signal<UserProfile[]>([]);
   protected readonly teams = signal<TeamListItem[]>([]);
   protected readonly duties = signal<DutyListItem[]>([]);
+  protected readonly preferenceCatalog = signal<UserPreferenceCatalogItem[]>([]);
+  protected readonly catalogType = signal<'competency' | 'shift' | 'location'>('competency');
+  protected catalogForm = { value: '', label: '', description: '' };
   protected readonly deliveries = signal<Array<{ channel: string; status: string; notification?: { user?: { id?: string } | null } | null }>>([]);
   protected readonly selectedUser = signal<UserProfile | null>(null);
   protected readonly formOpen = signal(false);
@@ -60,6 +63,10 @@ export class AdminUsersPageComponent {
   });
   protected readonly preferredTeamOptions = computed(() => this.teams().map((team) => ({ label: team.name, value: team.id })));
   protected readonly preferredDutyOptions = computed(() => this.duties().map((duty) => ({ label: duty.name, value: duty.id })));
+  protected readonly shiftPreferenceOptions = computed(() => this.preferenceCatalog().filter((item) => item.type === 'shift').map((item) => ({ label: item.label, value: item.value })));
+  protected readonly competencyOptions = computed(() => this.preferenceCatalog().filter((item) => item.type === 'competency').map((item) => ({ label: item.label, value: item.value })));
+  protected readonly locationOptions = computed(() => this.preferenceCatalog().filter((item) => item.type === 'location').map((item) => ({ label: item.label, value: item.value })));
+  protected readonly activeCatalogItems = computed(() => this.preferenceCatalog().filter((item) => item.type === this.catalogType()));
   protected readonly roleOptions = [
     { label: 'Tutti i ruoli', value: '' },
     { label: 'Amministratore', value: 'administrator' },
@@ -107,6 +114,7 @@ export class AdminUsersPageComponent {
       preferredShifts: user.preferredShifts ?? [],
       preferredTeamIds: user.preferredTeamIds ?? [],
       preferredDutyIds: user.preferredDutyIds ?? [],
+      preferredLocationValues: user.preferredLocationValues ?? [],
       competencies: user.competencies ?? [],
       serviceNotes: user.serviceNotes ?? '',
       role: user.role,
@@ -126,6 +134,7 @@ export class AdminUsersPageComponent {
       preferredShifts: this.form.preferredShifts,
       preferredTeamIds: this.form.preferredTeamIds,
       preferredDutyIds: this.form.preferredDutyIds,
+      preferredLocationValues: this.form.preferredLocationValues,
       competencies: this.form.competencies,
       serviceNotes: this.form.serviceNotes || undefined,
       role: this.form.role,
@@ -259,6 +268,7 @@ export class AdminUsersPageComponent {
   }
 
   private loadTeams() {
+    this.api.userPreferenceCatalog().subscribe({ next: (items) => this.preferenceCatalog.set(items) });
     this.api.teams().subscribe({ next: (teams) => this.teams.set(teams) });
     this.api.duties().subscribe({ next: (duties) => this.duties.set(duties) });
     this.api.recentNotificationDeliveries(100).subscribe({ next: (items) => this.deliveries.set(items) });
@@ -275,11 +285,42 @@ export class AdminUsersPageComponent {
       preferredShifts: [],
       preferredTeamIds: [],
       preferredDutyIds: [],
+      preferredLocationValues: [],
       competencies: [],
       serviceNotes: '',
       role: 'volunteer',
       teamIds: []
     };
+  }
+
+  protected saveCatalogItem(): void {
+    if (!this.catalogForm.value.trim() || !this.catalogForm.label.trim()) {
+      return;
+    }
+
+    this.api.upsertPreferenceCatalogItem({
+      type: this.catalogType(),
+      value: this.catalogForm.value.trim(),
+      label: this.catalogForm.label.trim(),
+      description: this.catalogForm.description.trim() || undefined,
+    }).subscribe({
+      next: () => {
+        this.catalogForm = { value: '', label: '', description: '' };
+        this.api.userPreferenceCatalog().subscribe({ next: (items) => this.preferenceCatalog.set(items) });
+        this.feedback.success('Catalogo aggiornato');
+      },
+      error: (error) => this.feedback.error('Catalogo non aggiornato', this.apiError.message(error, 'Impossibile salvare il valore di catalogo.')),
+    });
+  }
+
+  protected removeCatalogItem(id: string): void {
+    this.api.deletePreferenceCatalogItem(id).subscribe({
+      next: () => {
+        this.api.userPreferenceCatalog().subscribe({ next: (items) => this.preferenceCatalog.set(items) });
+        this.feedback.success('Valore catalogo eliminato');
+      },
+      error: (error) => this.feedback.error('Catalogo non aggiornato', this.apiError.message(error, 'Impossibile eliminare il valore di catalogo.')),
+    });
   }
 
   private openCredentialsModal(email: string, password: string) {

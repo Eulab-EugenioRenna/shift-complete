@@ -10,6 +10,7 @@ import { QueueModule } from '../modules/queue/queue.module';
 import { UsersModule } from '../modules/users/users.module';
 import { TeamsModule } from '../modules/teams/teams.module';
 import { EventsModule } from '../modules/events/events.module';
+import { MeetingsModule } from '../modules/meetings/meetings.module';
 import { SchedulingModule } from '../modules/scheduling/scheduling.module';
 import { InventoryModule } from '../modules/inventory/inventory.module';
 import { ResourcesModule } from '../modules/resources/resources.module';
@@ -20,6 +21,8 @@ import { AiSettingsModule } from '../modules/ai-settings/ai-settings.module';
 import { ExportsModule } from '../modules/exports/exports.module';
 import { DutiesModule } from '../modules/duties/duties.module';
 import { AvailabilityModule } from '../modules/availability/availability.module';
+import { CatalogModule } from '../modules/catalog/catalog.module';
+import { DomainSyncModule } from '../modules/domain-sync/domain-sync.module';
 import { ReplacementsModule } from '../modules/replacements/replacements.module';
 import { DatabaseModule } from '../database/database.module';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -41,6 +44,7 @@ import { RequestLoggingInterceptor } from '../common/interceptors/request-loggin
     UsersModule,
     TeamsModule,
     EventsModule,
+    MeetingsModule,
     SchedulingModule,
     InventoryModule,
     ResourcesModule,
@@ -51,6 +55,8 @@ import { RequestLoggingInterceptor } from '../common/interceptors/request-loggin
     ExportsModule,
     DutiesModule,
     AvailabilityModule,
+    CatalogModule,
+    DomainSyncModule,
     ReplacementsModule
   ],
   providers: [

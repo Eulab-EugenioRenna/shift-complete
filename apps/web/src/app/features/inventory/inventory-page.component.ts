@@ -9,6 +9,7 @@ import { SpotlightSearchService } from '../../core/services/spotlight-search.ser
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
 import { fromIsoDateOnly, toIsoDateOnly } from '../../core/utils/date-picker.util';
 import { TeamScopeChipsComponent } from '../../shared/components/team-scope-chips.component';
+import { ReportDocument, ReportModalComponent } from '../../shared/components/report-modal.component';
 import { AppApiService } from '../../shared/services/app-api.service';
 import { SessionService } from '../../core/services/session.service';
 
@@ -24,7 +25,7 @@ type InventoryItem = {
 @Component({
   selector: 'app-inventory-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiButtonComponent, UiConfirmDialogComponent, UiDatePickerComponent, UiFieldComponent, UiInputComponent, UiLabelComponent, UiModalComponent, UiPageHeaderComponent, UiSelectComponent, UiSurfaceComponent, TeamScopeChipsComponent],
+  imports: [CommonModule, FormsModule, UiButtonComponent, UiConfirmDialogComponent, UiDatePickerComponent, UiFieldComponent, UiInputComponent, UiLabelComponent, UiModalComponent, UiPageHeaderComponent, UiSelectComponent, UiSurfaceComponent, TeamScopeChipsComponent, ReportModalComponent],
   templateUrl: './inventory-page.component.html',
 })
 export class InventoryPageComponent {
@@ -58,6 +59,7 @@ export class InventoryPageComponent {
   ];
   protected readonly selectedItem = signal<InventoryItem | null>(null);
   protected readonly confirmVisible = signal(false);
+  protected readonly reportVisible = signal(false);
   protected readonly pendingDelete = signal<{ id: string; name: string } | null>(null);
   protected readonly filteredItems = computed(() => {
     const query = this.searchQuery.trim().toLowerCase();
@@ -79,6 +81,72 @@ export class InventoryPageComponent {
       groups.get(key)?.items.push(item);
     }
     return Array.from(groups.values()).sort((a, b) => a.label.localeCompare(b.label));
+  });
+  protected readonly inventoryReport = computed<ReportDocument>(() => {
+    const items = this.filteredItems();
+    const selectedTeamId = this.teamScope.teamId();
+    const selectedTeam = this.teams().find((team) => team.id === selectedTeamId) ?? null;
+    const maintenanceItems = items.filter((item) => item.status === 'maintenance' || Boolean(item.maintenanceDueAt));
+    const checkedOutItems = items.filter((item) => item.status === 'checked_out');
+
+    return {
+      eyebrow: 'Report inventario',
+      title: selectedTeam ? `Inventario ${selectedTeam.name}` : 'Inventario operativo',
+      subtitle: 'Situazione asset per team, stato operativo e manutenzioni in evidenza.',
+      fileName: this.reportFileName(selectedTeam ? `inventario-${selectedTeam.name}` : 'inventario-operativo'),
+      generatedAt: this.formatDateTime(new Date().toISOString()),
+      sections: [
+        {
+          title: 'Panoramica asset',
+          metrics: [
+            { label: 'Asset visibili', value: String(items.length) },
+            { label: 'Disponibili', value: String(items.filter((item) => item.status === 'available').length) },
+            { label: 'In prestito', value: String(checkedOutItems.length) },
+            { label: 'Da revisionare', value: String(maintenanceItems.length) },
+          ],
+          facts: [
+            { label: 'Scope team', value: selectedTeam?.name || 'Tutti i team' },
+            { label: 'Ricerca attiva', value: this.searchQuery.trim() || 'Nessun filtro testuale' },
+            { label: 'Gruppi visibili', value: String(this.groupedItems().length) },
+            { label: 'Elemento selezionato', value: this.selectedItem()?.name || 'Nessun dettaglio selezionato' },
+          ],
+        },
+        {
+          title: 'Stato per team',
+          description: 'Raggruppamento sintetico delle dotazioni per area operativa.',
+          table: {
+            columns: ['Team', 'Asset', 'In prestito', 'Da revisionare'],
+            rows: this.groupedItems().length
+              ? this.groupedItems().map((group) => [
+                  group.label,
+                  String(group.items.length),
+                  String(this.checkedOutCount(group.items)),
+                  String(this.maintenanceCount(group.items)),
+                ])
+              : [['Nessun gruppo', '0', '0', '0']],
+          },
+        },
+        {
+          title: 'Dettaglio asset',
+          description: 'Elenco completo delle dotazioni incluse nel report.',
+          table: {
+            columns: ['Nome', 'Team', 'Seriale', 'Stato', 'Manutenzione'],
+            rows: items.length
+              ? items.map((item) => [
+                  item.name,
+                  item.team?.name || 'Senza team',
+                  item.serialNumber || '-',
+                  this.statusLabel(item.status),
+                  item.maintenanceDueAt ? this.formatDate(item.maintenanceDueAt) : 'Nessuna data',
+                ])
+              : [['Nessuna dotazione', '-', '-', '-', '-']],
+          },
+          note: maintenanceItems.length
+            ? `Attenzione: ${maintenanceItems.length} asset richiedono controllo o manutenzione pianificata.`
+            : 'Nessun asset con manutenzione aperta nel filtro corrente.',
+        },
+      ],
+    };
   });
 
   constructor() {
@@ -127,6 +195,10 @@ export class InventoryPageComponent {
 
   protected openSpotlight(): void {
     this.spotlight.openSpotlight();
+  }
+
+  protected openInventoryReport(): void {
+    this.reportVisible.set(true);
   }
 
   protected onMaintenanceDateChange(value: Date | null): void {
@@ -245,5 +317,33 @@ export class InventoryPageComponent {
       },
       error: (error) => this.feedback.error('Inventario non caricato', this.apiError.message(error, 'Impossibile recuperare l\'inventario.'))
     });
+  }
+
+  private formatDate(value?: string | null): string {
+    if (!value) {
+      return '-';
+    }
+
+    return new Intl.DateTimeFormat('it-IT', { dateStyle: 'medium' }).format(new Date(value));
+  }
+
+  private formatDateTime(value?: string | null): string {
+    if (!value) {
+      return '-';
+    }
+
+    return new Intl.DateTimeFormat('it-IT', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(value));
+  }
+
+  private reportFileName(value: string): string {
+    return `${value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'report'}.pdf`;
   }
 }

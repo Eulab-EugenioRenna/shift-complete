@@ -21,6 +21,8 @@ import { MultiSelectModule } from 'primeng/multiselect';
         [options]="options"
         [optionLabel]="optionLabel"
         [optionValue]="optionValue"
+        [filter]="filter"
+        [filterBy]="filterBy"
         [placeholder]="placeholder"
         [appendTo]="appendTo"
         [display]="display"
@@ -39,6 +41,8 @@ export class UiMultiSelectComponent {
   @Input() options: Array<Record<string, unknown>> = [];
   @Input() optionLabel = 'label';
   @Input() optionValue = 'value';
+  @Input() filter = true;
+  @Input() filterBy = 'label';
   @Input() display: 'comma' | 'chip' = 'chip';
   @Input() selectedItemsLabel = '{0} selezionati';
   @Input() maxSelectedLabels = 2;

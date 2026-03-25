@@ -65,6 +65,30 @@ export const appRoutes: Routes = [
           ),
       },
       {
+        path: "org-chart",
+        canActivate: [roleGuard, onboardingGuard],
+        data: {
+          roles: ["administrator", "service_leader"],
+          allowIncompleteOnboarding: true,
+        },
+        loadComponent: () =>
+          import("./features/org-chart/org-chart-page.component").then(
+            (m) => m.OrgChartPageComponent,
+          ),
+      },
+      {
+        path: "meetings",
+        canActivate: [roleGuard, onboardingGuard],
+        data: {
+          roles: ["administrator", "service_leader"],
+          allowIncompleteOnboarding: true,
+        },
+        loadComponent: () =>
+          import("./features/meetings/meetings-page.component").then(
+            (m) => m.MeetingsPageComponent,
+          ),
+      },
+      {
         path: "inventory",
         canActivate: [roleGuard, onboardingGuard],
         data: {

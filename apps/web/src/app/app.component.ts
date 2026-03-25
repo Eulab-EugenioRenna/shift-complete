@@ -34,37 +34,49 @@ import { ThemeService } from './core/services/theme.service';
       position: absolute;
       inset: -16vmax;
       filter: saturate(calc(118% * var(--app-scroll-glow)));
+      transform: translateZ(0);
     }
 
     .app-ambient__lava {
       position: absolute;
-      inset: 0;
+      border-radius: 999px;
       will-change: transform, opacity, filter;
       mix-blend-mode: screen;
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      isolation: isolate;
     }
 
     .app-ambient__lava--one {
+      left: -10%;
+      top: -8%;
+      width: 56rem;
+      height: 42rem;
       background:
-        radial-gradient(ellipse at 18% 24%, color-mix(in srgb, var(--app-ambient-1) 98%, white) 0%, transparent 34%),
-        radial-gradient(ellipse at 72% 26%, color-mix(in srgb, var(--app-ambient-4) 92%, white) 0%, transparent 30%),
-        radial-gradient(ellipse at 40% 78%, color-mix(in srgb, var(--app-ambient-2) 84%, white) 0%, transparent 34%);
+        radial-gradient(ellipse 44% 38% at 22% 28%, color-mix(in srgb, var(--app-ambient-1) 56%, white) 0%, color-mix(in srgb, var(--app-ambient-1) 78%, white) 18%, color-mix(in srgb, var(--app-ambient-1) 28%, transparent) 46%, transparent 74%),
+        radial-gradient(ellipse 30% 28% at 72% 30%, color-mix(in srgb, var(--app-ambient-4) 52%, white) 0%, color-mix(in srgb, var(--app-ambient-4) 76%, white) 16%, color-mix(in srgb, var(--app-ambient-4) 24%, transparent) 42%, transparent 72%),
+        radial-gradient(ellipse 36% 32% at 42% 76%, color-mix(in srgb, var(--app-ambient-2) 50%, white) 0%, color-mix(in srgb, var(--app-ambient-2) 70%, white) 16%, color-mix(in srgb, var(--app-ambient-2) 20%, transparent) 44%, transparent 72%),
+        radial-gradient(circle at 30% 34%, rgba(255, 255, 255, 0.12) 0%, transparent 12%),
+        radial-gradient(circle at 62% 46%, rgba(255, 255, 255, 0.08) 0%, transparent 11%);
       background-repeat: no-repeat;
-      background-size: 155% 155%;
-      background-position: 0% 0%;
-      filter: blur(68px) saturate(124%);
-      opacity: 0.96;
+      filter: blur(78px) saturate(112%);
+      opacity: 0.42;
     }
 
     .app-ambient__lava--two {
+      right: -8%;
+      top: 10%;
+      width: 48rem;
+      height: 38rem;
       background:
-        radial-gradient(ellipse at 70% 72%, color-mix(in srgb, var(--app-ambient-3) 88%, transparent) 0%, transparent 38%),
-        radial-gradient(ellipse at 22% 62%, color-mix(in srgb, var(--app-ambient-2) 96%, white) 0%, transparent 28%),
-        radial-gradient(ellipse at 56% 34%, color-mix(in srgb, var(--app-ambient-1) 82%, white) 0%, transparent 34%);
+        radial-gradient(ellipse 42% 34% at 68% 70%, color-mix(in srgb, var(--app-ambient-3) 44%, white) 0%, color-mix(in srgb, var(--app-ambient-3) 68%, white) 18%, color-mix(in srgb, var(--app-ambient-3) 18%, transparent) 46%, transparent 74%),
+        radial-gradient(ellipse 28% 26% at 24% 60%, color-mix(in srgb, var(--app-ambient-2) 52%, white) 0%, color-mix(in srgb, var(--app-ambient-2) 74%, white) 16%, color-mix(in srgb, var(--app-ambient-2) 18%, transparent) 42%, transparent 70%),
+        radial-gradient(ellipse 34% 30% at 54% 34%, color-mix(in srgb, var(--app-ambient-1) 38%, white) 0%, color-mix(in srgb, var(--app-ambient-1) 62%, white) 16%, color-mix(in srgb, var(--app-ambient-1) 16%, transparent) 44%, transparent 72%),
+        radial-gradient(circle at 58% 62%, rgba(255, 255, 255, 0.1) 0%, transparent 11%),
+        radial-gradient(circle at 28% 48%, rgba(255, 255, 255, 0.08) 0%, transparent 10%);
       background-repeat: no-repeat;
-      background-size: 170% 170%;
-      background-position: 100% 100%;
-      filter: blur(86px) saturate(118%);
-      opacity: 0.88;
+      filter: blur(86px) saturate(108%);
+      opacity: 0.34;
     }
 
     .app-ambient__glow {
@@ -105,6 +117,7 @@ import { ThemeService } from './core/services/theme.service';
       will-change: transform, opacity;
       mix-blend-mode: screen;
       transform: translate3d(var(--app-scroll-shift-x), var(--app-scroll-shift-y), 0);
+      backface-visibility: hidden;
     }
 
     .app-ambient__orb--one {
@@ -112,8 +125,10 @@ import { ThemeService } from './core/services/theme.service';
       top: -2%;
       width: 46rem;
       height: 46rem;
-      background: radial-gradient(circle, var(--app-ambient-1) 0%, transparent 68%);
-      filter: blur(38px);
+      background:
+        radial-gradient(circle at 34% 34%, rgba(255, 255, 255, 0.22) 0%, transparent 14%),
+        radial-gradient(circle at 50% 48%, color-mix(in srgb, var(--app-ambient-1) 58%, white) 0%, color-mix(in srgb, var(--app-ambient-1) 72%, white) 16%, color-mix(in srgb, var(--app-ambient-1) 36%, transparent) 42%, transparent 70%);
+      filter: blur(46px) saturate(120%);
     }
 
     .app-ambient__orb--two {
@@ -121,8 +136,10 @@ import { ThemeService } from './core/services/theme.service';
       top: 22%;
       width: 30rem;
       height: 30rem;
-      background: radial-gradient(circle, var(--app-ambient-2) 0%, transparent 66%);
-      filter: blur(46px);
+      background:
+        radial-gradient(circle at 40% 38%, rgba(255, 255, 255, 0.18) 0%, transparent 13%),
+        radial-gradient(circle at 52% 50%, color-mix(in srgb, var(--app-ambient-2) 54%, white) 0%, color-mix(in srgb, var(--app-ambient-2) 74%, white) 15%, color-mix(in srgb, var(--app-ambient-2) 32%, transparent) 44%, transparent 68%);
+      filter: blur(54px) saturate(122%);
     }
 
     .app-ambient__orb--three {
@@ -130,8 +147,10 @@ import { ThemeService } from './core/services/theme.service';
       bottom: -12%;
       width: 54rem;
       height: 54rem;
-      background: radial-gradient(circle, var(--app-ambient-3) 0%, transparent 70%);
-      filter: blur(94px);
+      background:
+        radial-gradient(circle at 42% 36%, rgba(255, 255, 255, 0.14) 0%, transparent 12%),
+        radial-gradient(circle at 50% 52%, color-mix(in srgb, var(--app-ambient-3) 44%, white) 0%, color-mix(in srgb, var(--app-ambient-3) 62%, white) 18%, color-mix(in srgb, var(--app-ambient-3) 28%, transparent) 48%, transparent 74%);
+      filter: blur(106px) saturate(116%);
       opacity: calc(0.84 + ((var(--app-scroll-glow) - 1) * 0.6));
     }
 
@@ -140,8 +159,10 @@ import { ThemeService } from './core/services/theme.service';
       bottom: 8%;
       width: 18rem;
       height: 18rem;
-      background: radial-gradient(circle, var(--app-ambient-4) 0%, transparent 62%);
-      filter: blur(30px);
+      background:
+        radial-gradient(circle at 38% 38%, rgba(255, 255, 255, 0.24) 0%, transparent 16%),
+        radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--app-ambient-4) 56%, white) 0%, color-mix(in srgb, var(--app-ambient-4) 78%, white) 16%, color-mix(in srgb, var(--app-ambient-4) 34%, transparent) 40%, transparent 66%);
+      filter: blur(36px) saturate(124%);
       opacity: 0.92;
     }
 
@@ -158,8 +179,22 @@ import { ThemeService } from './core/services/theme.service';
         radial-gradient(circle at 20% 20%, var(--app-grain) 0 1px, transparent 1.4px),
         radial-gradient(circle at 80% 30%, var(--app-grain) 0 1px, transparent 1.5px),
         radial-gradient(circle at 35% 78%, var(--app-grain) 0 1.1px, transparent 1.6px),
-        radial-gradient(circle at 68% 64%, var(--app-grain) 0 0.9px, transparent 1.4px);
-      background-size: 28px 28px, 32px 32px, 24px 24px, 36px 36px;
+        radial-gradient(circle at 68% 64%, var(--app-grain) 0 0.9px, transparent 1.4px),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0));
+      background-size: 28px 28px, 32px 32px, 24px 24px, 36px 36px, 100% 100%;
+    }
+
+    .app-ambient__grain::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0.08;
+      mix-blend-mode: soft-light;
+      background-image:
+        radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.18) 0 0.8px, transparent 1.4px),
+        radial-gradient(circle at 64% 48%, rgba(255, 255, 255, 0.16) 0 0.7px, transparent 1.2px),
+        radial-gradient(circle at 42% 74%, rgba(255, 255, 255, 0.14) 0 0.9px, transparent 1.6px);
+      background-size: 22px 22px, 30px 30px, 26px 26px;
     }
 
     .app-ambient__vignette {
@@ -185,6 +220,16 @@ import { ThemeService } from './core/services/theme.service';
       .app-ambient__orb--four {
         width: 12rem;
         height: 12rem;
+      }
+
+      .app-ambient__lava--one {
+        width: 30rem;
+        height: 24rem;
+      }
+
+      .app-ambient__lava--two {
+        width: 24rem;
+        height: 20rem;
       }
     }
 
@@ -362,14 +407,29 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     }
 
     this.ambientLavaLoop?.kill();
-    this.ambientLavaLoop = gsap.timeline({ repeat: -1, defaults: { ease: 'sine.inOut' } });
+    gsap.set(lavaLayers[0], {
+      scale: 1,
+      opacity: 0.42,
+      xPercent: 0,
+      yPercent: 0,
+      rotation: 0,
+    });
+    gsap.set(lavaLayers[1], {
+      scale: 1,
+      opacity: 0.34,
+      xPercent: 0,
+      yPercent: 0,
+      rotation: 0,
+    });
+
+    this.ambientLavaLoop = gsap.timeline({ repeat: -1, yoyo: true, defaults: { ease: 'sine.inOut' } });
     this.ambientLavaLoop
-      .to(lavaLayers[0], { backgroundPosition: '24% 10%', backgroundSize: '168% 168%', scale: 1.1, opacity: 0.98, duration: 8 }, 0)
-      .to(lavaLayers[1], { backgroundPosition: '86% 76%', backgroundSize: '182% 182%', scale: 1.14, opacity: 0.92, duration: 10 }, 0)
-      .to(lavaLayers[0], { backgroundPosition: '8% 82%', backgroundSize: '148% 148%', scale: 1.03, opacity: 0.8, duration: 9 }, '>-0.4')
-      .to(lavaLayers[1], { backgroundPosition: '14% 16%', backgroundSize: '164% 164%', scale: 1.08, opacity: 0.84, duration: 10 }, '<')
-      .to(lavaLayers[0], { backgroundPosition: '78% 24%', backgroundSize: '172% 172%', scale: 1.12, opacity: 0.96, duration: 9 }, '>-0.4')
-      .to(lavaLayers[1], { backgroundPosition: '94% 92%', backgroundSize: '188% 188%', scale: 1.16, opacity: 0.9, duration: 10 }, '<');
+      .to(lavaLayers[0], { xPercent: 8, yPercent: 6, scale: 1.04, rotation: 4, opacity: 0.44, duration: 11 }, 0)
+      .to(lavaLayers[1], { xPercent: -7, yPercent: 8, scale: 1.06, rotation: -5, opacity: 0.36, duration: 13 }, 0)
+      .to(lavaLayers[0], { xPercent: -6, yPercent: 10, scale: 0.99, rotation: -3, opacity: 0.4, duration: 12 }, '>-0.5')
+      .to(lavaLayers[1], { xPercent: 6, yPercent: -6, scale: 1.02, rotation: 4, opacity: 0.32, duration: 13 }, '<')
+      .to(lavaLayers[0], { xPercent: 10, yPercent: -4, scale: 1.05, rotation: 5, opacity: 0.43, duration: 12 }, '>-0.5')
+      .to(lavaLayers[1], { xPercent: -8, yPercent: 4, scale: 1.05, rotation: -4, opacity: 0.35, duration: 13 }, '<');
   }
 
   private startGlowIdleLoop(): void {

@@ -160,6 +160,19 @@
           <p class="ui-section-subtitle">Base per pannelli neutrali, sidebar, empty state e blocchi informativi.</p>
         </ui-surface>
 
+        <ui-list-panel title="ui-list-panel" icon="pi pi-list text-[#4979e6]" bodyClass="p-0" panelClass="max-h-[18rem]">
+          <button type="button" uiListPanelHeaderActions class="pi pi-external-link text-sm text-[color:var(--text-3)] transition hover:text-[#4979e6]"></button>
+
+          <div uiListPanelBody>
+            <div class="border-b border-[color:var(--border-soft)] px-5 py-4 text-sm last:border-0" *ngFor="let tone of tones">
+              <p class="font-medium text-[color:var(--text-1)]">Elemento {{ tone }}</p>
+              <p class="mt-1 text-[color:var(--text-2)]">Header fisso, body scrollabile, footer opzionale.</p>
+            </div>
+          </div>
+
+          <a uiListPanelFooter class="flex items-center justify-center text-sm font-medium text-[#4979e6]">Azione footer</a>
+        </ui-list-panel>
+
         <ui-table-shell title="Preview layout">
           <table class="min-w-full divide-y divide-[color:var(--border-soft)] text-sm">
             <thead class="bg-[color:var(--surface-2)] text-left text-xs uppercase tracking-[0.18em] text-[color:var(--text-3)]">
@@ -207,8 +220,14 @@
 
       <div #masonryItem data-key="confirm-dialog" [style.grid-row]="'span ' + masonrySpan('confirm-dialog')" class="transition duration-700 ease-out" [class.opacity-0]="!cardVisible('confirm-dialog')" [class.translate-y-8]="!cardVisible('confirm-dialog')" [class.opacity-100]="cardVisible('confirm-dialog')" [class.translate-y-0]="cardVisible('confirm-dialog')">
       <ui-card title="Confirm Dialog" subtitle="Primitive dedicata alle richieste di conferma, con tono conferma o danger." surfaceClass="h-fit min-w-0 p-6" bodyClass="grid gap-5">
+        <div class="flex flex-wrap gap-3">
+          <ui-button tone="success" (buttonClick)="openConfirmPreview()">Apri confirm</ui-button>
+          <ui-button tone="danger" (buttonClick)="openDangerPreview()">Apri danger</ui-button>
+        </div>
+
         <ui-confirm-dialog
-          [visible]="true"
+          [visible]="confirmPreviewVisible()"
+          (visibleChange)="confirmPreviewVisible.set($event)"
           title="Confermare approvazione?"
           eyebrow="Tema confirm"
           subtitle="Usalo per azioni positive o irreversibili ma non distruttive."
@@ -220,7 +239,8 @@
         ></ui-confirm-dialog>
 
         <ui-confirm-dialog
-          [visible]="true"
+          [visible]="dangerPreviewVisible()"
+          (visibleChange)="dangerPreviewVisible.set($event)"
           title="Eliminare elemento?"
           eyebrow="Tema danger"
           subtitle="Riservato a eliminazioni, rifiuti e azioni distruttive."

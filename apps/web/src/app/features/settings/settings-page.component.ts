@@ -36,6 +36,7 @@ export class SettingsPageComponent {
   protected readonly aiJobs = signal<any[]>([]);
   protected readonly notificationDeliveries = signal<any[]>([]);
   protected readonly auditLogs = signal<any[]>([]);
+  protected readonly schedulingMetrics = signal<any | null>(null);
   protected selectedProvider = signal('disabled');
   protected apiKey = '';
   protected readonly showApiKey = signal(false);
@@ -65,6 +66,12 @@ export class SettingsPageComponent {
   protected resourceJobConcurrency = 3;
   protected notificationJobConcurrency = 5;
   protected aiJobConcurrency = 2;
+  protected schedulingPreviewTransport: 'polling' | 'websocket' | 'hybrid' = 'hybrid';
+  protected schedulingPreviewRetryCount = 20;
+  protected schedulingPreviewPollIntervalMs = 4000;
+  protected schedulingAsyncRangeDays = 14;
+  protected schedulingAsyncManualSelections = 20;
+  protected readonly schedulingAsyncWithoutEvent = signal(true);
   protected readonly inAppNotificationsEnabled = signal(true);
   protected readonly websocketNotificationsEnabled = signal(true);
   protected readonly emailNotificationsEnabled = signal(true);
@@ -97,6 +104,11 @@ export class SettingsPageComponent {
     { label: 'Bilanciato', value: 'balanced' },
     { label: 'Manuale', value: 'manual' },
     { label: 'Spinto', value: 'aggressive' }
+  ];
+  protected readonly schedulingTransportOptions = [
+    { label: 'Hybrid', value: 'hybrid' },
+    { label: 'Polling', value: 'polling' },
+    { label: 'WebSocket', value: 'websocket' },
   ];
 
   protected readonly needsApiKey = computed(() =>
@@ -141,6 +153,12 @@ export class SettingsPageComponent {
         if (typeof settings?.resourceJobConcurrency === 'number') this.resourceJobConcurrency = settings.resourceJobConcurrency;
         if (typeof settings?.notificationJobConcurrency === 'number') this.notificationJobConcurrency = settings.notificationJobConcurrency;
         if (typeof settings?.aiJobConcurrency === 'number') this.aiJobConcurrency = settings.aiJobConcurrency;
+        if (settings?.schedulingPreviewTransport === 'polling' || settings?.schedulingPreviewTransport === 'websocket' || settings?.schedulingPreviewTransport === 'hybrid') this.schedulingPreviewTransport = settings.schedulingPreviewTransport;
+        if (typeof settings?.schedulingPreviewRetryCount === 'number') this.schedulingPreviewRetryCount = settings.schedulingPreviewRetryCount;
+        if (typeof settings?.schedulingPreviewPollIntervalMs === 'number') this.schedulingPreviewPollIntervalMs = settings.schedulingPreviewPollIntervalMs;
+        if (typeof settings?.schedulingAsyncRangeDays === 'number') this.schedulingAsyncRangeDays = settings.schedulingAsyncRangeDays;
+        if (typeof settings?.schedulingAsyncManualSelections === 'number') this.schedulingAsyncManualSelections = settings.schedulingAsyncManualSelections;
+        if (typeof settings?.schedulingAsyncWithoutEvent === 'boolean') this.schedulingAsyncWithoutEvent.set(settings.schedulingAsyncWithoutEvent);
         if (typeof settings?.inAppNotificationsEnabled === 'boolean') this.inAppNotificationsEnabled.set(settings.inAppNotificationsEnabled);
         if (typeof settings?.websocketNotificationsEnabled === 'boolean') this.websocketNotificationsEnabled.set(settings.websocketNotificationsEnabled);
         if (typeof settings?.emailNotificationsEnabled === 'boolean') this.emailNotificationsEnabled.set(settings.emailNotificationsEnabled);
@@ -159,6 +177,7 @@ export class SettingsPageComponent {
     this.loadAuditLogs();
     this.loadAiJobs();
     this.loadNotificationDeliveries();
+    this.loadSchedulingMetrics();
   }
 
   onAutomationModeChange(value: unknown) {
@@ -172,6 +191,11 @@ export class SettingsPageComponent {
 
   protected castString(value: unknown): string {
     return value ? String(value) : '';
+  }
+
+  protected setSchedulingPreviewTransport(value: unknown): void {
+    const normalized = this.castString(value);
+    this.schedulingPreviewTransport = normalized === 'polling' || normalized === 'websocket' ? normalized : 'hybrid';
   }
 
   pingProvider(): void {
@@ -248,6 +272,12 @@ export class SettingsPageComponent {
       resourceJobConcurrency: this.resourceJobConcurrency || undefined,
       notificationJobConcurrency: this.notificationJobConcurrency || undefined,
       aiJobConcurrency: this.aiJobConcurrency || undefined,
+      schedulingPreviewTransport: this.schedulingPreviewTransport,
+      schedulingPreviewRetryCount: this.schedulingPreviewRetryCount || undefined,
+      schedulingPreviewPollIntervalMs: this.schedulingPreviewPollIntervalMs || undefined,
+      schedulingAsyncRangeDays: this.schedulingAsyncRangeDays || undefined,
+      schedulingAsyncManualSelections: this.schedulingAsyncManualSelections || undefined,
+      schedulingAsyncWithoutEvent: this.schedulingAsyncWithoutEvent(),
       inAppNotificationsEnabled: this.inAppNotificationsEnabled(),
       websocketNotificationsEnabled: this.websocketNotificationsEnabled(),
       emailNotificationsEnabled: this.emailNotificationsEnabled(),
@@ -326,6 +356,23 @@ export class SettingsPageComponent {
     this.api.recentNotificationDeliveries(8).subscribe({
       next: (items) => this.notificationDeliveries.set(items),
       error: (error) => this.feedback.error('Delivery notifiche non disponibili', this.apiError.message(error, 'Impossibile recuperare le delivery notifiche.'))
+    });
+  }
+
+  loadSchedulingMetrics(): void {
+    this.api.schedulingMetrics().subscribe({
+      next: (metrics) => this.schedulingMetrics.set(metrics),
+      error: (error) => this.feedback.error('Metriche scheduling non disponibili', this.apiError.message(error, 'Impossibile recuperare le metriche del planner.'))
+    });
+  }
+
+  resetSchedulingMetrics(): void {
+    this.api.resetSchedulingMetrics().subscribe({
+      next: () => {
+        this.feedback.success('Metriche scheduling azzerate');
+        this.loadSchedulingMetrics();
+      },
+      error: (error) => this.feedback.error('Reset metriche non riuscito', this.apiError.message(error, 'Impossibile azzerare le metriche del planner.'))
     });
   }
 

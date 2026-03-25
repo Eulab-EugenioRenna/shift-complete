@@ -26,21 +26,17 @@
 
       <ui-form-section title="Preferenze" subtitle="Turni, competenze, team e mansioni preferite.">
         <div class="grid gap-4 md:grid-cols-2">
-      <ui-autocomplete label="Preferenze turni" [options]="shiftPreferenceOptions" [value]="selectedShiftPreference()" (valueChange)="selectedShiftPreference.set(asRecord($event))"></ui-autocomplete>
-      <ui-autocomplete label="Competenze" [options]="competencyOptions" [value]="selectedCompetency()" (valueChange)="selectedCompetency.set(asRecord($event))"></ui-autocomplete>
-      <ui-autocomplete *ngIf="teamPreferenceOptions.length" label="Team preferiti" [options]="teamPreferenceOptions" [value]="selectedPreferredTeam()" (valueChange)="selectedPreferredTeam.set(asRecord($event))"></ui-autocomplete>
-      <ui-autocomplete *ngIf="dutyPreferenceOptions.length" label="Mansioni preferite" [options]="dutyPreferenceOptions" [value]="selectedPreferredDuty()" (valueChange)="selectedPreferredDuty.set(asRecord($event))"></ui-autocomplete>
-      <div class="flex gap-2 md:col-span-2">
-        <ui-button tone="neutral" variant="outlined" (buttonClick)="addShiftPreference()">Aggiungi preferenza</ui-button>
-        <ui-button tone="neutral" variant="outlined" (buttonClick)="addCompetency()">Aggiungi competenza</ui-button>
-        <ui-button *ngIf="teamPreferenceOptions.length" tone="neutral" variant="outlined" (buttonClick)="addPreferredTeam()">Aggiungi team</ui-button>
-        <ui-button *ngIf="dutyPreferenceOptions.length" tone="neutral" variant="outlined" (buttonClick)="addPreferredDuty()">Aggiungi mansione</ui-button>
-      </div>
+      <ui-multi-select label="Preferenze turni" [options]="shiftPreferenceOptions" [value]="profileForm.preferredShifts" (valueChange)="setShiftPreferences($event)" placeholder="Seleziona preferenze turno"></ui-multi-select>
+      <ui-multi-select label="Competenze" [options]="competencyOptions" [value]="profileForm.competencies" (valueChange)="setCompetencies($event)" placeholder="Seleziona competenze"></ui-multi-select>
+      <ui-multi-select *ngIf="locationPreferenceOptions.length" label="Luoghi preferiti" [options]="locationPreferenceOptions" [value]="profileForm.preferredLocationValues" (valueChange)="setPreferredLocations($event)" placeholder="Seleziona luoghi"></ui-multi-select>
+      <ui-multi-select *ngIf="teamPreferenceOptions.length" label="Team preferiti" [options]="teamPreferenceOptions" [value]="profileForm.preferredTeamIds" (valueChange)="setPreferredTeams($event)" placeholder="Seleziona team"></ui-multi-select>
+      <ui-multi-select *ngIf="dutyPreferenceOptions.length" label="Mansioni preferite" [options]="dutyPreferenceOptions" [value]="profileForm.preferredDutyIds" (valueChange)="setPreferredDuties($event)" placeholder="Seleziona mansioni"></ui-multi-select>
       <div class="md:col-span-2">
         <p class="mb-2 text-xs text-[color:var(--text-3)]">Clicca una chip per rimuoverla.</p>
         <div class="flex flex-wrap gap-2">
-        <ui-chip *ngFor="let item of profileForm.preferredShifts" tone="neutral" (chipClick)="removeShiftPreference(item)" title="Rimuovi preferenza turno">{{ item }} <i class="pi pi-times text-[10px]"></i></ui-chip>
-        <ui-chip *ngFor="let item of profileForm.competencies" tone="neutral" (chipClick)="removeCompetency(item)" title="Rimuovi competenza">{{ item }} <i class="pi pi-times text-[10px]"></i></ui-chip>
+        <ui-chip *ngFor="let item of profileForm.preferredShifts" tone="neutral" (chipClick)="removeShiftPreference(item)" title="Rimuovi preferenza turno">{{ shiftLabel(item) }} <i class="pi pi-times text-[10px]"></i></ui-chip>
+        <ui-chip *ngFor="let item of profileForm.competencies" tone="neutral" (chipClick)="removeCompetency(item)" title="Rimuovi competenza">{{ competencyLabel(item) }} <i class="pi pi-times text-[10px]"></i></ui-chip>
+        <ui-chip *ngFor="let item of profileForm.preferredLocationValues" tone="neutral" (chipClick)="removePreferredLocation(item)" title="Rimuovi luogo preferito">Luogo: {{ locationLabel(item) }} <i class="pi pi-times text-[10px]"></i></ui-chip>
         <ui-chip *ngFor="let item of selectedTeamLabels()" tone="neutral" (chipClick)="removePreferredTeamByLabel(item)" title="Rimuovi team preferito">Team: {{ item }} <i class="pi pi-times text-[10px]"></i></ui-chip>
         <ui-chip *ngFor="let item of selectedDutyLabels()" tone="neutral" (chipClick)="removePreferredDutyByLabel(item)" title="Rimuovi mansione preferita">Mansione: {{ item }} <i class="pi pi-times text-[10px]"></i></ui-chip>
         </div>

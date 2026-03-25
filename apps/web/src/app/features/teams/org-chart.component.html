@@ -1,0 +1,107 @@
+<div class="overflow-x-auto">
+  <p-organizationChart
+    *ngIf="treeData().length"
+    [value]="treeData()"
+    [collapsible]="true"
+  >
+    <!-- ROOT NODE -->
+    <ng-template pTemplate="root" let-node>
+      <div class="flex flex-col items-center gap-1.5 rounded-2xl border border-[color:var(--border-soft)] bg-gradient-to-br from-[#4979e6]/10 to-[#4979e6]/5 px-6 py-4 shadow-sm">
+        <i [class]="node.data.icon + ' text-xl text-[#4979e6]'"></i>
+        <p class="text-sm font-bold text-[color:var(--text-1)]">{{ node.data.label }}</p>
+        <p class="text-xs text-[color:var(--text-2)]">{{ node.data.subtitle }}</p>
+        <ui-badge tone="info">{{ node.data.count }}</ui-badge>
+      </div>
+    </ng-template>
+
+    <!-- GROUP NODE -->
+    <ng-template pTemplate="group" let-node>
+      <div class="flex flex-col items-center gap-1.5 rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 px-5 py-3 shadow-sm min-w-[160px]">
+        <i class="pi pi-folder text-lg text-orange-500"></i>
+        <p class="text-sm font-semibold text-[color:var(--text-1)]">{{ node.data.label }}</p>
+        <div class="flex flex-wrap items-center justify-center gap-2">
+          <ui-badge tone="info">{{ node.data.teamCount || 0 }} team</ui-badge>
+          <ui-badge tone="warn">{{ node.data.meetingGroupCount || 0 }} riunioni</ui-badge>
+        </div>
+        <p *ngIf="node.data.subtitle" class="text-[10px] text-[color:var(--text-3)] max-w-[200px] text-center">{{ node.data.subtitle }}</p>
+      </div>
+    </ng-template>
+
+    <!-- TEAM NODE -->
+    <ng-template pTemplate="team" let-node>
+      <div class="flex flex-col items-start gap-2 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-5 py-4 shadow-sm min-w-[200px] max-w-[280px]">
+        <div class="flex items-center gap-2 w-full">
+          <i class="pi pi-users text-sm text-[#4979e6]"></i>
+          <p class="text-sm font-semibold text-[color:var(--text-1)] flex-1">{{ node.data.label }}</p>
+          <ui-badge tone="info">{{ node.data.count }}</ui-badge>
+        </div>
+
+        <!-- Leader -->
+        <div class="flex w-full items-center justify-between gap-2 rounded-xl bg-[color:var(--surface-2)] px-3 py-2 text-xs text-[color:var(--text-2)]">
+          <i class="pi pi-star-fill text-[10px] text-amber-500"></i>
+          <span class="flex-1 font-medium text-[color:var(--text-1)]">{{ node.data.leader?.fullName || 'Da nominare' }}</span>
+          <ui-chip *ngIf="node.data.leader?.isCurrentUser" tone="danger" [interactive]="false">Tu</ui-chip>
+        </div>
+
+        <!-- Duties -->
+        <div *ngIf="node.data.duties?.length" class="flex flex-wrap gap-1 mt-0.5">
+          <span *ngFor="let duty of node.data.duties" class="inline-flex items-center rounded-full bg-[#4979e6]/10 px-2 py-0.5 text-[10px] font-medium text-[#4979e6]">
+            {{ duty }}
+          </span>
+        </div>
+
+        <!-- Volunteers -->
+        <div *ngIf="node.data.members?.length" class="mt-1 w-full">
+          <p class="text-[10px] font-semibold uppercase tracking-wider text-[color:var(--text-3)] mb-1">Volontari</p>
+          <div class="grid w-full gap-1.5">
+            <div *ngFor="let member of node.data.members" class="flex items-center justify-between rounded-xl bg-[color:var(--surface-2)] px-3 py-2 text-[10px] text-[color:var(--text-2)]">
+              <span class="font-medium text-[color:var(--text-1)]">{{ member.fullName }}</span>
+              <ui-chip *ngIf="member.isCurrentUser" tone="danger" [interactive]="false">Tu</ui-chip>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+
+    <!-- MEETING GROUP NODE -->
+    <ng-template pTemplate="meetingGroup" let-node>
+      <div class="flex flex-col items-start gap-2 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-5 py-4 shadow-sm min-w-[200px] max-w-[280px]">
+        <div class="flex items-center gap-2 w-full">
+          <i class="pi pi-comments text-sm text-purple-500"></i>
+          <p class="text-sm font-semibold text-[color:var(--text-1)] flex-1">{{ node.data.label }}</p>
+          <ui-badge tone="info">{{ node.data.count }}</ui-badge>
+        </div>
+
+        <!-- Leader -->
+        <div class="flex w-full items-center justify-between gap-2 rounded-xl bg-[color:var(--surface-2)] px-3 py-2 text-xs text-[color:var(--text-2)]">
+          <i class="pi pi-star-fill text-[10px] text-amber-500"></i>
+          <span class="flex-1 font-medium text-[color:var(--text-1)]">{{ node.data.leader?.fullName || 'Da nominare' }}</span>
+          <ui-chip *ngIf="node.data.leader?.isCurrentUser" tone="danger" [interactive]="false">Tu</ui-chip>
+        </div>
+
+        <!-- Volunteers -->
+        <div *ngIf="node.data.members?.length" class="mt-1 w-full">
+          <p class="text-[10px] font-semibold uppercase tracking-wider text-[color:var(--text-3)] mb-1">Partecipanti</p>
+          <div class="grid w-full gap-1.5">
+            <div *ngFor="let member of node.data.members" class="flex items-center justify-between rounded-xl bg-[color:var(--surface-2)] px-3 py-2 text-[10px] text-[color:var(--text-2)]">
+              <span class="font-medium text-[color:var(--text-1)]">{{ member.fullName }}</span>
+              <ui-chip *ngIf="member.isCurrentUser" tone="danger" [interactive]="false">Tu</ui-chip>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+
+    <!-- DEFAULT NODE (fallback) -->
+    <ng-template pTemplate="default" let-node>
+      <div class="rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-4 py-3">
+        <p class="text-sm text-[color:var(--text-1)]">{{ node.data?.label || node.label }}</p>
+      </div>
+    </ng-template>
+  </p-organizationChart>
+
+  <div *ngIf="!treeData().length" class="py-12 text-center">
+    <i class="pi pi-sitemap text-3xl text-[color:var(--text-3)] opacity-40 block mb-2"></i>
+    <p class="text-sm text-[color:var(--text-3)]">Nessun team o gruppo disponibile per l'organigramma.</p>
+  </div>
+</div>

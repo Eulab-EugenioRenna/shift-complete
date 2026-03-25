@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, OnChanges, Output, signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { UiAutocompleteComponent, UiButtonComponent, UiChipComponent, UiFieldComponent, UiFormSectionComponent, UiInputComponent, UiTextareaComponent } from '@shift-complete/ui-kit';
+import { UiButtonComponent, UiChipComponent, UiFieldComponent, UiFormSectionComponent, UiInputComponent, UiMultiSelectComponent, UiTextareaComponent } from '@shift-complete/ui-kit';
 
 type SelectOption = { label: string; value: string };
 
@@ -15,6 +15,7 @@ export type EditableUserProfileForm = {
   preferredShifts: string[];
   preferredTeamIds: string[];
   preferredDutyIds: string[];
+  preferredLocationValues: string[];
   competencies: string[];
   serviceNotes: string;
 };
@@ -22,7 +23,7 @@ export type EditableUserProfileForm = {
 @Component({
   selector: 'app-user-profile-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule, UiAutocompleteComponent, UiButtonComponent, UiChipComponent, UiFieldComponent, UiFormSectionComponent, UiInputComponent, UiTextareaComponent],
+  imports: [CommonModule, FormsModule, UiButtonComponent, UiChipComponent, UiFieldComponent, UiFormSectionComponent, UiInputComponent, UiMultiSelectComponent, UiTextareaComponent],
   templateUrl: './user-profile-editor.component.html',
 })
 export class UserProfileEditorComponent implements OnChanges {
@@ -33,47 +34,22 @@ export class UserProfileEditorComponent implements OnChanges {
   @Input() showSubmit = true;
   @Input() teamPreferenceOptions: SelectOption[] = [];
   @Input() dutyPreferenceOptions: SelectOption[] = [];
+  @Input() shiftPreferenceOptions: SelectOption[] = [];
+  @Input() locationPreferenceOptions: SelectOption[] = [];
+  @Input() competencyOptions: SelectOption[] = [];
   @Output() readonly save = new EventEmitter<void>();
 
-  protected readonly selectedShiftPreference = signal<Record<string, unknown> | null>(null);
-  protected readonly selectedCompetency = signal<Record<string, unknown> | null>(null);
-  protected readonly selectedPreferredTeam = signal<Record<string, unknown> | null>(null);
-  protected readonly selectedPreferredDuty = signal<Record<string, unknown> | null>(null);
-  protected readonly shiftPreferenceOptions = [
-    { label: 'Mattina', value: 'morning' },
-    { label: 'Pomeriggio', value: 'afternoon' },
-    { label: 'Sera', value: 'evening' },
-    { label: 'Weekend', value: 'weekend' },
-  ];
-  protected readonly competencyOptions = [
-    { label: 'Audio', value: 'audio' },
-    { label: 'Luci', value: 'lights' },
-    { label: 'Accoglienza', value: 'welcome' },
-    { label: 'Primo soccorso', value: 'medical' },
-    { label: 'Logistica', value: 'logistics' },
-  ];
   protected readonly selectedTeamLabels = signal<string[]>([]);
   protected readonly selectedDutyLabels = signal<string[]>([]);
-
-  protected asRecord(value: unknown): Record<string, unknown> | null {
-    return (value as Record<string, unknown> | null) ?? null;
-  }
-
-  protected addShiftPreference(): void {
-    const value = String(this.selectedShiftPreference()?.['value'] ?? '');
-    if (value && !this.profileForm.preferredShifts.includes(value)) {
-      this.profileForm.preferredShifts = [...this.profileForm.preferredShifts, value];
-    }
-    this.selectedShiftPreference.set(null);
-  }
-
-  protected addCompetency(): void {
-    const value = String(this.selectedCompetency()?.['value'] ?? '');
-    if (value && !this.profileForm.competencies.includes(value)) {
-      this.profileForm.competencies = [...this.profileForm.competencies, value];
-    }
-    this.selectedCompetency.set(null);
-  }
+  protected readonly selectedLocationLabels = signal<string[]>([]);
+  protected readonly selectedShiftLabels = computed(() =>
+    this.profileForm.preferredShifts
+      .map((id) => this.shiftPreferenceOptions.find((option) => option.value === id)?.label ?? id)
+  );
+  protected readonly selectedCompetencyLabels = computed(() =>
+    this.profileForm.competencies
+      .map((id) => this.competencyOptions.find((option) => option.value === id)?.label ?? id)
+  );
 
   protected removeShiftPreference(item: string): void {
     this.profileForm.preferredShifts = this.profileForm.preferredShifts.filter((value) => value !== item);
@@ -81,24 +57,6 @@ export class UserProfileEditorComponent implements OnChanges {
 
   protected removeCompetency(item: string): void {
     this.profileForm.competencies = this.profileForm.competencies.filter((value) => value !== item);
-  }
-
-  protected addPreferredTeam(): void {
-    const value = String(this.selectedPreferredTeam()?.['value'] ?? '');
-    if (value && !this.profileForm.preferredTeamIds.includes(value)) {
-      this.profileForm.preferredTeamIds = [...this.profileForm.preferredTeamIds, value];
-    }
-    this.selectedPreferredTeam.set(null);
-    this.syncSelectedLabels();
-  }
-
-  protected addPreferredDuty(): void {
-    const value = String(this.selectedPreferredDuty()?.['value'] ?? '');
-    if (value && !this.profileForm.preferredDutyIds.includes(value)) {
-      this.profileForm.preferredDutyIds = [...this.profileForm.preferredDutyIds, value];
-    }
-    this.selectedPreferredDuty.set(null);
-    this.syncSelectedLabels();
   }
 
   protected removePreferredTeamByLabel(label: string): void {
@@ -123,6 +81,46 @@ export class UserProfileEditorComponent implements OnChanges {
     this.syncSelectedLabels();
   }
 
+  protected setShiftPreferences(value: unknown[] | null | undefined): void {
+    this.profileForm.preferredShifts = (value ?? []).map((item) => String(item));
+  }
+
+  protected setCompetencies(value: unknown[] | null | undefined): void {
+    this.profileForm.competencies = (value ?? []).map((item) => String(item));
+  }
+
+  protected setPreferredTeams(value: unknown[] | null | undefined): void {
+    this.profileForm.preferredTeamIds = (value ?? []).map((item) => String(item));
+    this.syncSelectedLabels();
+  }
+
+  protected setPreferredDuties(value: unknown[] | null | undefined): void {
+    this.profileForm.preferredDutyIds = (value ?? []).map((item) => String(item));
+    this.syncSelectedLabels();
+  }
+
+  protected setPreferredLocations(value: unknown[] | null | undefined): void {
+    this.profileForm.preferredLocationValues = (value ?? []).map((item) => String(item));
+    this.syncSelectedLabels();
+  }
+
+  protected shiftLabel(value: string): string {
+    return this.shiftPreferenceOptions.find((option) => option.value === value)?.label ?? value;
+  }
+
+  protected competencyLabel(value: string): string {
+    return this.competencyOptions.find((option) => option.value === value)?.label ?? value;
+  }
+
+  protected locationLabel(value: string): string {
+    return this.locationPreferenceOptions.find((option) => option.value === value)?.label ?? value;
+  }
+
+  protected removePreferredLocation(value: string): void {
+    this.profileForm.preferredLocationValues = this.profileForm.preferredLocationValues.filter((item) => item !== value);
+    this.syncSelectedLabels();
+  }
+
   private syncSelectedLabels(): void {
     this.selectedTeamLabels.set(
       this.profileForm.preferredTeamIds
@@ -132,6 +130,11 @@ export class UserProfileEditorComponent implements OnChanges {
     this.selectedDutyLabels.set(
       this.profileForm.preferredDutyIds
         .map((id) => this.dutyPreferenceOptions.find((option) => option.value === id)?.label)
+        .filter((label): label is string => Boolean(label))
+    );
+    this.selectedLocationLabels.set(
+      this.profileForm.preferredLocationValues
+        .map((id) => this.locationPreferenceOptions.find((option) => option.value === id)?.label)
         .filter((label): label is string => Boolean(label))
     );
   }

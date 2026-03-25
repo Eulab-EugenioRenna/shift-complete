@@ -10,6 +10,7 @@ export const UpdateUserProfileSchema = z.object({
   preferredShifts: z.array(z.string()).optional(),
   preferredTeamIds: z.array(z.string().cuid().or(z.string().uuid())).optional(),
   preferredDutyIds: z.array(z.string().cuid().or(z.string().uuid())).optional(),
+  preferredLocationValues: z.array(z.string()).optional(),
   competencies: z.array(z.string()).optional(),
   serviceNotes: z.string().optional(),
 });
@@ -27,6 +28,7 @@ export const ManagedUserProfileSchema = z.object({
   preferredShifts: z.array(z.string()).optional(),
   preferredTeamIds: z.array(z.string().cuid().or(z.string().uuid())).optional(),
   preferredDutyIds: z.array(z.string().cuid().or(z.string().uuid())).optional(),
+  preferredLocationValues: z.array(z.string()).optional(),
   competencies: z.array(z.string()).optional(),
   serviceNotes: z.string().optional(),
 });

@@ -3,10 +3,14 @@ import { Role } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { toJsonValue } from '../../common/utils/json.util';
 import { CreateDutyDto, UpdateDutyDto } from '@shift-complete/shared-types';
+import { DomainSyncService } from '../domain-sync/domain-sync.service';
 
 @Injectable()
 export class DutiesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly domainSync: DomainSyncService,
+  ) {}
 
   async list(actorId: string, role: Role, teamId?: string) {
     const where = role === Role.administrator
@@ -46,6 +50,7 @@ export class DutiesService {
         description: payload.description,
         color: payload.color,
         icon: payload.icon,
+        requiredCompetencies: payload.requiredCompetencies,
         team: {
           connect: {
             id: payload.teamId
@@ -64,6 +69,13 @@ export class DutiesService {
       }
     });
 
+    await this.domainSync.syncPlanningContextMutation({
+      action: 'duty.created',
+      entityId: duty.id,
+      teamIds: [payload.teamId],
+      reason: 'duty-created',
+    });
+
     return duty;
   }
 
@@ -76,7 +88,7 @@ export class DutiesService {
 
     const updated = await this.prisma.duty.update({
       where: { id: dutyId },
-      data: payload
+      data: payload as any
     });
 
     await this.prisma.auditLog.create({
@@ -87,6 +99,48 @@ export class DutiesService {
         entityId: dutyId,
         metadata: toJsonValue(payload)
       }
+    });
+
+    await this.domainSync.syncPlanningContextMutation({
+      action: 'duty.updated',
+      entityId: dutyId,
+      teamIds: [duty.teamId],
+      reason: 'duty-updated',
+    });
+
+    return updated;
+  }
+
+  async updateCompetencies(dutyId: string, competencyValues: string[], actorId: string, role: Role) {
+    const duty = await this.prisma.duty.findUniqueOrThrow({
+      where: { id: dutyId },
+      select: { teamId: true },
+    });
+
+    await this.assertTeamAccess(duty.teamId, actorId, role);
+
+    const updated = await this.prisma.duty.update({
+      where: { id: dutyId },
+      data: {
+        requiredCompetencies: competencyValues,
+      } as any,
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: actorId,
+        action: 'duty.competencies.updated',
+        entityType: 'duty',
+        entityId: dutyId,
+        metadata: toJsonValue({ competencyValues }),
+      }
+    });
+
+    await this.domainSync.syncPlanningContextMutation({
+      action: 'duty.competencies.updated',
+      entityId: dutyId,
+      teamIds: [duty.teamId],
+      reason: 'duty-competencies-updated',
     });
 
     return updated;
@@ -118,6 +172,13 @@ export class DutiesService {
         entityId: dutyId,
         metadata: toJsonValue({ dutyId })
       }
+    });
+
+    await this.domainSync.syncPlanningContextMutation({
+      action: 'duty.deleted',
+      entityId: dutyId,
+      teamIds: [duty.teamId],
+      reason: 'duty-deleted',
     });
 
     return { deleted: true, id: dutyId };

@@ -1,10 +1,21 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import type { NotificationItem, ReplacementItem, Role, UserProfile } from '@shift-complete/shared-types';
 import { CardModule } from 'primeng/card';
 import { ProgressBarModule } from 'primeng/progressbar';
-import { UiButtonComponent, UiChipComponent, UiLabelComponent, UiPageHeaderComponent, UiStatCardComponent, UiSurfaceComponent } from '@shift-complete/ui-kit';
+import {
+  UiButtonComponent,
+  UiChipComponent,
+  UiLabelComponent,
+  UiListPanelBodyDirective,
+  UiListPanelComponent,
+  UiListPanelFooterDirective,
+  UiListPanelHeaderActionsDirective,
+  UiPageHeaderComponent,
+  UiStatCardComponent,
+  UiSurfaceComponent,
+} from '@shift-complete/ui-kit';
 import { GlobalTeamScopeService } from '../../core/services/global-team-scope.service';
 import { AppApiService } from '../../shared/services/app-api.service';
 import { ApiErrorService } from '../../core/services/api-error.service';
@@ -22,10 +33,11 @@ const ROLES = {
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, CardModule, ProgressBarModule, UiButtonComponent, UiChipComponent, UiLabelComponent, UiPageHeaderComponent, UiStatCardComponent, UiSurfaceComponent, TeamScopeChipsComponent],
+  imports: [CommonModule, RouterLink, CardModule, ProgressBarModule, UiButtonComponent, UiChipComponent, UiLabelComponent, UiListPanelBodyDirective, UiListPanelComponent, UiListPanelFooterDirective, UiListPanelHeaderActionsDirective, UiPageHeaderComponent, UiStatCardComponent, UiSurfaceComponent, TeamScopeChipsComponent],
   templateUrl: './dashboard-page.component.html',
 })
 export class DashboardPageComponent {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly session = inject(SessionService);
   private readonly api = inject(AppApiService);
   private readonly apiError = inject(ApiErrorService);
@@ -33,7 +45,11 @@ export class DashboardPageComponent {
   private readonly router = inject(Router);
   protected readonly live = inject(LiveNotificationsService);
   protected readonly teamScope = inject(GlobalTeamScopeService);
+  private readonly agendaViewport = viewChild<ElementRef<HTMLElement>>('agendaViewport');
+  private readonly agendaContent = viewChild<ElementRef<HTMLElement>>('agendaContent');
+  private readonly adjacentColumn = viewChild<ElementRef<HTMLElement>>('adjacentColumn');
   protected readonly teams = signal<Array<{ id: string; name: string }>>([]);
+  protected readonly agendaPanelHeight = signal<number | null>(null);
 
   protected readonly profile = signal<UserProfile | null>(this.session.getCurrentUser());
   protected readonly notifications = signal<NotificationItem[]>([]);
@@ -176,7 +192,6 @@ export class DashboardPageComponent {
     this.events()
       .slice()
       .sort((left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime())
-      .slice(0, 6)
   );
 
   protected readonly openWorkItems = computed(() => {
@@ -195,9 +210,76 @@ export class DashboardPageComponent {
   constructor() {
     this.live.connect();
     this.loadData();
+    effect(() => {
+      const item = this.live.feed()[0];
+      if (!item) {
+        return;
+      }
+
+      if (['events.changed', 'assignments.changed', 'replacements.changed', 'availability.changed', 'stats.changed', 'notification.created'].includes(item.type)) {
+        this.loadData();
+      }
+    });
+    this.bindAgendaHeight();
     if (this.session.hasAnyRole('administrator', 'service_leader')) {
       this.api.teams().subscribe({ next: (teams) => this.teams.set(teams.map((team) => ({ id: team.id, name: team.name }))) });
     }
+  }
+
+  private bindAgendaHeight(): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia('(min-width: 1280px)');
+    let resizeObserver: ResizeObserver | null = null;
+
+    const syncHeight = () => {
+      if (!mediaQuery.matches) {
+        this.agendaPanelHeight.set(null);
+        return;
+      }
+
+      const columnHeight = this.adjacentColumn()?.nativeElement.getBoundingClientRect().height ?? 0;
+      const roundedColumnHeight = columnHeight > 0 ? Math.round(columnHeight) : null;
+      const agendaContent = this.agendaContent()?.nativeElement;
+      const naturalAgendaHeight = agendaContent ? Math.round(agendaContent.scrollHeight) : 0;
+
+      if (!roundedColumnHeight) {
+        this.agendaPanelHeight.set(null);
+        return;
+      }
+
+      this.agendaPanelHeight.set(naturalAgendaHeight > 0 ? Math.min(naturalAgendaHeight, roundedColumnHeight) : roundedColumnHeight);
+    };
+
+    const startObserver = () => {
+      resizeObserver?.disconnect();
+
+      const column = this.adjacentColumn()?.nativeElement;
+      const agendaContent = this.agendaContent()?.nativeElement;
+      if (!column || !agendaContent) {
+        this.agendaPanelHeight.set(null);
+        return;
+      }
+
+      resizeObserver = new ResizeObserver(() => syncHeight());
+      resizeObserver.observe(column);
+      resizeObserver.observe(agendaContent);
+      syncHeight();
+    };
+
+    queueMicrotask(startObserver);
+
+    const handleViewportChange = () => syncHeight();
+    mediaQuery.addEventListener('change', handleViewportChange);
+    window.addEventListener('resize', handleViewportChange);
+
+    this.destroyRef.onDestroy(() => {
+      resizeObserver?.disconnect();
+      mediaQuery.removeEventListener('change', handleViewportChange);
+      window.removeEventListener('resize', handleViewportChange);
+    });
   }
 
   loadData(): void {
