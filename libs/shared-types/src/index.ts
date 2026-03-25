@@ -118,7 +118,8 @@ export interface MeetingGroupItem {
 
 export interface MeetingListItem {
   id: string;
-  meetingGroupId: string;
+  meetingGroupId?: string | null;
+  teamId?: string | null;
   title: string;
   description?: string | null;
   locationValue?: string | null;
@@ -152,7 +153,12 @@ export interface MeetingListItem {
   meetingGroup?: {
     id: string;
     name: string;
-  };
+  } | null;
+  team?: {
+    id: string;
+    name: string;
+  } | null;
+  ownerType?: 'team' | 'meetingGroup';
 }
 
 export interface AvailabilityItem {

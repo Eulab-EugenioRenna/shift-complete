@@ -3,8 +3,8 @@ import { Component, DestroyRef, computed, effect, inject, signal } from '@angula
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
-import { AvailabilityItem, CreateAvailabilityDto, ReplacementItem, ScheduleApplyScope, SchedulePlanListItem, SchedulePlanResponse, SchedulePreviewRequest, ScheduleSuggestionItem } from '@shift-complete/shared-types';
-import { map, of, switchMap, tap } from 'rxjs';
+import { ReplacementItem, ScheduleApplyScope, SchedulePlanListItem, SchedulePlanResponse, SchedulePreviewRequest, ScheduleSuggestionItem } from '@shift-complete/shared-types';
+import { forkJoin, map, of, switchMap, tap } from 'rxjs';
 import { ApiErrorService } from '../../core/services/api-error.service';
 import { GlobalTeamScopeService } from '../../core/services/global-team-scope.service';
 import { SchedulingPreviewDeliveryService } from '../../core/services/scheduling-preview-delivery.service';
@@ -101,14 +101,6 @@ type TeamOption = {
 
 type ScheduleApplyOption = { label: string; value: ScheduleApplyScope };
 
-type AvailabilityForm = {
-  userId: string | null;
-  teamId: string | null;
-  startsAt: Date | null;
-  endsAt: Date | null;
-  reason: string;
-};
-
 @Component({
   selector: 'app-calendar-view-page',
   standalone: true,
@@ -122,8 +114,6 @@ type AvailabilityForm = {
     UiButtonComponent,
     UiChipComponent,
     UiConfirmDialogComponent,
-    UiDatePickerComponent,
-    UiFieldComponent,
     UiFilterBarComponent,
     UiInputComponent,
     UiSidebarPanelComponent,
@@ -157,7 +147,6 @@ export class CalendarViewPageComponent {
   protected readonly previewSuggestions = signal<ScheduleSuggestionItem[]>([]);
   protected readonly planningSummary = signal<SchedulePlanResponse['summary'] | null>(null);
   protected readonly planningHistory = signal<SchedulePlanListItem[]>([]);
-  protected readonly operationalAvailability = signal<AvailabilityItem[]>([]);
   protected readonly duties = signal<DutyListItem[]>([]);
   protected readonly preferenceCatalog = signal<Array<{ id: string; type: 'shift' | 'competency' | 'location'; value: string; label: string }>>([]);
   protected readonly selectedEvent = signal<CalendarEvent | null>(null);
@@ -169,7 +158,6 @@ export class CalendarViewPageComponent {
   protected readonly loading = signal(false);
   protected readonly savingEvent = signal(false);
   protected readonly scheduling = signal(false);
-  protected readonly savingAvailability = signal(false);
   protected readonly selectedDutyOption = signal<Record<string, unknown> | null>(null);
   protected readonly locallyReservedSuggestionIds = signal<string[]>([]);
   protected readonly confirmVisible = signal(false);
@@ -184,10 +172,8 @@ export class CalendarViewPageComponent {
   protected previewVisible = false;
   protected assignmentBoardVisible = false;
   protected eventDialogVisible = false;
-  protected availabilityDialogVisible = false;
   protected eventForm = { title: '', locationValue: '' as string, startsAt: null as Date | null, endsAt: null as Date | null, teamId: null as string | null, dutyId: '', isRecurring: false, recurrenceFrequency: 'WEEKLY' as 'WEEKLY' | 'MONTHLY' | 'YEARLY', recurrenceDurationMonths: 12 as RecurrenceDurationOption, recurrenceAutoRenew: true, recurrenceRenewMonths: 12 as RecurrenceDurationOption };
   protected replacementReason = '';
-  protected availabilityForm: AvailabilityForm = { userId: null, teamId: null, startsAt: null, endsAt: null, reason: '' };
   protected readonly replacementAssigneeId = signal<string | null>(null);
   protected readonly draggedVolunteerId = signal<string | null>(null);
   protected readonly dragHoverSlotId = signal<string | null>(null);
@@ -263,15 +249,6 @@ export class CalendarViewPageComponent {
     { label: 'Senza luogo specificato', value: 'none' },
     ...this.locationOptions()
   ]);
-  protected readonly assignablePeople = computed(() =>
-    Array.from(
-      new Map(
-        this.teams()
-          .flatMap((team) => team.members ?? [])
-          .map((member) => [member.id, { label: member.fullName, value: member.id }])
-      ).values()
-    )
-  );
   protected readonly filteredPlanningHistory = computed(() => {
     const filter = this.planningHistoryFilter();
     return this.planningHistory().filter((plan) => {
@@ -293,7 +270,8 @@ export class CalendarViewPageComponent {
 
     return this.events().filter((event) => {
       const scopedTeamId = this.teamScope.teamId();
-      const teamMatch = !scopedTeamId || (event.slots ?? []).some((slot) => slot.teamId === scopedTeamId);
+      const directTeamId = (event as CalendarEvent & { teamId?: string | null }).teamId;
+      const teamMatch = !scopedTeamId || directTeamId === scopedTeamId || (event.slots ?? []).some((slot) => slot.teamId === scopedTeamId);
       const userMatch = !userId || this.eventAssigneeIds(event).includes(userId);
       const seriesMatch = !seriesId || (event.seriesId ?? event.id) === seriesId;
       const occurrenceMatch = this.occurrenceView() === 'all'
@@ -903,48 +881,6 @@ export class CalendarViewPageComponent {
     });
   }
 
-  protected openAvailabilityDialog(): void {
-    const selected = this.selectedEvent();
-    const firstSlot = selected?.slots?.[0] ?? null;
-    this.availabilityForm = {
-      userId: null,
-      teamId: firstSlot?.teamId ?? null,
-      startsAt: selected ? new Date(selected.startsAt) : new Date(),
-      endsAt: selected ? new Date(selected.endsAt) : new Date(Date.now() + 2 * 60 * 60 * 1000),
-      reason: '',
-    };
-    this.availabilityDialogVisible = true;
-  }
-
-  protected saveAvailability(): void {
-    if (!this.availabilityForm.userId || !this.availabilityForm.startsAt || !this.availabilityForm.endsAt || this.availabilityForm.startsAt >= this.availabilityForm.endsAt) {
-      this.feedback.error('Assenza non valida', 'Seleziona persona e intervallo valido.');
-      return;
-    }
-
-    this.savingAvailability.set(true);
-    const payload: CreateAvailabilityDto = {
-      teamId: this.availabilityForm.teamId ?? undefined,
-      type: 'UNAVAILABLE',
-      startsAt: toIsoDateTime(this.availabilityForm.startsAt),
-      endsAt: toIsoDateTime(this.availabilityForm.endsAt),
-      reason: this.availabilityForm.reason.trim() || undefined,
-    };
-
-    this.api.createAvailability(payload, this.availabilityForm.userId).subscribe({
-      next: () => {
-        this.savingAvailability.set(false);
-        this.availabilityDialogVisible = false;
-        this.loadOperationalAvailability();
-        this.feedback.success('Assenza registrata', 'La nuova indisponibilita sara considerata nei prossimi calcoli.');
-      },
-      error: (error) => {
-        this.savingAvailability.set(false);
-        this.feedback.error('Assenza non salvata', this.apiError.message(error, 'Impossibile salvare l assenza.'));
-      }
-    });
-  }
-
   requestReplacement(assignmentId: string): void {
     if (this.hasPendingReplacement(assignmentId)) {
       return;
@@ -1175,7 +1111,19 @@ export class CalendarViewPageComponent {
 
   private loadData(): void {
     this.loading.set(true);
-    this.api.events().subscribe({
+    forkJoin({
+      events: this.api.events(),
+      meetings: this.api.meetings(),
+    }).pipe(
+      map(({ events, meetings }) => {
+        const mappedMeetings = meetings.map((meeting: any) => ({
+          ...meeting,
+          type: 'MEETING',
+          slots: meeting.teamId ? [{ id: `meeting-${meeting.id}`, teamId: meeting.teamId, teamName: meeting.team?.name, assignments: [] }] : [],
+        }));
+        return [...events, ...mappedMeetings] as CalendarEvent[];
+      })
+    ).subscribe({
       next: (events) => {
         this.events.set(events);
         this.applyRouteContext(events);
@@ -1184,7 +1132,7 @@ export class CalendarViewPageComponent {
           this.selectedEvent.set(fresh ?? null);
         }
       },
-      error: (error) => this.feedback.error('Eventi non caricati', this.apiError.message(error, 'Impossibile recuperare gli eventi.'))
+      error: (error) => this.feedback.error('Eventi non caricati', this.apiError.message(error, 'Impossibile recuperare eventi e riunioni.'))
     });
     this.api.teams().subscribe({
       next: (teams) => {
@@ -1206,7 +1154,6 @@ export class CalendarViewPageComponent {
         this.feedback.error('Sostituzioni non caricate', this.apiError.message(error, 'Impossibile recuperare le sostituzioni.'));
       }
     });
-    this.loadOperationalAvailability();
     this.loadPlanningHistory(this.selectedEvent()?.seriesId ?? this.selectedEvent()?.id ?? undefined);
   }
 
@@ -1265,15 +1212,6 @@ export class CalendarViewPageComponent {
     this.loadPlanningHistory(eventId);
     this.feedback.success(successMessage, `Generate ${result.summary?.slots ?? result.suggestions?.length ?? 0} proposte operative.`);
   }
-
-
-  private loadOperationalAvailability(): void {
-    this.api.availability().subscribe({
-      next: (items) => this.operationalAvailability.set(items),
-      error: () => this.operationalAvailability.set([]),
-    });
-  }
-
   private loadPlanningHistory(eventId?: string): void {
     this.api.schedulingPlans(eventId).subscribe({
       next: (plans) => this.planningHistory.set(plans),
@@ -1487,7 +1425,15 @@ export class CalendarViewPageComponent {
       editMode: 'single',
       occurrenceStart: event.occurrenceStart,
     }).pipe(
-      switchMap(() => this.api.events()),
+      switchMap(() => forkJoin({ events: this.api.events(), meetings: this.api.meetings() })),
+      map(({ events, meetings }) => [
+        ...events,
+        ...meetings.map((meeting: any) => ({
+          ...meeting,
+          type: 'MEETING',
+          slots: meeting.teamId ? [{ id: `meeting-${meeting.id}`, teamId: meeting.teamId, teamName: meeting.team?.name, assignments: [] }] : [],
+        })),
+      ] as CalendarEvent[]),
       tap((events) => {
         this.events.set(events);
         this.applyRouteContext(events);

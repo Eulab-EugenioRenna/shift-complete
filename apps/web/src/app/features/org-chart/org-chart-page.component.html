@@ -2,12 +2,13 @@
   <ui-page-header
     eyebrow="Organigramma generale"
     eyebrowClass="text-orange-500"
-    title="Struttura condivisa di gruppi, team e gruppi riunione."
-    subtitle="Ogni gruppo puo' coordinare sia team operativi sia gruppi riunione."
+    title="Organigramma condiviso di contenitori generali, team e meeting group."
+    subtitle="Solo team e meeting group sono nodi operativi: le riunioni-evento restano fuori dal grafo e vivono nel workspace riunioni."
     [hasActions]="true"
   >
     <div page-actions class="flex flex-wrap items-center gap-2">
-      <ui-button icon="pi pi-folder-plus" (buttonClick)="openGroupDialog()">Nuovo gruppo</ui-button>
+      <ui-button icon="pi pi-pencil" tone="neutral" variant="outlined" (buttonClick)="toggleEditMode()">{{ editMode() ? 'Chiudi modifica' : 'Modalita modifica' }}</ui-button>
+      <ui-button *ngIf="editMode()" icon="pi pi-folder-plus" (buttonClick)="openGroupDialog()">Nuovo gruppo</ui-button>
       <a routerLink="/meetings" class="inline-flex items-center gap-2 rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-4 py-2 text-sm font-medium text-[color:var(--text-2)] transition hover:bg-[color:var(--surface-2)] hover:text-[color:var(--text-1)] shadow-[var(--shadow-soft)]">
         <i class="pi pi-calendar text-xs"></i>
         Apri riunioni
@@ -15,22 +16,46 @@
     </div>
   </ui-page-header>
 
-  <div class="grid gap-4 md:grid-cols-3">
+  <div class="grid gap-4 md:grid-cols-4">
     <ui-stat-card *ngFor="let card of overviewCards()" [label]="card.label" [value]="card.value" [detail]="card.detail"></ui-stat-card>
   </div>
+
+  <ui-surface surfaceClass="overflow-hidden border border-[color:var(--border-soft)] bg-[linear-gradient(135deg,rgba(255,247,237,0.92)_0%,rgba(255,251,235,0.94)_55%,rgba(255,255,255,1)_100%)] p-5">
+    <div class="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)]">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-orange-600">Flusso organigramma</p>
+        <h3 class="mt-2 text-xl font-semibold text-[color:var(--text-1)]">Contenitori stabili, nodi operativi cliccabili</h3>
+        <p class="mt-2 max-w-2xl text-sm text-[color:var(--text-2)]">I contenitori generali servono a raggruppare. I team e i meeting group sono i veri nodi operativi: da qui parti verso la pagina team o verso il dettaglio del meeting group, senza far entrare le singole riunioni nel grafo.</p>
+      </div>
+      <div class="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
+        <div class="rounded-2xl bg-[color:var(--surface-1)] px-4 py-3 shadow-[var(--shadow-soft)]">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">1. Contenitore</p>
+          <p class="mt-1 text-sm text-[color:var(--text-2)]">Crea il gruppo generale.</p>
+        </div>
+        <div class="rounded-2xl bg-[color:var(--surface-1)] px-4 py-3 shadow-[var(--shadow-soft)]">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">2. Nodo</p>
+          <p class="mt-1 text-sm text-[color:var(--text-2)]">Collega team e meeting group.</p>
+        </div>
+        <div class="rounded-2xl bg-[color:var(--surface-1)] px-4 py-3 shadow-[var(--shadow-soft)]">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">3. Azione</p>
+          <p class="mt-1 text-sm text-[color:var(--text-2)]">Apri il contesto giusto dal nodo cliccato.</p>
+        </div>
+      </div>
+    </div>
+  </ui-surface>
 
   <div class="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(20rem,0.7fr)] xl:items-start">
     <ui-surface surfaceClass="overflow-hidden border border-orange-100 bg-[linear-gradient(180deg,rgba(255,247,237,0.95)_0%,rgba(255,255,255,1)_100%)] p-5">
       <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <p class="text-xs font-semibold uppercase tracking-[0.24em] text-orange-600">Vista generale</p>
-          <h3 class="mt-2 text-xl font-semibold text-[color:var(--text-1)]">Gruppi, team e riunioni nello stesso quadro</h3>
-          <p class="mt-1 max-w-2xl text-sm text-[color:var(--text-2)]">Il root mostra la somma complessiva e ogni gruppo puo' guidare sia team operativi sia gruppi riunione.</p>
+          <h3 class="mt-2 text-xl font-semibold text-[color:var(--text-1)]">Contenitori generali con team e meeting group nello stesso quadro</h3>
+          <p class="mt-1 max-w-2xl text-sm text-[color:var(--text-2)]">I nodi sono cliccabili, mostrano leader e partecipanti, evidenziano TU e portano al team o al dettaglio meeting group.</p>
         </div>
         <div class="flex flex-wrap gap-2">
           <ui-label tone="info">Root riepilogativo</ui-label>
           <ui-label tone="warn">Gruppi misti</ui-label>
-          <ui-label tone="danger">Badge Tu dinamico</ui-label>
+          <ui-label tone="danger">TU nel nodo</ui-label>
         </div>
       </div>
       <app-org-chart [teams]="teams()" [groups]="groups()" [meetingGroups]="meetingGroups()" mode="general"></app-org-chart>
@@ -40,13 +65,13 @@
       <ui-surface surfaceClass="overflow-hidden p-5">
         <div class="flex items-center justify-between gap-3">
           <div>
-            <h3 class="text-base font-semibold text-[color:var(--text-1)]">Gruppi configurati</h3>
-            <p class="mt-1 text-sm text-[color:var(--text-2)]">Contenitori misti per team e gruppi riunione.</p>
+            <h3 class="text-base font-semibold text-[color:var(--text-1)]">Modalita' modifica</h3>
+            <p class="mt-1 text-sm text-[color:var(--text-2)]">Usa i contenitori generali per organizzare team e meeting group senza inserire le singole riunioni nel grafo.</p>
           </div>
-          <ui-button tone="neutral" variant="outlined" size="sm" icon="pi pi-plus" (buttonClick)="openGroupDialog()">Nuovo</ui-button>
+          <ui-label [tone]="editMode() ? 'warn' : 'neutral'">{{ editMode() ? 'Attiva' : 'Disattiva' }}</ui-label>
         </div>
 
-        <div class="mt-4 divide-y divide-[color:var(--border-soft)]">
+        <div class="mt-4 divide-y divide-[color:var(--border-soft)]" *ngIf="editMode(); else readOnlyNote">
           <div *ngFor="let group of groups()" class="flex items-start justify-between gap-3 py-4">
             <div>
               <p class="font-semibold text-[color:var(--text-1)]">{{ group.name || 'Gruppo senza nome' }}</p>
@@ -59,6 +84,11 @@
           </div>
           <div *ngIf="!groups().length" class="py-6 text-sm text-[color:var(--text-3)]">Nessun gruppo configurato.</div>
         </div>
+        <ng-template #readOnlyNote>
+          <div class="mt-4 rounded-2xl bg-[color:var(--surface-2)] p-4 text-sm text-[color:var(--text-2)]">
+            Sei in consultazione: naviga i nodi dal grafo centrale. Attiva la modalita' modifica solo quando devi creare, collegare o riordinare i contenitori dell'organigramma.
+          </div>
+        </ng-template>
       </ui-surface>
 
       <ui-surface surfaceClass="overflow-hidden p-5">
@@ -81,7 +111,7 @@
             </div>
             <div class="mt-3 flex flex-wrap gap-2 text-xs">
               <ui-label tone="info">{{ group.teams.length }} team</ui-label>
-              <ui-label tone="warn">{{ group.meetingGroups.length }} riunioni</ui-label>
+              <ui-label tone="warn">{{ group.meetingGroups.length }} meeting group</ui-label>
             </div>
           </div>
           <p *ngIf="!highlightedGroups().length" class="text-sm text-[color:var(--text-3)]">Aggiungi gruppi per vedere una panoramica piu' ricca.</p>
@@ -89,7 +119,13 @@
       </ui-surface>
 
       <ui-surface surfaceClass="overflow-hidden p-5">
-        <h3 class="text-base font-semibold text-[color:var(--text-1)]">Elementi non assegnati</h3>
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h3 class="text-base font-semibold text-[color:var(--text-1)]">Elementi non assegnati</h3>
+            <p class="mt-1 text-sm text-[color:var(--text-2)]">Sono i nodi ancora fuori dai contenitori generali, quindi da ordinare in modalita' modifica.</p>
+          </div>
+          <ui-label tone="neutral">Backlog</ui-label>
+        </div>
         <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-1">
           <div>
             <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Team</p>

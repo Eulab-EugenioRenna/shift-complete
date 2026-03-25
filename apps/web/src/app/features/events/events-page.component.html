@@ -10,27 +10,134 @@
       <ui-button icon="pi pi-plus" (buttonClick)="openEventDialog()">Nuovo evento</ui-button>
       <ui-button tone="neutral" variant="outlined" icon="pi pi-file-export" (buttonClick)="openEventReport()" [disabled]="!selectedEvent()">Report evento</ui-button>
       <ui-button tone="neutral" variant="outlined" icon="pi pi-sparkles" (buttonClick)="autoAssign()" [disabled]="!selectedEvent()">Auto assegna</ui-button>
-      <ui-button tone="neutral" variant="outlined" icon="pi pi-user-minus" (buttonClick)="openAvailabilityDialog()" [disabled]="!selectedEvent()">Segna assenza</ui-button>
-      <ui-button tone="neutral" variant="outlined" icon="pi pi-directions-alt" (buttonClick)="openAssignmentBoard()">Board assegnazioni</ui-button>
+      <ui-button tone="neutral" variant="outlined" icon="pi pi-directions-alt" (buttonClick)="openAssignmentBoard()" [disabled]="!selectedEvent()">Vai alla board</ui-button>
     </div>
   </ui-page-header>
 
   <app-team-scope-chips [teams]="teams()"></app-team-scope-chips>
 
-  <div class="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(20rem,0.7fr)] xl:items-start">
-    <div class="overflow-hidden rounded-[24px] border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] shadow-[var(--shadow-soft)]">
+  <div class="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(20rem,0.55fr)] xl:items-stretch">
+    <div class="flex h-full flex-col overflow-hidden rounded-[24px] border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] shadow-[var(--shadow-soft)] xl:h-[56rem] xl:max-h-[56rem]">
+      <div *ngIf="selectedEvent() as event; else noEventBoard" class="flex h-full min-h-0 flex-col">
+        <div class="border-b border-[color:var(--border-soft)] px-5 py-4">
+          <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">Board assegnazioni</p>
+              <p class="mt-2 text-lg font-semibold text-[color:var(--text-1)]">{{ event.title }}</p>
+              <p class="mt-1 text-sm text-[color:var(--text-2)]">La board e' il centro operativo: qui gestisci copertura, replacement e assegnazioni delle mansioni richieste.</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <ui-label [tone]="eventDisplayTone(event)">{{ eventDisplayLabel(event) }}</ui-label>
+              <ui-label [tone]="(event.assignments?.length || 0) > 0 ? 'success' : 'warn'">{{ (event.assignments?.length || 0) > 0 ? 'copertura avviata' : 'da coprire' }}</ui-label>
+              <ui-label tone="info">{{ selectedEventSlots().length }} mansioni</ui-label>
+            </div>
+          </div>
+        </div>
+
+        <div class="border-b border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-5 py-4">
+          <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+            <div class="text-sm text-[color:var(--text-2)]">
+              {{ event.startsAt | date:'fullDate' }} · {{ event.startsAt | date:'shortTime' }} - {{ event.endsAt | date:'shortTime' }}
+              <span *ngIf="event.locationValue"> · {{ event.locationValue }}</span>
+            </div>
+            <div class="flex flex-wrap gap-2" *ngIf="canManageEvents() && (canEditOccurrence(event) || canEditSeries(event))">
+              <button *ngIf="canEditOccurrence(event)" type="button" class="rounded-md border border-sky-300 bg-white px-3 py-2 text-sm font-medium text-sky-700 transition hover:bg-sky-100" (click)="openEditEvent(event, 'single')">{{ editActionLabel(event) }}</button>
+              <button *ngIf="canEditSeries(event)" type="button" class="rounded-md border border-emerald-300 bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-700" (click)="openEditEvent(event, 'series')">Modifica serie</button>
+              <button *ngIf="canEditOccurrence(event)" type="button" class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800 transition hover:bg-amber-100" (click)="deleteEvent(event, 'single')">{{ deleteActionLabel(event) }}</button>
+              <button *ngIf="canEditSeries(event)" type="button" class="rounded-md border border-rose-300 bg-rose-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-rose-700" (click)="deleteEvent(event, 'series')">Elimina serie</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-5">
+          <div class="grid gap-4">
+            <div *ngFor="let slot of selectedEventSlots()" class="relative flex h-full flex-col rounded-[24px] border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] p-4 shadow-[var(--shadow-soft)] transition" [class.ring-2]="isTargetSlot(slot) || dragHoverSlotId() === slot.id" [class.ring-amber-300]="isTargetSlot(slot) || dragHoverSlotId() === slot.id" [ngClass]="dragHoverSlotId() === slot.id ? 'border-[#4979e6] bg-[color:var(--surface-2)]' : ''" (dragover)="allowDrop($event, slot.id)" (dragenter)="setDragHoverSlot(slot.id)" (dragleave)="clearDragHoverSlot(slot.id)" (drop)="dropVolunteer(slot.id)">
+              <div *ngIf="dragHoverSlotId() === slot.id" class="pointer-events-none absolute inset-3 rounded-2xl border-2 border-dashed border-[#4979e6] bg-blue-50/80"></div>
+              <div class="flex items-start justify-between gap-3 border-b border-[color:var(--border-soft)] pb-4">
+                <div>
+                  <p class="font-medium text-[color:var(--text-1)]">{{ slot.roleName }}</p>
+                  <p class="text-sm text-[color:var(--text-2)]">{{ slot.teamName }}</p>
+                </div>
+                <ui-label [tone]="slot.assignments?.length ? 'success' : 'warn'">{{ slot.assignments?.length ? 'coperto' : 'vacante' }}</ui-label>
+              </div>
+
+              <div class="mt-4 grid flex-1 gap-4 lg:grid-cols-2">
+                <ui-board-column title="Persone del team" [count]="membersForTeam(slot.teamId).length">
+                  <ui-board-tile *ngFor="let member of membersForTeam(slot.teamId)" draggable="true" (dragstart)="startDragging(member.id)" (dragend)="finishDragging()" [tileClass]="'cursor-grab transition hover:border-[color:var(--border-strong)] hover:shadow ' + (draggedVolunteerId() === member.id ? 'border-[#4979e6] bg-[color:var(--surface-2)] shadow-lg scale-[1.01]' : '')">
+                    <div class="flex items-start justify-between gap-2">
+                      <div class="min-w-0">
+                        <p class="truncate font-medium text-[color:var(--text-1)]">{{ member.fullName }}</p>
+                        <p class="truncate text-xs text-[color:var(--text-2)]">{{ member.email }}</p>
+                      </div>
+                      <ui-label tone="neutral">{{ member.role }}</ui-label>
+                    </div>
+                  </ui-board-tile>
+                  <div *ngIf="!membersForTeam(slot.teamId).length" class="rounded-2xl border border-dashed border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-4 py-4 text-sm text-[color:var(--text-3)]">
+                    Nessuna persona presente in questo team.
+                  </div>
+                </ui-board-column>
+
+                <ui-board-column title="Assegnazioni slot" [count]="slot.assignments?.length || 0">
+                  <div class="rounded-xl border border-dashed px-3 py-3 text-sm transition" [ngClass]="dragHoverSlotId() === slot.id ? 'border-[#4979e6] bg-blue-50 text-[#3156b3]' : 'border-orange-200 bg-orange-50 text-orange-700'" *ngIf="!slot.assignments?.length">{{ dragHoverSlotId() === slot.id ? 'Rilascia qui per assegnare il volontario.' : 'Trascina qui un volontario per assegnarlo.' }}</div>
+                  <ui-board-tile *ngFor="let assignment of slot.assignments">
+                    <div class="flex items-start justify-between gap-2">
+                      <div class="min-w-0">
+                        <p class="truncate font-medium text-[color:var(--text-1)]">{{ assignment.assignee?.fullName || 'Assegnazione senza volontario' }}</p>
+                        <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ assignment.assignee?.email || 'Nessuna mail disponibile' }}</p>
+                      </div>
+                      <div class="flex flex-wrap justify-end gap-2">
+                        <ui-label *ngIf="assignment.replacementApproved" tone="success">replacement</ui-label>
+                        <ui-label *ngIf="replacementForAssignment(assignment.id) as replacement" [tone]="replacementTone(replacement.status)">{{ replacementStatusLabel(replacement.status) }}</ui-label>
+                      </div>
+                    </div>
+                    <ui-replacement-timeline-card class="mt-3" title="Timeline" originLabel="Originario" [originValue]="replacement.requestedBy?.fullName || assignment.assignee?.fullName || '-'" [confirmedValue]="replacement.replacementAssignee?.fullName || null" [suggestedValue]="replacement.suggestedReplacement?.fullName ? (replacement.suggestedReplacement?.fullName + ' · ' + replacement.suggestedReplacement?.score) : null" *ngIf="replacementForAssignment(assignment.id) as replacement"></ui-replacement-timeline-card>
+                    <div class="mt-3 grid gap-2" *ngIf="canRequestReplacement(assignment)">
+                      <ui-input [value]="replacementReason" (valueChange)="replacementReason = $event" placeholder="Motivo sostituzione"></ui-input>
+                      <div class="flex justify-end border-t border-[color:var(--border-soft)] pt-3">
+                        <ui-button size="sm" tone="warn" variant="outlined" (buttonClick)="requestReplacement(assignment.id)" [disabled]="hasPendingReplacement(assignment.id)">
+                          {{ hasPendingReplacement(assignment.id) ? 'Richiesta inviata' : 'Richiedi sostituzione' }}
+                        </ui-button>
+                      </div>
+                    </div>
+                    <div class="mt-3 grid gap-2" *ngIf="replacementForAssignment(assignment.id)?.status === 'APPROVED'">
+                      <ui-select label="Sostituto" [options]="memberOptionsForTeam(slot.teamId)" [value]="replacementAssigneeId()" (valueChange)="replacementAssigneeId.set(castNullable($event))"></ui-select>
+                      <div class="flex justify-end border-t border-[color:var(--border-soft)] pt-3" *ngIf="canManageReplacements()">
+                        <ui-button size="sm" tone="success" variant="outlined" (buttonClick)="resolveApprovedReplacement(replacementForAssignment(assignment.id)!.id)">Conferma sostituto</ui-button>
+                      </div>
+                    </div>
+                    <div class="mt-3 flex justify-end border-t border-[color:var(--border-soft)] pt-3" *ngIf="canManageReplacements() && replacementForAssignment(assignment.id)?.suggestedReplacement?.id && replacementForAssignment(assignment.id)?.status === 'PENDING'">
+                      <ui-button size="sm" tone="info" variant="outlined" (buttonClick)="approveReplacementWithSuggestion(replacementForAssignment(assignment.id)!)" [disabled]="locallyReservedSuggestionIds().includes(replacementForAssignment(assignment.id)!.suggestedReplacement!.id)">Approva con suggerito</ui-button>
+                    </div>
+                  </ui-board-tile>
+                </ui-board-column>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <ng-template #noEventBoard>
+        <div class="flex h-full items-center justify-center p-6">
+          <ui-surface surfaceClass="border-dashed bg-[color:var(--surface-2)] px-6 py-8 text-center text-sm text-[color:var(--text-2)]">
+            Seleziona un evento dal registro per aprire la board assegnazioni.
+          </ui-surface>
+        </div>
+      </ng-template>
+    </div>
+
+    <div class="flex h-full flex-col overflow-hidden rounded-[24px] border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] shadow-[var(--shadow-soft)] xl:h-[56rem] xl:max-h-[56rem]">
       <div class="border-b border-[color:var(--border-soft)] px-5 py-4">
         <ui-filter-bar
           title="Registro eventi"
-          subtitle="Tutti gli eventi ordinati per data con accesso diretto a modifica, eliminazione e board operativa."
-          [showReset]="selectedUserFilter() || selectedSeriesFilter() || occurrenceView() !== 'all' || eventTypeFilter() !== 'all' || eventLocationFilter() !== 'all'"
+          subtitle="Lista eventi essenziale: scegli qui l'evento e lavora sulla board a sinistra."
+          [showReset]="selectedUserFilter() || selectedSeriesFilter() || occurrenceView() !== 'all' || eventLocationFilter() !== 'all'"
           [reset]="resetFilters.bind(this)"
-          fieldsClass="md:grid-cols-2 xl:grid-cols-5"
+          [compact]="true"
+          fieldsClass="md:grid-cols-2 xl:grid-cols-4"
         >
           <ui-select label="Lavoratore" [options]="selectableUsers()" [value]="selectedUserFilter()" (valueChange)="selectedUserFilter.set(castNullable($event) || '')"></ui-select>
           <ui-select label="Serie" [options]="seriesOptions()" [value]="selectedSeriesFilter()" (valueChange)="setSeriesFilter($event)"></ui-select>
           <ui-select label="Ricorrenze" [options]="occurrenceViewOptions" [value]="occurrenceView()" (valueChange)="setOccurrenceView($event)"></ui-select>
-          <ui-select label="Tipo" [options]="eventTypeFilterOptions" [value]="eventTypeFilter()" (valueChange)="setEventTypeFilter($event)"></ui-select>
           <ui-select label="Luogo" [options]="eventLocationFilterOptions()" [value]="eventLocationFilter()" (valueChange)="eventLocationFilter.set(castString($event))"></ui-select>
         </ui-filter-bar>
       </div>
@@ -39,448 +146,99 @@
         <div class="flex flex-wrap gap-2">
           <ui-chip tone="neutral" [interactive]="false" [dot]="true">Evento singolo</ui-chip>
           <ui-chip tone="success" [interactive]="false" [dot]="true">Evento ricorrente</ui-chip>
-          <ui-chip tone="info" [interactive]="false" [dot]="true">Copertura avviata</ui-chip>
+          <ui-chip tone="info" [interactive]="false" [dot]="true">Apri board</ui-chip>
         </div>
       </div>
 
-      <div class="divide-y divide-[color:var(--border-soft)]">
-        <div *ngFor="let event of sortedEvents()"
-          class="group flex cursor-pointer items-start gap-4 px-5 py-4 transition hover:bg-[color:var(--surface-2)]"
-          [ngClass]="selectedEvent()?.id === event.id ? 'bg-[color:var(--surface-2)]' : ''"
-          (click)="selectEvent(event)">
-          <div class="flex min-w-12 flex-col items-center justify-center rounded-xl bg-[#4979e6] px-2 py-2 text-center text-white">
-            <span class="text-lg font-light leading-none">{{ event.startsAt | date:'d' }}</span>
-            <span class="mt-0.5 text-[9px] font-semibold uppercase tracking-widest">{{ event.startsAt | date:'MMM' }}</span>
-          </div>
-          <div class="flex-1">
-            <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <p class="text-sm font-semibold text-[color:var(--text-1)] transition group-hover:text-[#4979e6]">{{ event.title }}</p>
-                <p class="mt-0.5 text-xs text-[color:var(--text-2)]">{{ event.startsAt | date:'short' }} - {{ event.endsAt | date:'short' }}</p>
-              </div>
-              <div class="flex flex-wrap gap-1.5">
-                <ui-label [tone]="eventDisplayTone(event)">{{ eventDisplayLabel(event) }}</ui-label>
-                <ui-label [tone]="(event.assignments?.length || 0) > 0 ? 'success' : 'warn'">{{ (event.assignments?.length || 0) > 0 ? 'coperto' : 'da coprire' }}</ui-label>
-                <ui-label tone="info">{{ event.slots?.length || 0 }} slot</ui-label>
+      <div class="flex-1 overflow-y-auto">
+        <div class="divide-y divide-[color:var(--border-soft)]">
+          <div *ngFor="let event of sortedEvents()"
+            class="group flex cursor-pointer items-start gap-4 px-5 py-4 transition hover:bg-[color:var(--surface-2)]"
+            [ngClass]="selectedEvent()?.id === event.id ? 'bg-[color:var(--surface-2)]' : ''"
+            (click)="selectEvent(event)">
+            <div class="flex min-w-12 flex-col items-center justify-center rounded-xl bg-[#4979e6] px-2 py-2 text-center text-white">
+              <span class="text-lg font-light leading-none">{{ event.startsAt | date:'d' }}</span>
+              <span class="mt-0.5 text-[9px] font-semibold uppercase tracking-widest">{{ event.startsAt | date:'MMM' }}</span>
+            </div>
+            <div class="flex-1">
+              <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p class="text-sm font-semibold text-[color:var(--text-1)] transition group-hover:text-[#4979e6]">{{ event.title }}</p>
+                  <p class="mt-0.5 text-xs text-[color:var(--text-2)]">{{ event.startsAt | date:'short' }} - {{ event.endsAt | date:'short' }}</p>
+                </div>
+                <div class="flex flex-wrap gap-1.5">
+                  <ui-label [tone]="eventDisplayTone(event)">{{ eventDisplayLabel(event) }}</ui-label>
+                  <ui-label [tone]="(event.assignments?.length || 0) > 0 ? 'success' : 'warn'">{{ (event.assignments?.length || 0) > 0 ? 'coperto' : 'da coprire' }}</ui-label>
+                  <ui-label tone="info">{{ event.slots?.length || 0 }} slot</ui-label>
+                </div>
               </div>
             </div>
+            <i class="pi pi-chevron-right mt-1 text-[color:var(--text-3)] transition group-hover:text-[#4979e6]"></i>
           </div>
-          <i class="pi pi-chevron-right mt-1 text-[color:var(--text-3)] transition group-hover:text-[#4979e6]"></i>
-        </div>
-        <div *ngIf="!events().length" class="px-5 py-12 text-center text-sm text-[color:var(--text-3)]">
-          <i class="pi pi-calendar mb-2 block text-3xl opacity-40"></i>
-          Nessun evento disponibile.
+          <div *ngIf="!events().length" class="px-5 py-12 text-center text-sm text-[color:var(--text-3)]">
+            <i class="pi pi-calendar mb-2 block text-3xl opacity-40"></i>
+            Nessun evento disponibile.
+          </div>
         </div>
       </div>
-    </div>
-
-    <div class="grid gap-4 xl:sticky xl:top-24 xl:max-h-[calc(100vh-8rem)] xl:self-start">
-      <ui-sidebar-panel title="Dettaglio evento" eyebrow="Workspace eventi" class="xl:max-h-[calc(100vh-8rem)] xl:overflow-hidden" [fullHeight]="true">
-        <div *ngIf="selectedEvent() as event; else noEvent" class="grid gap-4 xl:max-h-[calc(100vh-12.5rem)] xl:min-h-0 xl:overflow-y-auto xl:pr-3 xl:pb-8">
-          <div class="grid gap-4">
-            <div class="min-w-0">
-              <p class="text-lg font-semibold text-[color:var(--text-1)]">{{ event.title }}</p>
-              <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ event.startsAt | date:'fullDate' }} · {{ event.startsAt | date:'shortTime' }} - {{ event.endsAt | date:'shortTime' }}</p>
-            </div>
-            <div class="flex flex-wrap gap-2" *ngIf="canManageEvents()">
-              <button *ngIf="canEditOccurrence(event)" type="button" class="rounded-md border border-[color:var(--border-soft)] bg-white px-3 py-2 text-sm font-medium text-[color:var(--text-2)] text-center transition hover:bg-[color:var(--surface-2)] hover:text-[color:var(--text-1)]" (click)="openEditEvent(event, 'single')">{{ editActionLabel(event) }}</button>
-              <button *ngIf="canEditSeries(event)" type="button" class="rounded-md border border-emerald-300 bg-emerald-600 px-3 py-2 text-sm font-medium text-white text-center shadow-sm transition hover:bg-emerald-700" (click)="openEditEvent(event, 'series')">Modifica serie</button>
-            </div>
-            <div class="flex flex-wrap gap-2" *ngIf="canManageEvents()">
-              <button *ngIf="canEditOccurrence(event)" type="button" class="rounded-md border border-red-300 bg-red-600 px-3 py-2 text-sm font-medium text-white text-center shadow-sm transition hover:bg-red-700" (click)="deleteEvent(event, 'single')">{{ deleteActionLabel(event) }}</button>
-              <button *ngIf="canEditSeries(event)" type="button" class="rounded-md border border-red-300 bg-red-600 px-3 py-2 text-sm font-medium text-white text-center shadow-sm transition hover:bg-red-700" (click)="deleteEvent(event, 'series')">Elimina serie</button>
-            </div>
-          </div>
-          <ui-surface surfaceClass="bg-[color:var(--surface-2)] p-4 text-sm text-[color:var(--text-2)]">
-            <p class="font-medium text-[color:var(--text-1)]">Finestra operativa</p>
-            <p class="mt-1">{{ event.startsAt | date:'short' }} - {{ event.endsAt | date:'short' }}</p>
-            <div class="mt-3 flex flex-wrap gap-2">
-              <ui-label [tone]="eventDisplayTone(event)">{{ eventDisplayLabel(event) }}</ui-label>
-              <ui-label [tone]="(event.assignments?.length || 0) > 0 ? 'success' : 'warn'">{{ (event.assignments?.length || 0) > 0 ? 'copertura avviata' : 'nessuna assegnazione' }}</ui-label>
-              <ui-label tone="neutral" *ngIf="event.type === 'recurring'">{{ recurrenceDurationLabel(event) }}</ui-label>
-            </div>
-            <p class="mt-3 text-xs text-[color:var(--text-2)]" *ngIf="event.isVirtualOccurrence">Questa occorrenza deriva dalla serie ricorrente: per assegnazioni o modifiche autonome materializzala con "Modifica occorrenza".</p>
-          </ui-surface>
-          <ui-surface surfaceClass="p-4 text-sm text-[color:var(--text-2)]">
-            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Dettaglio evento</p>
-            <div class="mt-3 grid gap-2">
-              <div class="flex items-center justify-between gap-3"><span>Nome evento</span><span class="font-medium text-[color:var(--text-1)]">{{ event.title }}</span></div>
-              <div class="flex items-center justify-between gap-3"><span>Data e ora</span><span class="font-medium text-[color:var(--text-1)]">{{ event.startsAt | date:'short' }} - {{ event.endsAt | date:'shortTime' }}</span></div>
-                <div class="flex items-center justify-between gap-3"><span>Tipo vista</span><span class="font-medium text-[color:var(--text-1)]">{{ eventDisplayLabel(event) }}</span></div>
-                <div class="flex items-center justify-between gap-3"><span>Team</span><span class="font-medium text-[color:var(--text-1)]">{{ event.slots?.length || 0 }} slot</span></div>
-                <div class="flex items-center justify-between gap-3"><span>Volontari</span><span class="font-medium text-[color:var(--text-1)]">{{ event.assignments?.length || 0 }} assegnazioni</span></div>
-                <div class="flex items-center justify-between gap-3"><span>Note</span><span class="font-medium text-[color:var(--text-1)]">{{ event.description || 'Usa board e timeline sostituzioni' }}</span></div>
-              </div>
-          </ui-surface>
-          <ui-table-shell title="Slot evento">
-            <table class="min-w-full text-sm">
-            <thead class="bg-[color:var(--surface-2)] text-left text-[color:var(--text-2)]">
-                <tr>
-                  <th class="px-4 py-3">Mansione</th>
-                  <th class="px-4 py-3">Team</th>
-                  <th class="px-4 py-3">Assegnazioni</th>
-                  <th class="px-4 py-3">Stato</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let slot of event.slots || []" class="border-t border-[color:var(--border-soft)]" [class.bg-amber-50]="isTargetSlot(slot)" [class.ring-1]="isTargetSlot(slot)" [class.ring-amber-300]="isTargetSlot(slot)">
-                  <td class="px-4 py-3">{{ slot.roleName || 'Mansione' }}</td>
-                  <td class="px-4 py-3">{{ slot.teamName || 'Team' }}</td>
-                  <td class="px-4 py-3">
-                    <div class="grid gap-2" *ngIf="slot.assignments?.length; else noSlotAssignments">
-                      <div *ngFor="let assignment of slot.assignments" class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-3">
-                        <div class="flex items-start justify-between gap-3">
-                          <div>
-                            <p class="font-medium text-[color:var(--text-1)]">{{ assignment.assignee?.fullName || 'Assegnazione aperta' }}</p>
-                            <p class="text-xs text-[color:var(--text-2)]">{{ assignment.status }}</p>
-                          </div>
-                          <div class="flex flex-wrap gap-2" *ngIf="replacementForAssignment(assignment.id) as replacement">
-                            <ui-label [tone]="replacementTone(replacement.status)">{{ replacementStatusLabel(replacement.status) }}</ui-label>
-                            <ui-label tone="neutral" *ngIf="replacement.reason">{{ replacement.reason }}</ui-label>
-                          </div>
-                        </div>
-                        <ui-replacement-timeline-card
-                          class="mt-3"
-                          title="Timeline sostituzione"
-                          originLabel="Assegnazione originaria"
-                          [originValue]="replacement.requestedBy?.fullName || assignment.assignee?.fullName || 'Volontario'"
-                          [confirmedValue]="replacement.replacementAssignee?.fullName || null"
-                          rowClass="rounded-xl bg-[color:var(--surface-1)] px-3 py-2"
-                          *ngIf="replacementForAssignment(assignment.id) as replacement"
-                        ></ui-replacement-timeline-card>
-                        <div class="mt-2 grid gap-2" *ngIf="canRequestReplacement(assignment)">
-                          <ui-input [value]="replacementReason" (valueChange)="replacementReason = $event" placeholder="Motivo sostituzione"></ui-input>
-                          <button type="button" class="text-xs font-medium text-orange-700" (click)="requestReplacement(assignment.id)" [disabled]="hasPendingReplacement(assignment.id)">
-                            {{ hasPendingReplacement(assignment.id) ? 'Richiesta inviata' : 'Richiedi sostituzione' }}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                    <ng-template #noSlotAssignments>
-                      <span class="text-sm text-[color:var(--text-3)]">Nessuna assegnazione</span>
-                    </ng-template>
-                  </td>
-                  <td class="px-4 py-3">
-                    <ui-label [tone]="slot.assignments?.length ? 'success' : 'warn'">{{ slot.assignments?.length ? 'coperto' : 'vacante' }}</ui-label>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </ui-table-shell>
-          <ui-surface surfaceClass="p-4 text-sm text-[color:var(--text-2)]">
-            <p class="font-medium text-[color:var(--text-1)]">Tempo reale</p>
-            <p class="mt-1">{{ live.connected() ? 'Connesso al gateway websocket' : 'In attesa connessione websocket' }}</p>
-          </ui-surface>
-        </div>
-        <ng-template #noEvent>
-          <p class="text-sm text-[color:var(--text-2)]">Seleziona un evento dalla lista oppure creane uno nuovo.</p>
-        </ng-template>
-      </ui-sidebar-panel>
     </div>
   </div>
 
-  <ui-modal [(visible)]="eventDialogVisible" [title]="editingEventId() ? 'Modifica evento' : 'Nuovo evento'" eyebrow="Workspace eventi" subtitle="Definisci slot, team e ricorrenza del servizio." icon="pi pi-calendar-plus" tone="info" [hasFooter]="true" width="48rem" maxWidth="96vw" (closeRequested)="eventDialogVisible = false">
-      <div class="grid gap-5">
-        <ui-field label="Titolo evento">
-          <ui-input [value]="eventForm.title" (valueChange)="eventForm.title = $event" placeholder="Titolo evento"></ui-input>
+  <ui-modal [(visible)]="eventDialogVisible" [title]="editingEventId() ? 'Modifica evento' : 'Nuovo evento'" eyebrow="Workspace eventi" subtitle="Scegli un team, eredita tutte le mansioni e attiva solo quelle richieste per questo evento." icon="pi pi-calendar-plus" tone="info" [hasFooter]="true" width="48rem" maxWidth="96vw" (closeRequested)="eventDialogVisible = false">
+    <div class="grid gap-5">
+      <ui-field label="Titolo evento">
+        <ui-input [value]="eventForm.title" (valueChange)="eventForm.title = $event" placeholder="Titolo evento"></ui-input>
+      </ui-field>
+      <ui-select label="Luogo" [options]="locationOptions()" [value]="eventForm.locationValue" (valueChange)="eventForm.locationValue = castString($event)"></ui-select>
+      <div class="grid gap-4 rounded-[26px] border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-5 md:grid-cols-2">
+        <ui-select label="Team" [options]="teamOptions()" [value]="eventForm.teamId" (valueChange)="updateEventTeam(castNullable($event) ?? '')"></ui-select>
+        <ui-field label="Inizio">
+          <ui-date-picker [(value)]="eventForm.startsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1400" inputStyleClass="ui-input"></ui-date-picker>
         </ui-field>
-        <ui-select label="Luogo" [options]="locationOptions()" [value]="eventForm.locationValue" (valueChange)="eventForm.locationValue = castString($event)"></ui-select>
-        <div class="grid gap-4 rounded-[26px] border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-5 md:grid-cols-2">
-          <ui-field label="Inizio">
-            <ui-date-picker [(value)]="eventForm.startsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1400" inputStyleClass="ui-input"></ui-date-picker>
-          </ui-field>
-          <ui-field label="Fine">
-            <ui-date-picker [(value)]="eventForm.endsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1400" inputStyleClass="ui-input"></ui-date-picker>
-          </ui-field>
-        </div>
-        <div class="rounded-[26px] border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-5">
-          <ui-toggle label="Evento ricorrente settimanale" [value]="eventForm.isRecurring" (valueChange)="eventForm.isRecurring = $event"></ui-toggle>
-          <div class="mt-4" *ngIf="eventForm.isRecurring">
-            <div class="grid gap-4 md:grid-cols-2">
-              <ui-select label="Ripetizione" [options]="recurrenceOptions" [value]="eventForm.recurrenceFrequency" (valueChange)="updateRecurrenceFrequency($event)"></ui-select>
-              <ui-select label="Durata serie" [options]="recurrenceDurationOptions" [value]="eventForm.recurrenceDurationMonths" (valueChange)="updateRecurrenceDuration($event)"></ui-select>
-            </div>
-            <div class="mt-4 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] p-4">
-              <ui-toggle label="Rinnovo automatico" [value]="eventForm.recurrenceAutoRenew" (valueChange)="eventForm.recurrenceAutoRenew = $event"></ui-toggle>
-              <div class="mt-4" *ngIf="eventForm.recurrenceAutoRenew">
-                <ui-select label="Rinnova per" [options]="recurrenceDurationOptions" [value]="eventForm.recurrenceRenewMonths" (valueChange)="updateRecurrenceRenewDuration($event)"></ui-select>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="grid gap-4 rounded-[26px] border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-5">
-          <div class="flex items-center justify-between gap-3">
-            <div>
-              <p class="text-sm font-medium text-[color:var(--text-1)]">Slot evento</p>
-              <p class="text-xs text-[color:var(--text-2)]">Aggiungi piu team e piu mansioni nello stesso evento.</p>
-            </div>
-            <ui-button tone="neutral" variant="outlined" size="sm" (buttonClick)="addEventSlot()">Aggiungi slot</ui-button>
-          </div>
-          <div class="grid gap-3" *ngFor="let slot of eventForm.slots; let slotIndex = index">
-            <div class="rounded-[24px] border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] p-4 shadow-[var(--shadow-soft)]">
-              <div class="mb-3 flex items-center justify-between gap-3">
-                <p class="text-sm font-medium text-[color:var(--text-1)]">Slot {{ slotIndex + 1 }}</p>
-                <button type="button" class="text-xs text-red-600 hover:text-red-700" (click)="removeEventSlot(slotIndex)" [disabled]="eventForm.slots.length === 1">Rimuovi</button>
-              </div>
-                <div class="grid gap-4 md:grid-cols-2">
-                  <ui-select label="Team" [options]="teamOptions()" [value]="slot.teamId" (valueChange)="updateSlotTeam(slotIndex, castNullable($event) ?? '')"></ui-select>
-                  <ui-select label="Mansione" [options]="slotDutyOptions(slot.teamId)" [value]="slot.dutyId" (valueChange)="updateSlotDuty(slotIndex, castNullable($event) ?? '')"></ui-select>
-                  <ui-field label="Inizio slot">
-                    <ui-date-picker [(value)]="slot.startsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1400" inputStyleClass="ui-input"></ui-date-picker>
-                  </ui-field>
-                  <ui-field label="Fine slot">
-                    <ui-date-picker [(value)]="slot.endsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1400" inputStyleClass="ui-input"></ui-date-picker>
-                  </ui-field>
-                </div>
-                <div class="mt-4 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-3">
-                  <ui-toggle label="Slot richiesto" [value]="slot.required" (valueChange)="slot.required = $event"></ui-toggle>
-                </div>
-              </div>
-            </div>
-          </div>
+        <ui-field label="Fine">
+          <ui-date-picker [(value)]="eventForm.endsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1400" inputStyleClass="ui-input"></ui-date-picker>
+        </ui-field>
       </div>
-      <div dialog-footer class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <ui-button tone="neutral" variant="outlined" (buttonClick)="eventDialogVisible = false">Annulla</ui-button>
-        <ui-button tone="info" (buttonClick)="requestSaveEventConfirmation()" [disabled]="!isEventFormValid()">{{ editingEventId() ? (editingEventScope() === 'series' ? 'Salva serie' : 'Salva occorrenza') : 'Crea evento' }}</ui-button>
-      </div>
-  </ui-modal>
-
-  <ui-modal [(visible)]="previewVisible" title="Auto assegnazione turni" eyebrow="Motore di pianificazione" subtitle="Analizza disponibilita, conflitti e motivazioni prima di applicare il planning." icon="pi pi-sparkles" tone="success" [hasFooter]="true" width="72rem" maxWidth="96vw" (closeRequested)="previewVisible = false">
-      <div class="mb-4 grid gap-3 rounded-[24px] border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-4 md:grid-cols-[minmax(0,1fr)_20rem] md:items-end" *ngIf="planningSummary() as summary">
-        <div class="flex flex-wrap gap-2">
-          <ui-label tone="neutral">{{ summary.events }} eventi</ui-label>
-          <ui-label tone="info">{{ summary.slots }} slot</ui-label>
-          <ui-label tone="success">{{ summary.covered }} coperti</ui-label>
-          <ui-label tone="info">{{ summary.proposed }} proposti</ui-label>
-          <ui-label tone="warn">{{ summary.open }} scoperti</ui-label>
-          <ui-label tone="warn" *ngIf="summary.changed">{{ summary.changed }} cambiati</ui-label>
-          <ui-label tone="info" *ngIf="summary.missing">{{ summary.missing }} da applicare</ui-label>
-          <ui-label tone="neutral" *ngIf="currentPlanId() as planId">Piano {{ planId }}</ui-label>
-        </div>
-        <ui-select label="Applica piano" [options]="applyScopeOptions" [value]="selectedApplyScope()" (valueChange)="updateApplyScope($event)"></ui-select>
-      </div>
-      <ui-surface surfaceClass="mb-4 border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" *ngIf="planningHistory().length && currentPlanId() && planningHistory()[0]?.invalidatedAt">
-        <p class="font-medium">Questo piano e stato invalidato.</p>
-        <p class="mt-1">Motivo: {{ planningHistory()[0]?.invalidationReason || 'contesto operativo cambiato' }}</p>
-      </ui-surface>
-      <ui-table-shell>
-        <p-table [value]="previewSuggestions()" [tableStyle]="{ 'min-width': '50rem' }">
-          <ng-template pTemplate="header">
-            <tr><th>Evento</th><th>Team</th><th>Ruolo</th><th>Inizio</th><th>Copertura</th><th>Scelta</th><th>Ciclo</th><th>Perche</th></tr>
-          </ng-template>
-          <ng-template pTemplate="body" let-item>
-            <tr>
-              <td>{{ item.eventTitle }}</td>
-              <td>{{ item.teamName }}</td>
-              <td>{{ item.roleName }}</td>
-              <td>{{ item.startsAt | date:'short' }}</td>
-              <td><ui-label [tone]="planningCoverageTone(item.coverageStatus)">{{ planningCoverageLabel(item.coverageStatus) }}</ui-label></td>
-              <td>
-                <div class="grid gap-2">
-                  <div class="text-sm font-medium text-[color:var(--text-1)]">{{ item.assigneeName || '-' }}</div>
-                  <ui-select label="" [options]="planningCandidateOptions(item)" [value]="selectedPlanningAssignee(item.slotId)" (valueChange)="updatePlanningSelection(item.slotId, $event)"></ui-select>
-                </div>
-              </td>
-              <td>
-                <div class="grid gap-1">
-                  <span class="text-sm font-medium text-[color:var(--text-1)]">{{ cycleSummaryLabel(item) }}</span>
-                  <span class="text-xs text-[color:var(--text-2)]">{{ item.strategy }}</span>
-                  <ui-label [tone]="planDriftTone(item)">{{ planDriftLabel(item) }}</ui-label>
-                </div>
-              </td>
-              <td>
-                <div class="flex flex-wrap gap-1.5" *ngIf="item.reasons?.length; else noReasons">
-                  <ui-label *ngFor="let reason of item.reasons" [tone]="reasonTone(reason)">{{ reason }}</ui-label>
-                </div>
-                <ng-template #noReasons>-</ng-template>
-              </td>
-            </tr>
-          </ng-template>
-        </p-table>
-      </ui-table-shell>
-      <ui-surface surfaceClass="mt-4 bg-[color:var(--surface-2)] p-5" *ngIf="previewSuggestions().length">
-        <p class="text-sm font-medium text-[color:var(--text-1)]">Classifica candidati e stato del ciclo</p>
-        <div class="mt-3 grid gap-3">
-          <ui-surface surfaceClass="p-3" *ngFor="let suggestion of previewSuggestions() | slice:0:3">
-            <div class="flex items-center justify-between gap-3">
-              <p class="font-medium text-[color:var(--text-1)]">{{ suggestion.roleName }} · {{ suggestion.teamName }}</p>
-              <ui-label [tone]="planningCoverageTone(suggestion.coverageStatus)">{{ suggestion.assigneeName || 'Nessun candidato' }}</ui-label>
+      <div class="rounded-[26px] border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-5">
+        <ui-toggle label="Evento ricorrente settimanale" [value]="eventForm.isRecurring" (valueChange)="eventForm.isRecurring = $event"></ui-toggle>
+        <div class="mt-4" *ngIf="eventForm.isRecurring">
+          <div class="grid gap-4 md:grid-cols-2">
+            <ui-select label="Ripetizione" [options]="recurrenceOptions" [value]="eventForm.recurrenceFrequency" (valueChange)="updateRecurrenceFrequency($event)"></ui-select>
+            <ui-select label="Durata serie" [options]="recurrenceDurationOptions" [value]="eventForm.recurrenceDurationMonths" (valueChange)="updateRecurrenceDuration($event)"></ui-select>
+          </div>
+          <div class="mt-4 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] p-4">
+            <ui-toggle label="Rinnovo automatico" [value]="eventForm.recurrenceAutoRenew" (valueChange)="eventForm.recurrenceAutoRenew = $event"></ui-toggle>
+            <div class="mt-4" *ngIf="eventForm.recurrenceAutoRenew">
+              <ui-select label="Rinnova per" [options]="recurrenceDurationOptions" [value]="eventForm.recurrenceRenewMonths" (valueChange)="updateRecurrenceRenewDuration($event)"></ui-select>
             </div>
-            <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ cycleSummaryLabel(suggestion) }}</p>
-            <div class="mt-2 flex flex-wrap gap-2">
-              <ui-label *ngFor="let reason of suggestion.reasons || []" [tone]="reasonTone(reason)">{{ reason }}</ui-label>
-            </div>
-            <div class="mt-3 grid gap-2" *ngIf="suggestion.candidates?.length">
-              <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Classifica candidati</p>
-              <ui-surface surfaceClass="bg-[color:var(--surface-2)] px-3 py-3 text-xs text-[color:var(--text-2)]" *ngFor="let candidate of suggestion.candidates">
-                <div class="flex items-center justify-between gap-2">
-                  <span class="font-medium text-[color:var(--text-1)]">{{ candidate.fullName }}</span>
-                  <ui-label tone="info">score {{ candidate.score }}</ui-label>
-                </div>
-                <div class="mt-2 flex flex-wrap gap-1.5">
-                  <ui-label *ngFor="let reason of candidate.reasons" [tone]="reasonTone(reason)">{{ reason }}</ui-label>
-                </div>
-              </ui-surface>
-            </div>
-          </ui-surface>
-        </div>
-      </ui-surface>
-      <ui-surface surfaceClass="mt-4 bg-[color:var(--surface-1)] p-5" *ngIf="planningHistory().length">
-        <div class="flex items-center justify-between gap-3">
-          <p class="text-sm font-medium text-[color:var(--text-1)]">Storico piani</p>
-          <div class="flex items-center gap-2">
-            <ui-select label="" [options]="[{ label: 'Tutti', value: 'all' }, { label: 'Preview', value: 'preview' }, { label: 'Applicati', value: 'applied' }, { label: 'Invalidati', value: 'invalidated' }]" [value]="planningHistoryFilter()" (valueChange)="updatePlanningHistoryFilter($event)"></ui-select>
-            <ui-label tone="neutral">{{ filteredPlanningHistory().length }} piani</ui-label>
           </div>
         </div>
-        <div class="mt-3 grid gap-2">
-          <button type="button" class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-4 py-3 text-left transition hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface-1)]" *ngFor="let plan of filteredPlanningHistory() | slice:0:5" (click)="loadPlan(plan.id)">
+      </div>
+      <div class="grid gap-4 rounded-[26px] border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-5">
+        <div>
+          <p class="text-sm font-medium text-[color:var(--text-1)]">Mansioni del team</p>
+          <p class="text-xs text-[color:var(--text-2)]">Tutte le mansioni del team vengono caricate automaticamente. Attiva solo quelle richieste in questo evento.</p>
+        </div>
+        <div class="grid gap-3">
+          <div *ngFor="let duty of availableEventDuties()" class="rounded-[24px] border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] p-4 shadow-[var(--shadow-soft)]">
             <div class="flex items-center justify-between gap-3">
               <div>
-                <p class="text-sm font-medium text-[color:var(--text-1)]">{{ plan.anchorEventTitle }} · {{ plan.updatedAt | date:'short' }}</p>
-                <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ plan.summary.slots }} slot · {{ plan.scope }}<span *ngIf="plan.invalidatedAt"> · invalidato</span></p>
+                <p class="text-sm font-medium text-[color:var(--text-1)]">{{ duty.name }}</p>
+                <p class="mt-1 text-xs text-[color:var(--text-2)]">Usa l'intervallo globale dell'evento.</p>
               </div>
-              <ui-label [tone]="plan.invalidatedAt ? 'warn' : 'info'">{{ plan.applyScope || 'preview' }}</ui-label>
+              <ui-toggle label="Richiesta" [value]="duty.required" (valueChange)="toggleDutyRequired(duty.id, $event)"></ui-toggle>
             </div>
-          </button>
-        </div>
-      </ui-surface>
-      <div dialog-footer class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <ui-button tone="neutral" variant="outlined" (buttonClick)="rerunPlanning()">Ricalcola</ui-button>
-        <ui-button tone="success" (buttonClick)="applyPlanning()">Applica piano</ui-button>
-      </div>
-  </ui-modal>
-
-  <ui-modal [(visible)]="availabilityDialogVisible" title="Registra assenza" eyebrow="Disponibilita operativa" subtitle="Segna indisponibilita perche il planner la escluda dai cicli futuri." icon="pi pi-user-minus" tone="warn" width="34rem" maxWidth="96vw" (closeRequested)="availabilityDialogVisible = false">
-      <div class="grid gap-4">
-        <ui-field label="Persona">
-          <ui-select [options]="assignablePeople()" [value]="availabilityForm.userId" (valueChange)="availabilityForm.userId = castNullable($event)"></ui-select>
-        </ui-field>
-        <ui-field label="Team">
-          <ui-select [options]="teamOptions()" [value]="availabilityForm.teamId" (valueChange)="availabilityForm.teamId = castNullable($event)"></ui-select>
-        </ui-field>
-        <div class="grid gap-4 md:grid-cols-2">
-          <ui-field label="Inizio">
-            <ui-date-picker [(value)]="availabilityForm.startsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1500" inputStyleClass="ui-input"></ui-date-picker>
-          </ui-field>
-          <ui-field label="Fine">
-            <ui-date-picker [(value)]="availabilityForm.endsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1500" inputStyleClass="ui-input"></ui-date-picker>
-          </ui-field>
-        </div>
-        <ui-field label="Motivo">
-          <ui-input [value]="availabilityForm.reason" (valueChange)="availabilityForm.reason = $event" placeholder="Assenza, ferie, turno coperto altrove..."></ui-input>
-        </ui-field>
-        <div class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-4 text-sm text-[color:var(--text-2)]" *ngIf="operationalAvailability().length">
-          <p class="font-medium text-[color:var(--text-1)]">Assenze gia registrate</p>
-          <div class="mt-3 grid gap-2">
-            <div class="flex items-center justify-between gap-3" *ngFor="let item of operationalAvailability() | slice:0:4">
-              <span>{{ item.startsAt | date:'shortDate' }} - {{ item.endsAt | date:'shortDate' }}</span>
-              <ui-label tone="warn">{{ item.reason || 'Indisponibile' }}</ui-label>
-            </div>
+          </div>
+          <div *ngIf="!availableEventDuties().length" class="rounded-2xl border border-dashed border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-4 py-4 text-sm text-[color:var(--text-3)]">
+            Seleziona un team con mansioni disponibili per comporre l'evento.
           </div>
         </div>
       </div>
-      <div dialog-footer class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <ui-button tone="neutral" variant="outlined" (buttonClick)="availabilityDialogVisible = false">Annulla</ui-button>
-        <ui-button tone="warn" (buttonClick)="saveAvailability()" [disabled]="savingAvailability()">Salva assenza</ui-button>
-      </div>
-  </ui-modal>
-
-  <ui-modal [(visible)]="assignmentBoardVisible" title="Board assegnazioni" eyebrow="Workspace eventi" subtitle="Gestisci assegnazioni, replacement e copertura del servizio in un'unica board." icon="pi pi-directions-alt" tone="info" [hasFooter]="true" width="78rem" maxWidth="98vw" (closeRequested)="assignmentBoardVisible = false">
-      <div class="grid gap-4" *ngIf="selectedEvent() as event; else noAssignmentEvent">
-        <div class="rounded-[24px] border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-4 py-4">
-          <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p class="text-sm font-semibold text-[color:var(--text-1)]">{{ event.title }}</p>
-              <p class="mt-1 text-xs text-[color:var(--text-2)]">Trascina una persona del team nello slot corretto oppure gestisci replacement e conferme direttamente dalla board.</p>
-            </div>
-            <div class="flex flex-wrap gap-2">
-              <ui-label tone="neutral">{{ selectedEventSlots().length }} slot</ui-label>
-              <ui-label tone="info">{{ event.assignments?.length || 0 }} assegnazioni</ui-label>
-            </div>
-          </div>
-        </div>
-
-        <div class="grid gap-4 xl:grid-cols-2">
-          <div *ngFor="let slot of selectedEventSlots()" class="relative flex h-full flex-col rounded-[24px] border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] p-4 shadow-[var(--shadow-soft)] transition" [class.ring-2]="isTargetSlot(slot) || dragHoverSlotId() === slot.id" [class.ring-amber-300]="isTargetSlot(slot) || dragHoverSlotId() === slot.id" [ngClass]="dragHoverSlotId() === slot.id ? 'border-[#4979e6] bg-[color:var(--surface-2)]' : ''" (dragover)="allowDrop($event, slot.id)" (dragenter)="setDragHoverSlot(slot.id)" (dragleave)="clearDragHoverSlot(slot.id)" (drop)="dropVolunteer(slot.id)">
-            <div *ngIf="dragHoverSlotId() === slot.id" class="pointer-events-none absolute inset-3 rounded-2xl border-2 border-dashed border-[#4979e6] bg-blue-50/80"></div>
-            <div class="flex items-start justify-between gap-3 border-b border-[color:var(--border-soft)] pb-4">
-              <div>
-                <p class="font-medium text-[color:var(--text-1)]">{{ slot.roleName }}</p>
-                <p class="text-sm text-[color:var(--text-2)]">{{ slot.teamName }}</p>
-              </div>
-              <ui-label [tone]="slot.assignments?.length ? 'success' : 'warn'">{{ slot.assignments?.length ? 'coperto' : 'vacante' }}</ui-label>
-            </div>
-
-            <div class="mt-4 grid flex-1 gap-4 lg:grid-cols-2">
-              <ui-board-column title="Persone del team" [count]="membersForTeam(slot.teamId).length">
-                <ui-board-tile *ngFor="let member of membersForTeam(slot.teamId)" draggable="true" (dragstart)="startDragging(member.id)" (dragend)="finishDragging()" [tileClass]="'cursor-grab transition hover:border-[color:var(--border-strong)] hover:shadow ' + (draggedVolunteerId() === member.id ? 'border-[#4979e6] bg-[color:var(--surface-2)] shadow-lg scale-[1.01]' : '')">
-                  <div class="flex items-start justify-between gap-2">
-                    <div class="min-w-0">
-                      <p class="truncate font-medium text-[color:var(--text-1)]">{{ member.fullName }}</p>
-                      <p class="truncate text-xs text-[color:var(--text-2)]">{{ member.email }}</p>
-                    </div>
-                    <ui-label tone="neutral">{{ member.role }}</ui-label>
-                  </div>
-                </ui-board-tile>
-                <div *ngIf="!membersForTeam(slot.teamId).length" class="rounded-2xl border border-dashed border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-4 py-4 text-sm text-[color:var(--text-3)]">
-                  Nessuna persona presente in questo team.
-                </div>
-              </ui-board-column>
-
-              <ui-board-column title="Assegnazioni slot" [count]="slot.assignments?.length || 0">
-                <div class="rounded-xl border border-dashed px-3 py-3 text-sm transition" [ngClass]="dragHoverSlotId() === slot.id ? 'border-[#4979e6] bg-blue-50 text-[#3156b3]' : 'border-orange-200 bg-orange-50 text-orange-700'" *ngIf="!slot.assignments?.length">{{ dragHoverSlotId() === slot.id ? 'Rilascia qui per assegnare il volontario.' : 'Trascina qui un volontario per assegnarlo.' }}</div>
-                <ui-board-tile *ngFor="let assignment of slot.assignments">
-                  <div class="flex items-start justify-between gap-2">
-                    <div class="min-w-0">
-                      <p class="truncate font-medium text-[color:var(--text-1)]">{{ assignment.assignee?.fullName || 'Assegnazione senza volontario' }}</p>
-                      <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ assignment.assignee?.email || 'Nessuna mail disponibile' }}</p>
-                    </div>
-                    <div class="flex flex-wrap justify-end gap-2">
-                      <ui-label *ngIf="assignment.replacementApproved" tone="success">replacement</ui-label>
-                      <ui-label *ngIf="replacementForAssignment(assignment.id) as replacement" [tone]="replacementTone(replacement.status)">{{ replacementStatusLabel(replacement.status) }}</ui-label>
-                    </div>
-                  </div>
-                  <ui-replacement-timeline-card
-                    class="mt-3"
-                    title="Timeline"
-                    originLabel="Originario"
-                    [originValue]="replacement.requestedBy?.fullName || assignment.assignee?.fullName || '-'"
-                    [confirmedValue]="replacement.replacementAssignee?.fullName || null"
-                    [suggestedValue]="replacement.suggestedReplacement?.fullName ? (replacement.suggestedReplacement?.fullName + ' · ' + replacement.suggestedReplacement?.score) : null"
-                    *ngIf="replacementForAssignment(assignment.id) as replacement"
-                  ></ui-replacement-timeline-card>
-                  <div class="mt-3 grid gap-2" *ngIf="canRequestReplacement(assignment)">
-                    <ui-input [value]="replacementReason" (valueChange)="replacementReason = $event" placeholder="Motivo sostituzione"></ui-input>
-                    <div class="flex justify-end border-t border-[color:var(--border-soft)] pt-3">
-                      <ui-button size="sm" tone="warn" variant="outlined" (buttonClick)="requestReplacement(assignment.id)" [disabled]="hasPendingReplacement(assignment.id)">
-                        {{ hasPendingReplacement(assignment.id) ? 'Richiesta inviata' : 'Richiedi sostituzione' }}
-                      </ui-button>
-                    </div>
-                  </div>
-                  <div class="mt-3 grid gap-2" *ngIf="replacementForAssignment(assignment.id)?.status === 'APPROVED'">
-                    <ui-select label="Sostituto" [options]="memberOptionsForTeam(slot.teamId)" [value]="replacementAssigneeId()" (valueChange)="replacementAssigneeId.set(castNullable($event))"></ui-select>
-                    <div class="flex justify-end border-t border-[color:var(--border-soft)] pt-3" *ngIf="canManageReplacements()">
-                      <ui-button size="sm" tone="success" variant="outlined" (buttonClick)="resolveApprovedReplacement(replacementForAssignment(assignment.id)!.id)">Conferma sostituto</ui-button>
-                    </div>
-                  </div>
-                  <div class="mt-3 flex justify-end border-t border-[color:var(--border-soft)] pt-3" *ngIf="canManageReplacements() && replacementForAssignment(assignment.id)?.suggestedReplacement?.id && replacementForAssignment(assignment.id)?.status === 'PENDING'">
-                    <ui-button size="sm" tone="info" variant="outlined" (buttonClick)="approveReplacementWithSuggestion(replacementForAssignment(assignment.id)!)" [disabled]="locallyReservedSuggestionIds().includes(replacementForAssignment(assignment.id)!.suggestedReplacement!.id)">Approva con suggerito</ui-button>
-                  </div>
-                </ui-board-tile>
-              </ui-board-column>
-            </div>
-          </div>
-        </div>
-      </div>
-      <ng-template #noAssignmentEvent>
-        <ui-surface surfaceClass="border-dashed bg-[color:var(--surface-2)] px-6 py-8 text-center text-sm text-[color:var(--text-2)]">
-          Seleziona prima un evento per aprire la board assegnazioni.
-        </ui-surface>
-      </ng-template>
-      <div dialog-footer class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <ui-button tone="neutral" variant="outlined" (buttonClick)="assignmentBoardVisible = false">Chiudi</ui-button>
-      </div>
+    </div>
+    <div dialog-footer class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <ui-button tone="neutral" variant="outlined" (buttonClick)="eventDialogVisible = false">Annulla</ui-button>
+      <ui-button tone="info" (buttonClick)="requestSaveEventConfirmation()" [disabled]="!isEventFormValid()">{{ editingEventId() ? (editingEventScope() === 'series' ? 'Salva serie' : 'Salva occorrenza') : 'Crea evento' }}</ui-button>
+    </div>
   </ui-modal>
 
   <ui-confirm-dialog

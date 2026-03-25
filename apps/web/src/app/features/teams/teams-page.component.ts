@@ -2,13 +2,14 @@ import { CommonModule } from '@angular/common';
 import { Component, HostListener, computed, ElementRef, ViewChild, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { MeetingGroupItem, ReplacementItem, TeamAccessRequestItem, TeamGroupItem, TeamListItem, UserPreferenceCatalogItem, UserProfile } from '@shift-complete/shared-types';
+import { AvailabilityItem, CreateAvailabilityDto, MeetingGroupItem, ReplacementItem, TeamAccessRequestItem, TeamGroupItem, TeamListItem, UserPreferenceCatalogItem, UserProfile } from '@shift-complete/shared-types';
 import {
   UiButtonComponent,
   UiBadgeComponent,
   UiCardComponent,
   UiChipComponent,
   UiConfirmDialogComponent,
+  UiDatePickerComponent,
   UiFieldComponent,
   UiInputComponent,
   UiLabelComponent,
@@ -26,6 +27,7 @@ import { AuthApiService } from '../../core/services/auth-api.service';
 import { ApiErrorService } from '../../core/services/api-error.service';
 import { GlobalTeamScopeService } from '../../core/services/global-team-scope.service';
 import { UiFeedbackService } from '../../core/services/ui-feedback.service';
+import { toIsoDateTime } from '../../core/utils/date-picker.util';
 import { TeamScopeChipsComponent } from '../../shared/components/team-scope-chips.component';
 import { ReportDocument, ReportModalComponent } from '../../shared/components/report-modal.component';
 import { AppApiService } from '../../shared/services/app-api.service';
@@ -44,6 +46,14 @@ type PendingConfirmAction = {
   run: () => void;
 };
 
+type AvailabilityForm = {
+  userId: string | null;
+  teamId: string | null;
+  startsAt: Date | null;
+  endsAt: Date | null;
+  reason: string;
+};
+
 @Component({
   selector: 'app-teams-page',
   standalone: true,
@@ -55,6 +65,7 @@ type PendingConfirmAction = {
     UiCardComponent,
     UiChipComponent,
     UiConfirmDialogComponent,
+    UiDatePickerComponent,
     UiFieldComponent,
     UiInputComponent,
     UiMultiSelectComponent,
@@ -91,6 +102,7 @@ export class TeamsPageComponent {
   protected readonly leaders = signal<UserProfile[]>([]);
   protected readonly people = signal<UserProfile[]>([]);
   protected readonly replacements = signal<ReplacementItem[]>([]);
+  protected readonly operationalAvailability = signal<AvailabilityItem[]>([]);
   protected readonly teamRequests = signal<TeamAccessRequestItem[]>([]);
   protected readonly preferenceCatalog = signal<UserPreferenceCatalogItem[]>([]);
   protected readonly selectedTeam = signal<TeamListItem | null>(null);
@@ -106,11 +118,25 @@ export class TeamsPageComponent {
   protected readonly canManageTeams = computed(() => this.session.hasAnyRole('administrator', 'service_leader'));
   protected readonly canEditTeams = computed(() => this.session.isAdministrator());
   protected readonly canManageRequests = computed(() => this.session.hasAnyRole('administrator', 'service_leader'));
+  protected readonly selectedTeamMemberOptions = computed(() =>
+    (this.selectedTeam()?.members ?? []).map((member) => ({ label: member.fullName, value: member.id }))
+  );
+  protected readonly selectedTeamAvailability = computed(() => {
+    const teamId = this.selectedTeam()?.id;
+    if (!teamId) {
+      return [] as AvailabilityItem[];
+    }
+
+    return this.operationalAvailability()
+      .filter((item) => item.teamId === teamId)
+      .sort((left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime());
+  });
   protected readonly memberDutySelections = signal<Record<string, string[]>>({});
   protected readonly teamCompetencySelections = signal<Record<string, string[]>>({});
   protected readonly dutyCompetencySelections = signal<Record<string, string[]>>({});
   protected readonly competencyOptions = computed(() => this.preferenceCatalog().filter((item) => item.type === 'competency').map((item) => ({ label: item.label, value: item.value })));
   protected readonly reportVisible = signal(false);
+  protected readonly savingAvailability = signal(false);
   protected readonly teamReport = computed<ReportDocument | null>(() => {
     const team = this.selectedTeam();
     if (!team) {
@@ -183,8 +209,10 @@ export class TeamsPageComponent {
 
   protected teamDialogVisible = false;
   protected dutyDialogVisible = false;
+  protected availabilityDialogVisible = false;
   protected teamForm = { name: '', description: '', leaderId: null as string | null };
   protected dutyForm = { teamId: '', name: '', description: '', color: '', icon: '', requiredCompetencies: [] as string[] };
+  protected availabilityForm: AvailabilityForm = { userId: null, teamId: null, startsAt: null, endsAt: null, reason: '' };
   protected replacementAssigneeSelection: Record<string, string> = {};
   protected readonly locallyReservedSuggestionIds = signal<string[]>([]);
   protected readonly highlightedTab = signal<'replacements' | 'requests'>('replacements');
@@ -225,6 +253,7 @@ export class TeamsPageComponent {
 
     return this.meetingGroups().filter((group) => group.groupId === selectedTeam.groupId);
   });
+  protected readonly linkedMeetingGroupsForSelectedTeam = computed(() => this.selectedTeamMeetingGroups());
 
   @HostListener('document:keydown.escape', ['$event'])
   protected handleEscape(event: KeyboardEvent): void {
@@ -240,6 +269,12 @@ export class TeamsPageComponent {
       return;
     }
 
+    if (this.availabilityDialogVisible) {
+      this.availabilityDialogVisible = false;
+      event.preventDefault();
+      return;
+    }
+
     if (this.teamDialogVisible) {
       this.teamDialogVisible = false;
       event.preventDefault();
@@ -251,8 +286,12 @@ export class TeamsPageComponent {
     this.route.queryParamMap.subscribe((params) => {
       this.highlightedTab.set(params.get('tab') === 'requests' ? 'requests' : 'replacements');
       const teamId = params.get('teamId');
+      const view = params.get('view');
       if (teamId) {
         this.teamScope.setTeam(teamId);
+      }
+      if (view === 'org') {
+        this.orgChartView.set(true);
       }
       if (params.get('tab') === 'requests') {
         setTimeout(() => this.teamRequestsSection?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
@@ -331,6 +370,19 @@ export class TeamsPageComponent {
     return member.duties?.map((duty) => duty.name).join(', ') || 'Nessuna mansione assegnata';
   }
 
+  protected selectedTeamMemberName(userId: string): string {
+    const team = this.selectedTeam();
+    if (!team) {
+      return 'Volontario';
+    }
+
+    if (team.leader?.id === userId) {
+      return team.leader.fullName;
+    }
+
+    return team.members?.find((member) => member.id === userId)?.fullName || 'Volontario';
+  }
+
   protected selectedDutyIdsForMember(member: NonNullable<TeamListItem['members']>[number]): string[] {
     return this.memberDutySelections()[member.id] ?? member.dutyIds ?? [];
   }
@@ -372,10 +424,69 @@ export class TeamsPageComponent {
     this.dutyDialogVisible = true;
   }
 
+  protected openAvailabilityDialog(): void {
+    if (!this.canManageTeams()) {
+      return;
+    }
+
+    const team = this.selectedTeam();
+    if (!team) {
+      return;
+    }
+
+    const now = new Date();
+    const end = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    this.availabilityForm = {
+      userId: team.members?.[0]?.id ?? null,
+      teamId: team.id,
+      startsAt: now,
+      endsAt: end,
+      reason: '',
+    };
+    this.availabilityDialogVisible = true;
+  }
+
+  protected saveAvailability(): void {
+    if (!this.availabilityForm.userId || !this.availabilityForm.startsAt || !this.availabilityForm.endsAt || this.availabilityForm.startsAt >= this.availabilityForm.endsAt) {
+      this.feedback.error('Assenza non valida', 'Seleziona persona e intervallo valido.');
+      return;
+    }
+
+    this.savingAvailability.set(true);
+    const payload: CreateAvailabilityDto = {
+      teamId: this.availabilityForm.teamId ?? undefined,
+      type: 'UNAVAILABLE',
+      startsAt: toIsoDateTime(this.availabilityForm.startsAt),
+      endsAt: toIsoDateTime(this.availabilityForm.endsAt),
+      reason: this.availabilityForm.reason.trim() || undefined,
+    };
+
+    this.api.createAvailability(payload, this.availabilityForm.userId).subscribe({
+      next: () => {
+        this.savingAvailability.set(false);
+        this.availabilityDialogVisible = false;
+        this.loadAvailability();
+        this.feedback.success('Assenza registrata', 'L indisponibilita e ora visibile nel team e verra considerata dal planner.');
+      },
+      error: (error) => {
+        this.savingAvailability.set(false);
+        this.feedback.error('Assenza non salvata', this.apiError.message(error, 'Impossibile salvare l assenza.'));
+      },
+    });
+  }
+
   protected selectTeam(team: TeamListItem): void {
     this.selectedTeam.set(team);
     this.selectedMemberOption.set(null);
     this.selectedJoinRequestOption.set(null);
+  }
+
+  protected canCreateTeamMeetings(): boolean {
+    return this.session.hasAnyRole('administrator', 'service_leader');
+  }
+
+  protected teamMeetingLink(teamId?: string | null): Record<string, string> {
+    return teamId ? { teamId, owner: 'team' } : { owner: 'team' };
   }
 
   protected editTeam(team: TeamListItem): void {
@@ -1010,6 +1121,8 @@ export class TeamsPageComponent {
       error: (error) => this.feedback.error('Sostituzioni non caricate', this.apiError.message(error, 'Impossibile recuperare le sostituzioni.')),
     });
 
+    this.loadAvailability();
+
     this.api.teamJoinRequests().subscribe({
       next: (items) => this.teamRequests.set(items),
       error: (error) => this.feedback.error('Richieste team non caricate', this.apiError.message(error, 'Impossibile recuperare le richieste team.')),
@@ -1025,6 +1138,13 @@ export class TeamsPageComponent {
         this.meetingGroups.set(groups);
       },
       error: (error) => this.feedback.error('Gruppi riunione non caricati', this.apiError.message(error, 'Impossibile recuperare i gruppi riunione.')),
+    });
+  }
+
+  private loadAvailability(): void {
+    this.api.availability().subscribe({
+      next: (items) => this.operationalAvailability.set(items),
+      error: () => this.operationalAvailability.set([]),
     });
   }
 

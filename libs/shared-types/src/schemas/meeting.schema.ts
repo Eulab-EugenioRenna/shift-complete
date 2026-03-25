@@ -17,8 +17,9 @@ export const AddMeetingGroupMemberSchema = z.object({
 });
 export type AddMeetingGroupMemberDto = z.infer<typeof AddMeetingGroupMemberSchema>;
 
-export const CreateMeetingSchema = z.object({
-  meetingGroupId: z.string().cuid().or(z.string().uuid()),
+const MeetingSchemaFields = {
+  meetingGroupId: z.string().cuid().or(z.string().uuid()).optional().nullable(),
+  teamId: z.string().cuid().or(z.string().uuid()).optional().nullable(),
   title: z.string().min(2),
   description: z.string().optional().nullable(),
   locationValue: z.string().optional().nullable(),
@@ -30,10 +31,44 @@ export const CreateMeetingSchema = z.object({
   recurrenceDurationMonths: z.number().int().min(1).max(60).optional().nullable(),
   recurrenceAutoRenew: z.boolean().optional().nullable(),
   recurrenceRenewMonths: z.number().int().min(1).max(60).optional().nullable(),
+} satisfies z.ZodRawShape;
+
+const MeetingBaseSchema = z.object(MeetingSchemaFields);
+
+export const CreateMeetingSchema = MeetingBaseSchema.superRefine((value, ctx) => {
+  const hasMeetingGroup = Boolean(value.meetingGroupId);
+  const hasTeam = Boolean(value.teamId);
+
+  if (!hasMeetingGroup && !hasTeam) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Specifica un team o un gruppo riunione.',
+      path: ['meetingGroupId'],
+    });
+  }
+
+  if (hasMeetingGroup && hasTeam) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Una riunione puo appartenere solo a un team o a un gruppo riunione.',
+      path: ['teamId'],
+    });
+  }
 });
 export type CreateMeetingDto = z.infer<typeof CreateMeetingSchema>;
 
-export const UpdateMeetingSchema = CreateMeetingSchema.partial();
+export const UpdateMeetingSchema = MeetingBaseSchema.partial().superRefine((value, ctx) => {
+  const hasMeetingGroup = Boolean(value.meetingGroupId);
+  const hasTeam = Boolean(value.teamId);
+
+  if (hasMeetingGroup && hasTeam) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Una riunione puo appartenere solo a un team o a un gruppo riunione.',
+      path: ['teamId'],
+    });
+  }
+});
 export type UpdateMeetingDto = z.infer<typeof UpdateMeetingSchema>;
 
 export const ExtendedUpdateMeetingSchema = UpdateMeetingSchema.extend({

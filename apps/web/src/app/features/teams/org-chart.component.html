@@ -6,8 +6,8 @@
   >
     <!-- ROOT NODE -->
     <ng-template pTemplate="root" let-node>
-      <div class="flex flex-col items-center gap-1.5 rounded-2xl border border-[color:var(--border-soft)] bg-gradient-to-br from-[#4979e6]/10 to-[#4979e6]/5 px-6 py-4 shadow-sm">
-        <i [class]="node.data.icon + ' text-xl text-[#4979e6]'"></i>
+      <div class="flex flex-col items-center gap-1.5 rounded-2xl border border-[color:var(--border-soft)] px-6 py-4 shadow-sm" [style.background]="'linear-gradient(135deg,' + nodeColor(node) + '18 0%,' + nodeColor(node) + '0d 100%)'">
+        <i [class]="node.data.icon + ' text-xl'" [style.color]="nodeColor(node)"></i>
         <p class="text-sm font-bold text-[color:var(--text-1)]">{{ node.data.label }}</p>
         <p class="text-xs text-[color:var(--text-2)]">{{ node.data.subtitle }}</p>
         <ui-badge tone="info">{{ node.data.count }}</ui-badge>
@@ -16,8 +16,8 @@
 
     <!-- GROUP NODE -->
     <ng-template pTemplate="group" let-node>
-      <div class="flex flex-col items-center gap-1.5 rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 px-5 py-3 shadow-sm min-w-[160px]">
-        <i class="pi pi-folder text-lg text-orange-500"></i>
+      <div class="flex flex-col items-center gap-1.5 rounded-2xl border px-5 py-3 shadow-sm min-w-[160px]" [style.borderColor]="nodeColor(node) + '55'" [style.background]="'linear-gradient(135deg,' + nodeColor(node) + '14 0%,' + nodeColor(node) + '08 100%)'">
+        <i class="pi pi-folder text-lg" [style.color]="nodeColor(node)"></i>
         <p class="text-sm font-semibold text-[color:var(--text-1)]">{{ node.data.label }}</p>
         <div class="flex flex-wrap items-center justify-center gap-2">
           <ui-badge tone="info">{{ node.data.teamCount || 0 }} team</ui-badge>
@@ -29,12 +29,15 @@
 
     <!-- TEAM NODE -->
     <ng-template pTemplate="team" let-node>
-      <div class="flex flex-col items-start gap-2 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-5 py-4 shadow-sm min-w-[200px] max-w-[280px]">
+      <a [routerLink]="node.data.route || ['/teams']" [queryParams]="node.data.queryParams || null" class="flex flex-col items-start gap-2 rounded-2xl border bg-[color:var(--surface-1)] px-5 py-4 shadow-sm min-w-[200px] max-w-[280px] transition hover:-translate-y-0.5 hover:shadow-md" [style.borderColor]="nodeColor(node) + '55'">
         <div class="flex items-center gap-2 w-full">
-          <i class="pi pi-users text-sm text-[#4979e6]"></i>
+          <span class="inline-flex h-2.5 w-2.5 rounded-full" [style.background]="nodeColor(node)"></span>
+          <i class="pi pi-users text-sm" [style.color]="nodeColor(node)"></i>
           <p class="text-sm font-semibold text-[color:var(--text-1)] flex-1">{{ node.data.label }}</p>
           <ui-badge tone="info">{{ node.data.count }}</ui-badge>
         </div>
+        <p *ngIf="node.data.subtitle" class="text-[10px] text-[color:var(--text-3)]">{{ node.data.subtitle }}</p>
+        <ui-chip *ngIf="node.data.isCurrentUserNode" tone="danger" [interactive]="false">TU</ui-chip>
 
         <!-- Leader -->
         <div class="flex w-full items-center justify-between gap-2 rounded-xl bg-[color:var(--surface-2)] px-3 py-2 text-xs text-[color:var(--text-2)]">
@@ -45,7 +48,7 @@
 
         <!-- Duties -->
         <div *ngIf="node.data.duties?.length" class="flex flex-wrap gap-1 mt-0.5">
-          <span *ngFor="let duty of node.data.duties" class="inline-flex items-center rounded-full bg-[#4979e6]/10 px-2 py-0.5 text-[10px] font-medium text-[#4979e6]">
+          <span *ngFor="let duty of node.data.duties" class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium" [style.background]="nodeColor(node) + '14'" [style.color]="nodeColor(node)">
             {{ duty }}
           </span>
         </div>
@@ -60,17 +63,20 @@
             </div>
           </div>
         </div>
-      </div>
+      </a>
     </ng-template>
 
     <!-- MEETING GROUP NODE -->
     <ng-template pTemplate="meetingGroup" let-node>
-      <div class="flex flex-col items-start gap-2 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-5 py-4 shadow-sm min-w-[200px] max-w-[280px]">
+      <a [routerLink]="node.data.route || ['/meetings']" class="flex flex-col items-start gap-2 rounded-2xl border bg-[color:var(--surface-1)] px-5 py-4 shadow-sm min-w-[200px] max-w-[280px] transition hover:-translate-y-0.5 hover:shadow-md" [style.borderColor]="nodeColor(node) + '55'">
         <div class="flex items-center gap-2 w-full">
-          <i class="pi pi-comments text-sm text-purple-500"></i>
+          <span class="inline-flex h-2.5 w-2.5 rounded-full" [style.background]="nodeColor(node)"></span>
+          <i class="pi pi-comments text-sm" [style.color]="nodeColor(node)"></i>
           <p class="text-sm font-semibold text-[color:var(--text-1)] flex-1">{{ node.data.label }}</p>
           <ui-badge tone="info">{{ node.data.count }}</ui-badge>
         </div>
+        <p *ngIf="node.data.subtitle" class="text-[10px] text-[color:var(--text-3)]">{{ node.data.subtitle }}</p>
+        <ui-chip *ngIf="node.data.isCurrentUserNode" tone="danger" [interactive]="false">TU</ui-chip>
 
         <!-- Leader -->
         <div class="flex w-full items-center justify-between gap-2 rounded-xl bg-[color:var(--surface-2)] px-3 py-2 text-xs text-[color:var(--text-2)]">
@@ -89,7 +95,7 @@
             </div>
           </div>
         </div>
-      </div>
+      </a>
     </ng-template>
 
     <!-- DEFAULT NODE (fallback) -->

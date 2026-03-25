@@ -368,6 +368,54 @@ body {
   resize: vertical;
 }
 
+.ui-filter-bar--compact .ui-input,
+.ui-filter-bar--compact .p-inputtext,
+.ui-filter-bar--compact .p-dropdown,
+.ui-filter-bar--compact .p-multiselect,
+.ui-filter-bar--compact .p-datepicker-input,
+.ui-filter-bar--compact .p-dropdown-label,
+.ui-filter-bar--compact .p-multiselect-label {
+  font-size: 0.8125rem !important;
+}
+
+.ui-filter-bar--compact .ui-input {
+  padding: 0.58rem 0.8rem;
+}
+
+.ui-filter-bar--compact .p-dropdown,
+.ui-filter-bar--compact .p-multiselect,
+.ui-filter-bar--compact .p-datepicker-input,
+.ui-filter-bar--compact .p-inputtext {
+  min-height: 2.4rem !important;
+}
+
+.ui-filter-bar--compact .p-dropdown-label,
+.ui-filter-bar--compact .p-multiselect-label {
+  padding-top: 0.58rem !important;
+  padding-bottom: 0.58rem !important;
+  padding-left: 0.8rem !important;
+}
+
+.ui-filter-bar--compact .p-dropdown-trigger,
+.ui-filter-bar--compact .p-multiselect-trigger {
+  width: 2.2rem !important;
+}
+
+.ui-filter-bar--compact .p-dropdown-filter,
+.ui-filter-bar--compact .p-multiselect-filter {
+  padding: 0.58rem 0.8rem 0.58rem 2.35rem !important;
+  font-size: 0.8125rem !important;
+}
+
+.ui-filter-bar--compact .p-dropdown-filter-icon,
+.ui-filter-bar--compact .p-multiselect-filter-icon {
+  left: 0.8rem !important;
+}
+
+.ui-filter-bar--compact label {
+  font-size: 0.8rem;
+}
+
 .ui-chip {
   display: inline-flex;
   align-items: center;

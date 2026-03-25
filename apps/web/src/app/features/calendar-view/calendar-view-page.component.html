@@ -17,8 +17,8 @@
 
   <app-team-scope-chips [teams]="teams()"></app-team-scope-chips>
 
-  <div class="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
-    <div class="overflow-hidden rounded-[24px] border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] shadow-[var(--shadow-soft)]">
+  <div class="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)] xl:items-stretch">
+    <div class="flex h-full flex-col overflow-hidden rounded-[24px] border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] shadow-[var(--shadow-soft)] xl:h-[56rem] xl:max-h-[56rem]">
         <div class="border-b border-[color:var(--border-soft)] px-5 py-4">
           <ui-filter-bar
             title="{{ currentView() === 'month' ? 'Mese in calendario' : currentView() === 'week' ? 'Settimana in calendario' : 'Agenda cronologica' }}"
@@ -26,6 +26,7 @@
             [hasActions]="currentView() !== 'agenda'"
             [showReset]="selectedUserFilter() || selectedSeriesFilter() || occurrenceView() !== 'all' || eventTypeFilter() !== 'all' || eventLocationFilter() !== 'all'"
             [reset]="resetFilters.bind(this)"
+            [compact]="true"
             fieldsClass="md:grid-cols-2 xl:grid-cols-5"
           >
             <div filter-actions class="flex items-center gap-2" *ngIf="currentView() !== 'agenda'">
@@ -50,9 +51,9 @@
         </div>
       </div>
 
-      <div class="min-h-[42rem] p-3 sm:p-4" [ngSwitch]="currentView()">
+      <div class="min-h-[42rem] flex-1 p-3 sm:p-4 xl:min-h-0" [ngSwitch]="currentView()">
         <ng-container *ngSwitchCase="'month'">
-          <div class="overflow-x-auto pb-2">
+          <div class="h-full overflow-x-auto pb-2">
             <div class="min-w-[42rem]">
               <div class="mb-3 grid grid-cols-7 gap-2 text-center text-[10px] font-semibold uppercase tracking-[0.24em] text-[color:var(--text-3)]">
                 <span *ngFor="let label of weekdayLabels">{{ label }}</span>
@@ -98,13 +99,13 @@
         </ng-container>
 
         <ng-container *ngSwitchCase="'week'">
-          <div class="overflow-x-auto pb-2">
-            <div class="min-w-[42rem]">
+          <div class="h-full overflow-x-auto pb-2">
+            <div class="h-full min-w-[42rem]">
               <div class="mb-3 grid grid-cols-7 gap-2 text-center text-[10px] font-semibold uppercase tracking-[0.24em] text-[color:var(--text-3)]">
                 <span *ngFor="let label of weekdayLabels">{{ label }}</span>
               </div>
-              <div class="grid grid-cols-7 gap-2">
-                <div *ngFor="let day of weekDays()" class="flex min-h-[24rem] flex-col rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] sm:min-h-[32rem]">
+              <div class="grid h-[calc(100%-2rem)] grid-cols-7 gap-2">
+                <div *ngFor="let day of weekDays()" class="flex h-full min-h-[24rem] flex-col rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] sm:min-h-[32rem]">
                   <div class="border-b border-[color:var(--border-soft)] px-2 py-3 text-center sm:px-3">
                     <p class="text-sm font-semibold text-[color:var(--text-1)]">{{ day.dayNumber }}</p>
                     <p class="text-[10px] uppercase tracking-[0.2em] text-[color:var(--text-3)]">{{ day.monthLabel }}</p>
@@ -128,7 +129,8 @@
         </ng-container>
 
         <ng-container *ngSwitchDefault>
-          <div class="divide-y divide-[color:var(--border-soft)] rounded-[20px] border border-[color:var(--border-soft)]">
+          <div class="h-full max-h-full overflow-y-auto rounded-[20px] border border-[color:var(--border-soft)]">
+            <div class="divide-y divide-[color:var(--border-soft)]">
             <div *ngFor="let event of sortedEvents()"
               class="group flex cursor-pointer items-start gap-4 px-5 py-4 transition hover:bg-[color:var(--surface-2)]"
               (click)="selectEvent(event)">
@@ -150,14 +152,15 @@
               <i class="pi pi-calendar mb-2 block text-3xl opacity-40"></i>
               Nessun evento in agenda.
             </div>
+            </div>
           </div>
         </ng-container>
       </div>
     </div>
 
-    <div class="grid gap-4">
-      <ui-sidebar-panel title="Dettaglio evento" eyebrow="Vista consultazione" [fullHeight]="true" class="xl:max-h-[calc(100vh-8rem)] xl:overflow-hidden">
-        <div *ngIf="selectedEvent() as event; else noEvent" class="grid gap-4 xl:max-h-[calc(100vh-12.5rem)] xl:min-h-0 xl:overflow-y-auto xl:pr-3 xl:pb-4">
+    <div class="grid gap-4 xl:h-[56rem] xl:max-h-[56rem]">
+      <ui-sidebar-panel title="Dettaglio evento" eyebrow="Vista consultazione" [fullHeight]="true" class="h-full xl:min-h-full xl:overflow-hidden">
+        <div *ngIf="selectedEvent() as event; else noEvent" class="flex h-full min-h-0 flex-col gap-4 xl:overflow-y-auto xl:pr-3 xl:pb-4">
         <div>
           <p class="text-sm font-medium text-[color:var(--text-1)]">{{ event.title }}</p>
           <p class="mt-1 text-xs text-[color:var(--text-2)]">Per modificare evento, assegnazioni o sostituzioni apri lo spazio eventi dedicato.</p>
@@ -182,7 +185,7 @@
             <ui-label tone="neutral" *ngIf="event.type === 'recurring' || event.isOccurrence">{{ event.recurrenceDurationMonths === 12 || !event.recurrenceDurationMonths ? '1 anno' : (event.recurrenceDurationMonths + ' mesi') }}</ui-label>
           </div>
         </ui-surface>
-        <ui-table-shell title="Slot evento">
+        <ui-table-shell title="Slot evento" [fullHeight]="true" class="flex-1 min-h-[16rem]">
           <table class="min-w-full text-sm">
             <thead class="bg-[color:var(--surface-2)] text-left text-[color:var(--text-2)]">
               <tr>
@@ -352,41 +355,6 @@
       <div dialog-footer class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <ui-button tone="neutral" variant="outlined" (buttonClick)="rerunPlanning()">Ricalcola</ui-button>
         <ui-button tone="success" (buttonClick)="applyPlanning()">Applica piano</ui-button>
-      </div>
-  </ui-modal>
-
-  <ui-modal [(visible)]="availabilityDialogVisible" title="Registra assenza" eyebrow="Disponibilita operativa" subtitle="Segna indisponibilita perche il planner la escluda dai cicli futuri." icon="pi pi-user-minus" tone="warn" width="34rem" maxWidth="96vw" (closeRequested)="availabilityDialogVisible = false">
-      <div class="grid gap-4">
-        <ui-field label="Persona">
-          <ui-select [options]="assignablePeople()" [value]="availabilityForm.userId" (valueChange)="availabilityForm.userId = castNullable($event)"></ui-select>
-        </ui-field>
-        <ui-field label="Team">
-          <ui-select [options]="teamOptions()" [value]="availabilityForm.teamId" (valueChange)="availabilityForm.teamId = castNullable($event)"></ui-select>
-        </ui-field>
-        <div class="grid gap-4 md:grid-cols-2">
-          <ui-field label="Inizio">
-            <ui-date-picker [(value)]="availabilityForm.startsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1500" inputStyleClass="ui-input"></ui-date-picker>
-          </ui-field>
-          <ui-field label="Fine">
-            <ui-date-picker [(value)]="availabilityForm.endsAt" [showTime]="true" hourFormat="24" [baseZIndex]="1500" inputStyleClass="ui-input"></ui-date-picker>
-          </ui-field>
-        </div>
-        <ui-field label="Motivo">
-          <ui-input [value]="availabilityForm.reason" (valueChange)="availabilityForm.reason = $event" placeholder="Assenza, ferie, turno coperto altrove..."></ui-input>
-        </ui-field>
-        <div class="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-4 text-sm text-[color:var(--text-2)]" *ngIf="operationalAvailability().length">
-          <p class="font-medium text-[color:var(--text-1)]">Assenze gia registrate</p>
-          <div class="mt-3 grid gap-2">
-            <div class="flex items-center justify-between gap-3" *ngFor="let item of operationalAvailability() | slice:0:4">
-              <span>{{ item.startsAt | date:'shortDate' }} - {{ item.endsAt | date:'shortDate' }}</span>
-              <ui-label tone="warn">{{ item.reason || 'Indisponibile' }}</ui-label>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div dialog-footer class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <ui-button tone="neutral" variant="outlined" (buttonClick)="availabilityDialogVisible = false">Annulla</ui-button>
-        <ui-button tone="warn" (buttonClick)="saveAvailability()" [disabled]="savingAvailability()">Salva assenza</ui-button>
       </div>
   </ui-modal>
 

@@ -3,8 +3,8 @@
     <ui-page-header
       eyebrow="Riunioni"
       eyebrowClass="text-sky-600"
-      title="Gestione operativa di gruppi riunione e meeting pianificati."
-      subtitle="I gruppi riunione possono essere collegati a un gruppo generale dell'organigramma."
+      title="Workspace riunioni: meeting group strutturali e riunioni-evento operative."
+      subtitle="Le riunioni possono nascere da un team o da un meeting group; solo team e meeting group entrano nell'organigramma."
       [hasActions]="true"
     >
       <div page-actions class="flex flex-wrap items-center gap-2">
@@ -17,8 +17,34 @@
       <ui-stat-card *ngFor="let card of summaryCards()" [label]="card.label" [value]="card.value" [detail]="card.detail"></ui-stat-card>
     </div>
 
-    <ui-filter-bar title="Filtri riunioni" subtitle="Riduci l'elenco per gruppo riunione o gruppo generale." [showReset]="true" [reset]="clearFilters.bind(this)" fieldsClass="md:grid-cols-2 xl:grid-cols-3">
-      <ui-input [value]="search()" (valueChange)="search.set($event)" placeholder="Cerca gruppo riunione"></ui-input>
+    <ui-surface surfaceClass="overflow-hidden border border-[color:var(--border-soft)] bg-[linear-gradient(135deg,rgba(240,249,255,0.92)_0%,rgba(248,250,252,1)_60%,rgba(255,255,255,1)_100%)] p-5">
+      <div class="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)]">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">Flusso riunioni</p>
+          <h3 class="mt-2 text-xl font-semibold text-[color:var(--text-1)]">Dalla struttura agli appuntamenti reali</h3>
+          <p class="mt-2 max-w-2xl text-sm text-[color:var(--text-2)]">Questa pagina separa i contenitori stabili dai meeting reali. Prima definisci il contesto con un meeting group o scegli un team, poi pianifichi la riunione-evento e la ritrovi anche in `Eventi` e `Calendario`.</p>
+        </div>
+        <div class="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
+          <div class="rounded-2xl bg-[color:var(--surface-1)] px-4 py-3 shadow-[var(--shadow-soft)]">
+            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">1. Struttura</p>
+            <p class="mt-1 text-sm text-[color:var(--text-2)]">Crea o collega il meeting group.</p>
+          </div>
+          <div class="rounded-2xl bg-[color:var(--surface-1)] px-4 py-3 shadow-[var(--shadow-soft)]">
+            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">2. Owner</p>
+            <p class="mt-1 text-sm text-[color:var(--text-2)]">Scegli se la riunione nasce da team o meeting group.</p>
+          </div>
+          <div class="rounded-2xl bg-[color:var(--surface-1)] px-4 py-3 shadow-[var(--shadow-soft)]">
+            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">3. Dettaglio</p>
+            <p class="mt-1 text-sm text-[color:var(--text-2)]">Apri il dettaglio e naviga il contesto corretto.</p>
+          </div>
+        </div>
+      </div>
+    </ui-surface>
+
+    <ui-filter-bar title="Filtri riunioni" subtitle="Riduci l'elenco per owner, team, meeting group o gruppo generale." [showReset]="true" [reset]="clearFilters.bind(this)" fieldsClass="md:grid-cols-2 xl:grid-cols-5">
+      <ui-input [value]="search()" (valueChange)="search.set($event)" placeholder="Cerca meeting o gruppo"></ui-input>
+      <ui-select [options]="ownerOptions" [value]="ownerFilter()" (valueChange)="ownerFilter.set($any($event) || 'all')"></ui-select>
+      <ui-select [options]="teamOptions()" [value]="teamFilter()" (valueChange)="teamFilter.set($any($event) || '')"></ui-select>
       <ui-select [options]="groupOptions()" [value]="groupFilter()" (valueChange)="groupFilter.set($any($event) || '')"></ui-select>
       <ui-select [options]="teamGroupOptions()" [value]="teamGroupFilter()" (valueChange)="teamGroupFilter.set($any($event) || '')"></ui-select>
     </ui-filter-bar>
@@ -44,7 +70,10 @@
             <p class="mt-1 text-xs text-[color:var(--text-3)]">{{ group.description || 'Nessuna descrizione' }}</p>
             <p class="mt-2 text-xs text-sky-700">Gruppo generale: {{ teamGroupLabel(group.groupId) }}</p>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 self-start">
+            <a [routerLink]="['/meetings/groups', group.id]" class="inline-flex h-8 w-8 items-center justify-center rounded-full text-[color:var(--text-3)] transition hover:bg-[color:var(--surface-1)] hover:text-sky-700">
+              <i class="pi pi-arrow-up-right text-xs"></i>
+            </a>
             <ui-button tone="neutral" variant="text" size="sm" icon="pi pi-pencil" (buttonClick)="openMeetingGroupDialog(group)"></ui-button>
             <ui-button tone="neutral" variant="text" size="sm" icon="pi pi-calendar-plus" (buttonClick)="openMeetingDialog(group)"></ui-button>
           </div>
@@ -54,17 +83,30 @@
     </ui-surface>
 
     <ui-surface surfaceClass="overflow-hidden">
-      <div class="border-b border-[color:var(--border-soft)] px-5 py-4">
-        <h3 class="text-base font-semibold text-[color:var(--text-1)]">Meeting pianificati</h3>
+      <div class="border-b border-[color:var(--border-soft)] px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 class="text-base font-semibold text-[color:var(--text-1)]">Riunioni-evento</h3>
+          <p class="mt-1 text-sm text-[color:var(--text-2)]">Eventi senza mansioni che appartengono a un team oppure a un meeting group.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <ui-label tone="info">Team</ui-label>
+          <ui-label tone="warn">Meeting group</ui-label>
+        </div>
       </div>
       <div class="divide-y divide-[color:var(--border-soft)]">
         <button type="button" *ngFor="let meeting of filteredMeetings()" class="flex w-full items-start justify-between gap-4 px-5 py-4 text-left transition hover:bg-[color:var(--surface-2)]" [ngClass]="selectedMeeting()?.id === meeting.id ? 'bg-[color:var(--surface-2)]' : ''" (click)="selectMeeting(meeting)">
           <div>
-            <p class="font-semibold text-[color:var(--text-1)]">{{ meeting.title }}</p>
+            <div class="flex flex-wrap items-center gap-2">
+              <p class="font-semibold text-[color:var(--text-1)]">{{ meeting.title }}</p>
+              <ui-label [tone]="meeting.ownerType === 'team' ? 'info' : 'warn'">{{ meeting.ownerType === 'team' ? 'Team' : 'Meeting group' }}</ui-label>
+            </div>
             <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ meeting.startsAt | date:'fullDate' }} · {{ meeting.startsAt | date:'shortTime' }} - {{ meeting.endsAt | date:'shortTime' }}</p>
-            <p class="mt-1 text-xs text-[color:var(--text-3)]">{{ meeting.meetingGroup?.name || 'Gruppo riunione' }}</p>
+            <p class="mt-1 text-xs text-[color:var(--text-3)]">{{ ownerLabel(meeting) }}</p>
           </div>
-          <span class="text-xs text-[color:var(--text-3)]">{{ meeting.type === 'recurring' ? 'Ricorrente' : 'Singola' }}</span>
+          <div class="flex flex-col items-end gap-1 text-xs text-[color:var(--text-3)]">
+            <span>{{ meeting.type === 'recurring' ? 'Ricorrente' : 'Singola' }}</span>
+            <span>{{ meeting.ownerType === 'team' ? 'Team' : 'Meeting group' }}</span>
+          </div>
         </button>
         <div *ngIf="!filteredMeetings().length" class="px-5 py-8 text-sm text-[color:var(--text-3)]">Nessuna riunione disponibile.</div>
       </div>
@@ -79,11 +121,26 @@
       </ui-surface>
       <ui-surface surfaceClass="p-4 text-sm text-[color:var(--text-2)]">
         <div class="grid gap-2">
-          <div class="flex items-center justify-between gap-3"><span>Gruppo riunione</span><span class="font-medium text-[color:var(--text-1)]">{{ meeting.meetingGroup?.name || '-' }}</span></div>
+          <div class="flex items-center justify-between gap-3"><span>Origine</span><span class="font-medium text-[color:var(--text-1)]">{{ meeting.ownerType === 'team' ? 'Riunione team' : 'Riunione meeting group' }}</span></div>
+          <div class="flex items-center justify-between gap-3"><span>Owner</span><span class="font-medium text-[color:var(--text-1)]">{{ ownerLabel(meeting) }}</span></div>
           <div class="flex items-center justify-between gap-3"><span>Luogo</span><span class="font-medium text-[color:var(--text-1)]">{{ meeting.locationValue || 'Non definito' }}</span></div>
           <div class="flex items-center justify-between gap-3"><span>Tipo</span><span class="font-medium text-[color:var(--text-1)]">{{ meeting.type === 'recurring' ? 'Ricorrente' : 'Singola' }}</span></div>
           <div class="flex items-center justify-between gap-3"><span>Descrizione</span><span class="font-medium text-[color:var(--text-1)]">{{ meeting.description || 'Nessuna descrizione' }}</span></div>
-          <div class="flex items-center justify-between gap-3"><span>Partecipanti</span><span class="font-medium text-[color:var(--text-1)]">{{ meetingParticipantsLabel(meeting.meetingGroupId) }}</span></div>
+          <div class="flex items-center justify-between gap-3"><span>Partecipanti</span><span class="font-medium text-[color:var(--text-1)]">{{ meetingParticipantsLabel(meeting) }}</span></div>
+        </div>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <a [routerLink]="['/meetings', meeting.id]" class="inline-flex items-center gap-2 rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-3 py-2 text-xs font-medium text-[color:var(--text-2)] transition hover:bg-[color:var(--surface-1)] hover:text-[color:var(--text-1)]">
+            <i class="pi pi-arrow-up-right text-[10px]"></i>
+            Apri dettaglio
+          </a>
+          <a *ngIf="meeting.meetingGroupId" [routerLink]="['/meetings/groups', meeting.meetingGroupId]" class="inline-flex items-center gap-2 rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-3 py-2 text-xs font-medium text-[color:var(--text-2)] transition hover:bg-[color:var(--surface-1)] hover:text-[color:var(--text-1)]">
+            <i class="pi pi-comments text-[10px]"></i>
+            Apri meeting group
+          </a>
+          <a *ngIf="meeting.teamId" routerLink="/teams" [queryParams]="{ teamId: meeting.teamId, view: 'org' }" class="inline-flex items-center gap-2 rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-3 py-2 text-xs font-medium text-[color:var(--text-2)] transition hover:bg-[color:var(--surface-1)] hover:text-[color:var(--text-1)]">
+            <i class="pi pi-users text-[10px]"></i>
+            Apri team
+          </a>
         </div>
       </ui-surface>
 
@@ -98,7 +155,9 @@
       </ui-surface>
     </div>
     <ng-template #noMeeting>
-      <p class="text-sm text-[color:var(--text-2)]">Seleziona una riunione per vedere il dettaglio.</p>
+      <div class="rounded-2xl bg-[color:var(--surface-2)] p-4 text-sm text-[color:var(--text-2)]">
+        Seleziona una riunione per vedere owner, contesto, partecipanti e scorciatoie verso il team o il meeting group collegato.
+      </div>
     </ng-template>
   </ui-sidebar-panel>
 
@@ -120,12 +179,14 @@
     </div>
   </ui-modal>
 
-  <ui-modal [(visible)]="meetingDialogVisible" title="Nuova riunione" eyebrow="Calendario" subtitle="Pianifica una riunione per un gruppo esistente." icon="pi pi-calendar" tone="info" [hasFooter]="true" width="40rem" maxWidth="95vw" (closeRequested)="meetingDialogVisible = false">
+  <ui-modal [(visible)]="meetingDialogVisible" title="Nuova riunione" eyebrow="Calendario" subtitle="Pianifica una riunione per un team o per un meeting group." icon="pi pi-calendar" tone="info" [hasFooter]="true" width="40rem" maxWidth="95vw" (closeRequested)="meetingDialogVisible = false">
     <div class="grid gap-4 md:grid-cols-2">
       <ui-field label="Titolo">
         <ui-input [value]="meetingForm.title" (valueChange)="meetingForm.title = $event" placeholder="Es. Riunione operativa"></ui-input>
       </ui-field>
-      <ui-select label="Gruppo riunione" [options]="groupOptions()" [value]="meetingForm.meetingGroupId" (valueChange)="meetingForm.meetingGroupId = $any($event) || ''"></ui-select>
+      <ui-select label="Origine" [options]="ownerOptions.slice(1)" [value]="meetingForm.ownerType" (valueChange)="meetingForm.ownerType = $any($event) || 'meetingGroup'"></ui-select>
+      <ui-select *ngIf="meetingForm.ownerType === 'meetingGroup'" label="Gruppo riunione" [options]="groupOptions()" [value]="meetingForm.meetingGroupId" (valueChange)="meetingForm.meetingGroupId = $any($event) || ''"></ui-select>
+      <ui-select *ngIf="meetingForm.ownerType === 'team'" label="Team" [options]="teamOptions()" [value]="meetingForm.teamId" (valueChange)="meetingForm.teamId = $any($event) || ''"></ui-select>
       <ui-field label="Luogo">
         <ui-input [value]="meetingForm.locationValue" (valueChange)="meetingForm.locationValue = $event" placeholder="Sala A o link meeting"></ui-input>
       </ui-field>
@@ -146,7 +207,7 @@
     </div>
     <div modal-footer class="flex justify-end gap-2">
       <ui-button tone="neutral" variant="outlined" (buttonClick)="meetingDialogVisible = false">Annulla</ui-button>
-      <ui-button tone="info" [disabled]="!meetingForm.title.trim() || !meetingForm.meetingGroupId" (buttonClick)="saveMeeting()">Crea riunione</ui-button>
+      <ui-button tone="info" [disabled]="!meetingForm.title.trim() || (meetingForm.ownerType === 'team' ? !meetingForm.teamId : !meetingForm.meetingGroupId)" (buttonClick)="saveMeeting()">Crea riunione</ui-button>
     </div>
   </ui-modal>
 </section>

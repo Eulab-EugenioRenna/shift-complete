@@ -191,6 +191,7 @@ model Team {
   inventory            InventoryItem[]
   resources            ResourceFile[]
   slots                EventSlot[]
+  meetings             Meeting[]
   duties               Duty[]
   accessRequests       TeamAccessRequest[]
   availabilities       Availability[]
@@ -597,7 +598,8 @@ model MeetingGroupMember {
 
 model Meeting {
   id                       String    @id @default(cuid())
-  meetingGroupId           String
+  meetingGroupId           String?
+  teamId                   String?
   title                    String
   description              String?
   locationValue            String?
@@ -616,8 +618,13 @@ model Meeting {
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
 
-  meetingGroup  MeetingGroup @relation(fields: [meetingGroupId], references: [id], onDelete: Cascade)
-  parentMeeting Meeting?     @relation("RecurringMeetingInstances", fields: [parentMeetingId], references: [id], onDelete: Cascade)
-  instances     Meeting[]    @relation("RecurringMeetingInstances")
-  createdByUser User?        @relation("MeetingCreatedUser", fields: [createdById], references: [id], onDelete: SetNull)
+  meetingGroup  MeetingGroup? @relation(fields: [meetingGroupId], references: [id], onDelete: Cascade)
+  team          Team?         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  parentMeeting Meeting?      @relation("RecurringMeetingInstances", fields: [parentMeetingId], references: [id], onDelete: Cascade)
+  instances     Meeting[]     @relation("RecurringMeetingInstances")
+  createdByUser User?         @relation("MeetingCreatedUser", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([meetingGroupId])
+  @@index([teamId])
+  @@index([startsAt])
 }

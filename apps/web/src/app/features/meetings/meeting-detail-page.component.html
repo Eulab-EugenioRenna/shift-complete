@@ -1,0 +1,72 @@
+<section class="grid gap-6 text-[color:var(--text-1)]">
+  <ui-page-header
+    eyebrow="Riunione"
+    eyebrowClass="text-sky-600"
+    [title]="detail()?.title || 'Dettaglio riunione'"
+    subtitle="Dettaglio della riunione-evento: owner, fascia oraria, luogo e ricorrenza."
+    [hasActions]="true"
+  >
+    <div page-actions class="flex flex-wrap items-center gap-2">
+      <a *ngIf="detail()?.meetingGroupId" [routerLink]="['/meetings/groups', detail()?.meetingGroupId]" class="inline-flex items-center gap-2 rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-4 py-2 text-sm font-medium text-[color:var(--text-2)] transition hover:bg-[color:var(--surface-2)] hover:text-[color:var(--text-1)] shadow-[var(--shadow-soft)]">
+        <i class="pi pi-comments text-xs"></i>
+        Meeting group
+      </a>
+      <a *ngIf="detail()?.teamId" [routerLink]="['/teams']" [queryParams]="{ teamId: detail()?.teamId, view: 'org' }" class="inline-flex items-center gap-2 rounded-md border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-4 py-2 text-sm font-medium text-[color:var(--text-2)] transition hover:bg-[color:var(--surface-2)] hover:text-[color:var(--text-1)] shadow-[var(--shadow-soft)]">
+        <i class="pi pi-users text-xs"></i>
+        Team
+      </a>
+    </div>
+  </ui-page-header>
+
+  <ui-surface *ngIf="detail() as meeting" surfaceClass="overflow-hidden border border-sky-100 bg-[linear-gradient(180deg,rgba(239,246,255,0.92)_0%,rgba(255,255,255,1)_100%)] p-5">
+    <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">Scheda riunione</p>
+        <p class="mt-2 text-lg font-semibold text-[color:var(--text-1)]">{{ ownerLabel() }}</p>
+        <p class="mt-1 text-sm text-[color:var(--text-2)]">Una riunione-evento senza mansioni, gestita fuori dall'organigramma ma collegata al suo owner.</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <ui-label tone="info">{{ ownerTypeLabel() }}</ui-label>
+        <ui-label [tone]="meeting.type === 'recurring' ? 'warn' : 'neutral'">{{ recurrenceLabel() }}</ui-label>
+      </div>
+    </div>
+
+    <div class="grid gap-4 md:grid-cols-2">
+      <div class="rounded-2xl bg-[color:var(--surface-2)] p-4">
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Origine</p>
+        <p class="mt-2 text-sm font-medium text-[color:var(--text-1)]">{{ ownerTypeLabel() }}</p>
+      </div>
+      <div class="rounded-2xl bg-[color:var(--surface-2)] p-4">
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Owner</p>
+        <p class="mt-2 text-sm font-medium text-[color:var(--text-1)]">{{ ownerLabel() }}</p>
+      </div>
+      <div class="rounded-2xl bg-[color:var(--surface-2)] p-4">
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Quando</p>
+        <p class="mt-2 text-sm font-medium text-[color:var(--text-1)]">{{ meeting.startsAt | date:'fullDate' }}</p>
+        <p class="mt-1 text-xs text-[color:var(--text-2)]">{{ meeting.startsAt | date:'shortTime' }} - {{ meeting.endsAt | date:'shortTime' }}</p>
+      </div>
+      <div class="rounded-2xl bg-[color:var(--surface-2)] p-4">
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Tipo</p>
+        <div class="mt-2 flex items-center gap-2">
+          <ui-label [tone]="meeting.type === 'recurring' ? 'warn' : 'info'">{{ meeting.type === 'recurring' ? 'Ricorrente' : 'Singola' }}</ui-label>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-5 grid gap-4 md:grid-cols-2">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Luogo</p>
+        <p class="mt-2 text-sm text-[color:var(--text-1)]">{{ meeting.locationValue || 'Non definito' }}</p>
+      </div>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Ricorrenza</p>
+        <p class="mt-2 text-sm text-[color:var(--text-1)]">{{ meeting.recurrenceRule || recurrenceLabel() }}</p>
+      </div>
+    </div>
+
+    <div class="mt-5">
+      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">Descrizione</p>
+      <p class="mt-2 text-sm text-[color:var(--text-2)]">{{ meeting.description || 'Nessuna descrizione disponibile.' }}</p>
+    </div>
+  </ui-surface>
+</section>

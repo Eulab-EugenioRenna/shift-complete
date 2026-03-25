@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { DomainSyncService } from '../domain-sync/domain-sync.service';
@@ -14,6 +14,43 @@ export class MeetingsService {
     private readonly notificationsService: NotificationsService,
     private readonly domainSync: DomainSyncService
   ) {}
+
+  async getById(meetingId: string, actorId: string, actorRole: Role) {
+    const meetingRef = this.resolveMeetingReference(meetingId);
+    const meeting = await this.prisma.meeting.findUnique({
+      where: { id: meetingRef.meetingId },
+      include: {
+        meetingGroup: {
+          select: {
+            id: true,
+            name: true,
+            leaderId: true,
+            members: {
+              select: { userId: true }
+            }
+          }
+        },
+        team: {
+          select: {
+            id: true,
+            name: true,
+            leaderId: true,
+            memberships: {
+              select: { userId: true }
+            }
+          }
+        }
+      }
+    });
+
+    if (!meeting) {
+      throw new NotFoundException('Riunione non trovata');
+    }
+
+    await this.assertCanReadMeeting(meeting, actorId, actorRole);
+
+    return this.mapMeetingEntity(meeting);
+  }
 
   async list(start?: string, end?: string) {
     let whereClause: any = {};
@@ -66,6 +103,9 @@ export class MeetingsService {
       include: {
         meetingGroup: {
           select: { id: true, name: true }
+        },
+        team: {
+          select: { id: true, name: true }
         }
       },
       orderBy: { startsAt: 'asc' }
@@ -76,6 +116,7 @@ export class MeetingsService {
 
   async create(payload: CreateMeetingDto, actorId: string, actorRole: Role) {
     const isRecurring = !!payload.recurrenceRule;
+    this.assertMeetingOwner(payload.teamId, payload.meetingGroupId);
 
     const meeting = await this.prisma.meeting.create({
       data: {
@@ -91,10 +132,14 @@ export class MeetingsService {
         recurrenceDurationMonths: payload.recurrenceDurationMonths,
         recurrenceAutoRenew: payload.recurrenceAutoRenew,
         recurrenceRenewMonths: payload.recurrenceRenewMonths,
-        meetingGroupId: payload.meetingGroupId,
+        meetingGroupId: payload.meetingGroupId ?? null,
+        teamId: payload.teamId ?? null,
         createdById: actorId
       },
-      include: { meetingGroup: true }
+      include: {
+        meetingGroup: { select: { id: true, name: true } },
+        team: { select: { id: true, name: true } }
+      }
     });
 
     await this.prisma.auditLog.create({
@@ -107,7 +152,7 @@ export class MeetingsService {
       }
     });
 
-    const userIds = await this.getMeetingParticipants(meeting.meetingGroupId);
+    const userIds = await this.getMeetingParticipants(meeting.teamId, meeting.meetingGroupId);
     for (const uid of userIds) {
       if (uid === actorId) continue;
       await this.notificationsService.pushSystemNotification(
@@ -119,7 +164,7 @@ export class MeetingsService {
       );
     }
 
-    return meeting;
+    return this.mapMeetingEntity(meeting);
   }
 
   async update(meetingId: string, payload: ExtendedUpdateMeetingDto, actorId: string, actorRole: Role) {
@@ -131,8 +176,15 @@ export class MeetingsService {
 
     const meeting = await this.prisma.meeting.findUniqueOrThrow({
       where: { id: meetingRef.meetingId },
-      include: { meetingGroup: true }
+      include: {
+        meetingGroup: { select: { id: true, name: true } },
+        team: { select: { id: true, name: true } }
+      }
     });
+
+    const nextTeamId = payload.teamId !== undefined ? payload.teamId ?? null : meeting.teamId ?? null;
+    const nextMeetingGroupId = payload.meetingGroupId !== undefined ? payload.meetingGroupId ?? null : meeting.meetingGroupId ?? null;
+    this.assertMeetingOwner(nextTeamId, nextMeetingGroupId);
 
     const isRecurring = payload.recurrenceRule !== undefined ? !!payload.recurrenceRule : meeting.type === 'recurring';
 
@@ -151,9 +203,13 @@ export class MeetingsService {
         recurrenceDurationMonths: payload.recurrenceDurationMonths,
         recurrenceAutoRenew: payload.recurrenceAutoRenew,
         recurrenceRenewMonths: payload.recurrenceRenewMonths,
-        meetingGroupId: payload.meetingGroupId
+        meetingGroupId: payload.meetingGroupId !== undefined ? payload.meetingGroupId ?? null : undefined,
+        teamId: payload.teamId !== undefined ? payload.teamId ?? null : undefined,
       },
-      include: { meetingGroup: true }
+      include: {
+        meetingGroup: { select: { id: true, name: true } },
+        team: { select: { id: true, name: true } }
+      }
     });
 
     await this.prisma.auditLog.create({
@@ -166,7 +222,7 @@ export class MeetingsService {
       }
     });
 
-    const userIds = await this.getMeetingParticipants(updated.meetingGroupId);
+    const userIds = await this.getMeetingParticipants(updated.teamId, updated.meetingGroupId);
     for (const uid of userIds) {
       if (uid === actorId) continue;
       await this.notificationsService.pushSystemNotification(
@@ -178,7 +234,7 @@ export class MeetingsService {
       );
     }
 
-    return updated;
+    return this.mapMeetingEntity(updated);
   }
 
   async remove(meetingId: string, actorId: string, actorRole: Role, mode?: 'single' | 'series', occurrenceStart?: string) {
@@ -209,7 +265,7 @@ export class MeetingsService {
       }
     });
 
-    const userIds = await this.getMeetingParticipants(targetMeeting.meetingGroupId);
+    const userIds = await this.getMeetingParticipants(targetMeeting.teamId, targetMeeting.meetingGroupId);
     for (const uid of userIds) {
       if (uid === actorId) continue;
       await this.notificationsService.pushSystemNotification(
@@ -265,6 +321,7 @@ export class MeetingsService {
             originalEndsAt: originalEndsAt.toISOString()
           }),
           meetingGroupId: parent.meetingGroupId,
+          teamId: parent.teamId,
           createdById: actorId
         }
       });
@@ -291,7 +348,7 @@ export class MeetingsService {
       }
     });
 
-    const userIds = await this.getMeetingParticipants(parent.meetingGroupId);
+    const userIds = await this.getMeetingParticipants(parent.teamId, parent.meetingGroupId);
     for (const uid of userIds) {
       if (uid === actorId) continue;
       await this.notificationsService.pushSystemNotification(
@@ -345,6 +402,7 @@ export class MeetingsService {
             mode: 'cancelled'
           }),
           meetingGroupId: parent.meetingGroupId,
+          teamId: parent.teamId,
           createdById: actorId
         }
       });
@@ -355,7 +413,7 @@ export class MeetingsService {
     });
 
     if (parent) {
-      const userIds = await this.getMeetingParticipants(parent.meetingGroupId);
+      const userIds = await this.getMeetingParticipants(parent.teamId, parent.meetingGroupId);
       for (const uid of userIds) {
         if (uid === actorId) continue;
         await this.notificationsService.pushSystemNotification(
@@ -371,8 +429,24 @@ export class MeetingsService {
     return { deleted: true, eventId: parentMeetingId, occurrenceStart };
   }
 
-  private async getMeetingParticipants(meetingGroupId: string): Promise<string[]> {
+  private async getMeetingParticipants(teamId?: string | null, meetingGroupId?: string | null): Promise<string[]> {
     const userIds = new Set<string>();
+
+    if (teamId) {
+      const team = await this.prisma.team.findUnique({
+        where: { id: teamId },
+        include: {
+          memberships: {
+            select: { userId: true }
+          }
+        }
+      });
+
+      team?.memberships.forEach((membership) => userIds.add(membership.userId));
+      if (team?.leaderId) {
+        userIds.add(team.leaderId);
+      }
+    }
     
     if (meetingGroupId) {
       const groupData = await this.prisma.meetingGroup.findUnique({
@@ -381,10 +455,61 @@ export class MeetingsService {
       });
       if (groupData) {
         groupData.members.forEach((m: { userId: string }) => userIds.add(m.userId));
+        if (groupData.leaderId) {
+          userIds.add(groupData.leaderId);
+        }
       }
     }
     
     return Array.from(userIds);
+  }
+
+  private assertMeetingOwner(teamId?: string | null, meetingGroupId?: string | null): void {
+    const hasTeam = Boolean(teamId);
+    const hasMeetingGroup = Boolean(meetingGroupId);
+
+    if (!hasTeam && !hasMeetingGroup) {
+      throw new BadRequestException('Specifica un team o un gruppo riunione.');
+    }
+
+    if (hasTeam && hasMeetingGroup) {
+      throw new BadRequestException('Una riunione puo appartenere solo a un team o a un gruppo riunione.');
+    }
+  }
+
+  private async assertCanReadMeeting(meeting: any, actorId: string, actorRole: Role): Promise<void> {
+    if (actorRole === Role.administrator) {
+      return;
+    }
+
+    if (meeting.team) {
+      const canReadTeamMeeting = meeting.team.leaderId === actorId
+        || (meeting.team.memberships ?? []).some((membership: { userId: string }) => membership.userId === actorId);
+
+      if (canReadTeamMeeting) {
+        return;
+      }
+    }
+
+    if (meeting.meetingGroup) {
+      const canReadMeetingGroupMeeting = meeting.meetingGroup.leaderId === actorId
+        || (meeting.meetingGroup.members ?? []).some((member: { userId: string }) => member.userId === actorId);
+
+      if (canReadMeetingGroupMeeting) {
+        return;
+      }
+    }
+
+    throw new ForbiddenException('Non puoi consultare questa riunione');
+  }
+
+  private mapMeetingEntity(meeting: any) {
+    return {
+      ...meeting,
+      team: meeting.team ? { id: meeting.team.id, name: meeting.team.name } : null,
+      meetingGroup: meeting.meetingGroup ? { id: meeting.meetingGroup.id, name: meeting.meetingGroup.name } : null,
+      ownerType: meeting.teamId ? 'team' : 'meetingGroup',
+    };
   }
 
   private expandRecurringMeetings(meetings: any[], periodStart?: Date, periodEnd?: Date) {
@@ -408,7 +533,7 @@ export class MeetingsService {
 
     for (const meeting of baseMeetings) {
       if (meeting.type !== 'recurring') {
-        expanded.push({ ...meeting, seriesId: undefined, isOccurrence: false });
+        expanded.push({ ...this.mapMeetingEntity(meeting), seriesId: undefined, isOccurrence: false });
         continue;
       }
 
@@ -443,13 +568,13 @@ export class MeetingsService {
           
           const exception = childBySeriesOccurrence.get(key);
           if (exception) {
-            expanded.push({ ...exception, isOccurrence: true, seriesId: meeting.id, parentMeetingId: meeting.id, seriesTemplate: meeting });
+            expanded.push({ ...this.mapMeetingEntity(exception), isOccurrence: true, seriesId: meeting.id, parentMeetingId: meeting.id, seriesTemplate: meeting });
             continue;
           }
 
           const end = new Date(date.getTime() + duration);
           expanded.push({
-            ...meeting,
+            ...this.mapMeetingEntity(meeting),
             id: `${meeting.id}:${isoStart}`,
             startsAt: date,
             endsAt: end,
@@ -463,7 +588,7 @@ export class MeetingsService {
         }
       } catch (err) {
         console.warn(`Failed to expand recurrence for meeting ${meeting.id}:`, err);
-        expanded.push({ ...meeting, seriesId: undefined, isOccurrence: false });
+        expanded.push({ ...this.mapMeetingEntity(meeting), seriesId: undefined, isOccurrence: false });
       }
     }
 

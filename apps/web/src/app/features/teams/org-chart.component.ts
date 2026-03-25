@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { TreeNode } from 'primeng/api';
 import { OrganizationChart } from 'primeng/organizationchart';
 import { TeamGroupItem, TeamListItem, MeetingGroupItem } from '@shift-complete/shared-types';
@@ -18,12 +19,15 @@ type OrgNodeData = {
   duties?: string[];
   teamCount?: number;
   meetingGroupCount?: number;
+  route?: string[];
+  queryParams?: Record<string, string>;
+  isCurrentUserNode?: boolean;
 };
 
 @Component({
   selector: 'app-org-chart',
   standalone: true,
-  imports: [CommonModule, OrganizationChart, UiBadgeComponent, UiChipComponent],
+  imports: [CommonModule, RouterLink, OrganizationChart, UiBadgeComponent, UiChipComponent],
   templateUrl: './org-chart.component.html',
   styles: [`
     :host { display: block; }
@@ -105,6 +109,7 @@ export class OrgChartComponent {
           count: groupTeams.length + groupMeetingGroups.length,
           teamCount: groupTeams.length,
           meetingGroupCount: groupMeetingGroups.length,
+          color: '#f97316',
           icon: 'pi pi-folder',
         },
         children: [
@@ -130,6 +135,7 @@ export class OrgChartComponent {
           label: 'Organizzazione',
           subtitle: `${groups.length} gruppi · ${teams.length} team · ${meetingGroups.length} gruppi riunione`,
           count: groups.length + teams.length + meetingGroups.length,
+          color: '#0f766e',
           icon: 'pi pi-sitemap',
         },
       children,
@@ -142,6 +148,7 @@ export class OrgChartComponent {
     const volunteers = (team.members ?? []).filter(
       (m) => m.id !== team.leader?.id
     );
+    const teamColor = this.colorFromLabel(team.groupId || team.name);
 
     return {
       expanded: true,
@@ -149,6 +156,8 @@ export class OrgChartComponent {
         data: {
           kind: 'team',
           label: team.name,
+          subtitle: team.group?.name || 'Team autonomo',
+          color: teamColor,
           leader: team.leader
             ? { id: team.leader.id, fullName: team.leader.fullName, isCurrentUser: this.isCurrentUser(team.leader.id) }
             : null,
@@ -156,11 +165,16 @@ export class OrgChartComponent {
           duties: (team.duties ?? []).map((d) => d.name),
           members: volunteers.map((member) => ({ id: member.id, fullName: member.fullName, isCurrentUser: this.isCurrentUser(member.id) })),
           icon: 'pi pi-users',
+          route: ['/teams'],
+          queryParams: { teamId: team.id, view: 'org' },
+          isCurrentUserNode: Boolean(this.isCurrentUser(team.leader?.id) || volunteers.some((member) => this.isCurrentUser(member.id))),
         },
       };
   }
 
   private buildMeetingGroupNode(meetingGroup: MeetingGroupItem): TreeNode<OrgNodeData> {
+    const accentColor = this.colorFromLabel(meetingGroup.groupId || meetingGroup.name);
+    const members = (meetingGroup.members || []).map((member) => ({ id: member.id, fullName: member.fullName, isCurrentUser: this.isCurrentUser(member.id) }));
     return {
       expanded: true,
       type: 'meetingGroup',
@@ -168,14 +182,32 @@ export class OrgChartComponent {
         kind: 'meetingGroup',
         label: meetingGroup.name,
         subtitle: meetingGroup.description || undefined,
+        color: accentColor,
         leader: meetingGroup.leader
           ? { id: meetingGroup.leader.id, fullName: meetingGroup.leader.fullName, isCurrentUser: this.isCurrentUser(meetingGroup.leader.id) }
           : null,
         count: meetingGroup.members?.length || 0,
-        members: (meetingGroup.members || []).map((member) => ({ id: member.id, fullName: member.fullName, isCurrentUser: this.isCurrentUser(member.id) })),
+        members,
         icon: 'pi pi-comments',
+        route: ['/meetings/groups', meetingGroup.id],
+        isCurrentUserNode: Boolean(this.isCurrentUser(meetingGroup.leader?.id) || members.some((member) => member.isCurrentUser)),
       },
     };
+  }
+
+  protected nodeColor(node: TreeNode<OrgNodeData>): string {
+    return node.data?.color || '#475569';
+  }
+
+  private colorFromLabel(seed: string | null | undefined): string {
+    const value = (seed || '').trim();
+    if (!value) {
+      return '#0f766e';
+    }
+
+    const palette = ['#0f766e', '#0284c7', '#1d4ed8', '#b45309', '#be123c', '#166534'];
+    const total = Array.from(value).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+    return palette[total % palette.length];
   }
 
   private isCurrentUser(userId: string | null | undefined): boolean {

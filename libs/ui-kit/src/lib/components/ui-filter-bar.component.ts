@@ -7,7 +7,7 @@ import { UiButtonComponent } from './ui-button.component';
   standalone: true,
   imports: [CommonModule, UiButtonComponent],
   template: `
-    <div class="rounded-[22px] border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] shadow-[var(--shadow-soft)]" [ngClass]="surfaceClass">
+    <div class="rounded-[22px] border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] shadow-[var(--shadow-soft)]" [ngClass]="[surfaceClass, compact ? 'ui-filter-bar--compact' : '']">
       <div class="flex flex-col gap-4 px-4 py-4 sm:px-5" [ngClass]="contentClass">
         <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div class="min-w-0" *ngIf="title || subtitle">
@@ -32,6 +32,7 @@ export class UiFilterBarComponent {
   @Input() resetLabel = 'Rimuovi filtri';
   @Input() showReset = false;
   @Input() hasActions = false;
+  @Input() compact = false;
   @Input() surfaceClass = '';
   @Input() contentClass = '';
   @Input() fieldsClass = 'md:grid-cols-2 xl:grid-cols-5';

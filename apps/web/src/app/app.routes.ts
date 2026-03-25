@@ -41,6 +41,18 @@ export const appRoutes: Routes = [
           ),
       },
       {
+        path: "events/:eventId/planning",
+        canActivate: [roleGuard, onboardingGuard],
+        data: {
+          roles: ["administrator", "service_leader"],
+          allowIncompleteOnboarding: true,
+        },
+        loadComponent: () =>
+          import("./features/events/event-planning-page.component").then(
+            (m) => m.EventPlanningPageComponent,
+          ),
+      },
+      {
         path: "replacements",
         canActivate: [roleGuard, onboardingGuard],
         data: {
@@ -56,7 +68,7 @@ export const appRoutes: Routes = [
         path: "teams",
         canActivate: [roleGuard, onboardingGuard],
         data: {
-          roles: ["administrator", "service_leader"],
+          roles: ["administrator", "service_leader", "volunteer"],
           allowIncompleteOnboarding: true,
         },
         loadComponent: () =>
@@ -68,7 +80,7 @@ export const appRoutes: Routes = [
         path: "org-chart",
         canActivate: [roleGuard, onboardingGuard],
         data: {
-          roles: ["administrator", "service_leader"],
+          roles: ["administrator", "service_leader", "volunteer"],
           allowIncompleteOnboarding: true,
         },
         loadComponent: () =>
@@ -86,6 +98,30 @@ export const appRoutes: Routes = [
         loadComponent: () =>
           import("./features/meetings/meetings-page.component").then(
             (m) => m.MeetingsPageComponent,
+          ),
+      },
+      {
+        path: "meetings/groups/:groupId",
+        canActivate: [roleGuard, onboardingGuard],
+        data: {
+          roles: ["administrator", "service_leader", "volunteer"],
+          allowIncompleteOnboarding: true,
+        },
+        loadComponent: () =>
+          import("./features/meetings/meeting-group-detail-page.component").then(
+            (m) => m.MeetingGroupDetailPageComponent,
+          ),
+      },
+      {
+        path: "meetings/:meetingId",
+        canActivate: [roleGuard, onboardingGuard],
+        data: {
+          roles: ["administrator", "service_leader", "volunteer"],
+          allowIncompleteOnboarding: true,
+        },
+        loadComponent: () =>
+          import("./features/meetings/meeting-detail-page.component").then(
+            (m) => m.MeetingDetailPageComponent,
           ),
       },
       {

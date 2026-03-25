@@ -443,6 +443,10 @@ export class AppApiService {
     return this.http.get<MeetingGroupItem[]>(`${this.apiBaseUrl}/meeting-groups`);
   }
 
+  meetingGroup(id: string) {
+    return this.http.get<MeetingGroupItem & { group?: { id: string; name: string | null; description?: string | null } | null; meetings?: MeetingListItem[] }>(`${this.apiBaseUrl}/meeting-groups/${id}`);
+  }
+
   createMeetingGroup(payload: CreateMeetingGroupDto) {
     return this.http.post<MeetingGroupItem>(`${this.apiBaseUrl}/meeting-groups`, payload);
   }
@@ -468,6 +472,10 @@ export class AppApiService {
     return this.http.get<MeetingListItem[]>(`${this.apiBaseUrl}/meetings`, { params });
   }
 
+  meeting(id: string) {
+    return this.http.get<MeetingListItem>(`${this.apiBaseUrl}/meetings/${id}`);
+  }
+
   createMeeting(payload: CreateMeetingDto) {
     return this.http.post<MeetingListItem>(`${this.apiBaseUrl}/meetings`, payload);
   }
@@ -484,4 +492,3 @@ export class AppApiService {
     return this.http.delete<{ deleted: boolean; id: string }>(`${this.apiBaseUrl}/meetings/${id}`, { params });
   }
 }
-

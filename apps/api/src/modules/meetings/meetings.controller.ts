@@ -23,6 +23,11 @@ export class MeetingsController {
     return this.meetingsService.list(start, end);
   }
 
+  @Get(':id')
+  detail(@Param('id') id: string, @CurrentUser() user: { sub: string; role: Role }) {
+    return this.meetingsService.getById(id, user.sub, user.role);
+  }
+
   @Roles(Role.administrator, Role.service_leader)
   @Post()
   @UsePipes(new ZodValidationPipe(CreateMeetingSchema))

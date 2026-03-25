@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { MeetingGroupItem, TeamGroupItem, TeamListItem, UserProfile } from '@shift-complete/shared-types';
+import { MeetingGroupItem, TeamGroupItem, TeamListItem } from '@shift-complete/shared-types';
 import {
   UiButtonComponent,
   UiFieldComponent,
@@ -47,8 +47,8 @@ export class OrgChartPageComponent {
   protected readonly teams = signal<TeamListItem[]>([]);
   protected readonly groups = signal<TeamGroupItem[]>([]);
   protected readonly meetingGroups = signal<MeetingGroupItem[]>([]);
-  protected readonly people = signal<UserProfile[]>([]);
   protected readonly editingGroupId = signal<string | null>(null);
+  protected readonly editMode = signal(false);
   protected groupDialogVisible = false;
   protected groupForm = { name: '', description: '', teamIds: [] as string[], meetingGroupIds: [] as string[] };
 
@@ -72,6 +72,11 @@ export class OrgChartPageComponent {
       value: `${this.meetingGroups().length}`,
       detail: `${this.ungroupedMeetingGroups().length} non assegnati`,
     },
+    {
+      label: 'Nodi cliccabili',
+      value: `${this.teams().length + this.meetingGroups().length}`,
+      detail: 'team e meeting group aprono il dettaglio dedicato',
+    },
   ]);
   protected readonly highlightedGroups = computed(() =>
     [...this.groups()]
@@ -87,6 +92,10 @@ export class OrgChartPageComponent {
     this.editingGroupId.set(null);
     this.groupForm = { name: '', description: '', teamIds: [], meetingGroupIds: [] };
     this.groupDialogVisible = true;
+  }
+
+  protected toggleEditMode(): void {
+    this.editMode.update((value) => !value);
   }
 
   protected editGroup(group: TeamGroupItem): void {
@@ -146,6 +155,5 @@ export class OrgChartPageComponent {
     this.api.teams().subscribe({ next: (teams) => this.teams.set(teams) });
     this.api.teamGroups().subscribe({ next: (groups) => this.groups.set(groups) });
     this.api.meetingGroups().subscribe({ next: (groups) => this.meetingGroups.set(groups) });
-    this.api.users().subscribe({ next: (users) => this.people.set(users) });
   }
 }

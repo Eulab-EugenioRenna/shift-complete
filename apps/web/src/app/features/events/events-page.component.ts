@@ -1,22 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, HostListener, computed, effect, inject, signal } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { Component, HostListener, computed, effect, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { map, of, switchMap, tap, forkJoin } from 'rxjs';
+import { map, of, switchMap, tap } from 'rxjs';
 import { TableModule } from 'primeng/table';
-import {
-  AvailabilityItem,
-  CreateAvailabilityDto,
-  ReplacementItem,
-  ScheduleApplyScope,
-  SchedulePlanListItem,
-  SchedulePlanResponse,
-  SchedulePreviewRequest,
-  ScheduleSuggestionItem,
-} from '@shift-complete/shared-types';
+import { ReplacementItem } from '@shift-complete/shared-types';
 import { ApiErrorService } from '../../core/services/api-error.service';
 import { GlobalTeamScopeService } from '../../core/services/global-team-scope.service';
-import { SchedulingPreviewDeliveryService } from '../../core/services/scheduling-preview-delivery.service';
 import { SessionService } from '../../core/services/session.service';
 import { TeamScopeChipsComponent } from '../../shared/components/team-scope-chips.component';
 import { ReportDocument, ReportModalComponent } from '../../shared/components/report-modal.component';
@@ -39,10 +29,7 @@ import {
   UiPageHeaderComponent,
   UiReplacementTimelineCardComponent,
   UiSelectComponent,
-  UiSidebarPanelComponent,
-  UiSegmentedControlComponent,
   UiSurfaceComponent,
-  UiTableShellComponent,
   UiToggleComponent,
 } from '@shift-complete/ui-kit';
 
@@ -136,14 +123,18 @@ type TeamOption = {
   }>;
 };
 
-type ScheduleApplyOption = { label: string; value: ScheduleApplyScope };
-
-type AvailabilityForm = {
-  userId: string | null;
+type EventFormState = {
+  title: string;
+  locationValue: string;
   teamId: string | null;
   startsAt: Date | null;
   endsAt: Date | null;
-  reason: string;
+  isRecurring: boolean;
+  recurrenceFrequency: 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+  recurrenceDurationMonths: RecurrenceDurationOption;
+  recurrenceAutoRenew: boolean;
+  recurrenceRenewMonths: RecurrenceDurationOption;
+  slots: EventSlotForm[];
 };
 
 @Component({
@@ -164,12 +155,10 @@ type AvailabilityForm = {
     UiModalComponent,
     UiPageHeaderComponent,
     UiReplacementTimelineCardComponent,
-    UiSidebarPanelComponent,
     UiSurfaceComponent,
     UiSelectComponent,
     UiDatePickerComponent,
     UiToggleComponent,
-    UiTableShellComponent,
     UiLabelComponent,
     TeamScopeChipsComponent,
     ReportModalComponent,
@@ -177,49 +166,33 @@ type AvailabilityForm = {
   templateUrl: './events-page.component.html',
 })
 export class EventsPageComponent {
-  private readonly destroyRef = inject(DestroyRef);
   private readonly api = inject(AppApiService);
   private readonly apiError = inject(ApiErrorService);
   protected readonly live = inject(LiveNotificationsService);
-  private readonly schedulingDelivery = inject(SchedulingPreviewDeliveryService);
   private readonly feedback = inject(UiFeedbackService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly session = inject(SessionService);
   protected readonly teamScope = inject(GlobalTeamScopeService);
 
   protected readonly events = signal<CalendarEvent[]>([]);
   protected readonly teams = signal<TeamOption[]>([]);
   protected readonly replacements = signal<ReplacementItem[]>([]);
-  protected readonly previewSuggestions = signal<ScheduleSuggestionItem[]>([]);
-  protected readonly planningSummary = signal<SchedulePlanResponse['summary'] | null>(null);
-  protected readonly planningHistory = signal<SchedulePlanListItem[]>([]);
-  protected readonly operationalAvailability = signal<AvailabilityItem[]>([]);
   protected readonly selectedEvent = signal<CalendarEvent | null>(null);
   protected readonly selectedUserFilter = signal<string>('');
   protected readonly occurrenceView = signal<'all' | 'series' | 'occurrences'>('all');
   protected readonly selectedSeriesFilter = signal<string>('');
-  protected readonly eventTypeFilter = signal<'all' | 'event' | 'meeting'>('all');
   protected readonly eventLocationFilter = signal<string>('all');
   protected readonly editingEventId = signal<string | null>(null);
   protected readonly editingEventScope = signal<EventEditScope>('single');
   protected readonly editingOccurrenceStart = signal<string | null>(null);
   protected readonly loading = signal(false);
   protected readonly savingEvent = signal(false);
-  protected readonly scheduling = signal(false);
-  protected readonly savingAvailability = signal(false);
   protected readonly locallyReservedSuggestionIds = signal<string[]>([]);
   protected readonly confirmVisible = signal(false);
   protected readonly pendingConfirm = signal<PendingConfirmAction | null>(null);
-  protected readonly selectedApplyScope = signal<ScheduleApplyScope>('event');
   protected readonly reportVisible = signal(false);
-  protected readonly selectedManualAssignments = signal<Record<string, string>>({});
-  protected readonly currentPlanId = signal<string | null>(null);
-  protected readonly pendingPlanningJobId = signal<string | null>(null);
-  protected readonly planningHistoryFilter = signal<'all' | 'preview' | 'applied' | 'invalidated'>('all');
-  protected previewVisible = false;
-  protected assignmentBoardVisible = false;
   protected eventDialogVisible = false;
-  protected availabilityDialogVisible = false;
 
   @HostListener('document:keydown.escape', ['$event'])
   protected handleEscape(event: KeyboardEvent): void {
@@ -235,31 +208,13 @@ export class EventsPageComponent {
       return;
     }
 
-    if (this.assignmentBoardVisible) {
-      this.assignmentBoardVisible = false;
-      event.preventDefault();
-      return;
-    }
-
-    if (this.previewVisible) {
-      this.previewVisible = false;
-      event.preventDefault();
-    }
   }
   protected readonly preferenceCatalog = signal<Array<{ id: string; type: 'shift' | 'competency' | 'location'; value: string; label: string }>>([]);
-  protected eventForm = { title: '', locationValue: '' as string, startsAt: null as Date | null, endsAt: null as Date | null, isRecurring: false, recurrenceFrequency: 'WEEKLY' as 'WEEKLY' | 'MONTHLY' | 'YEARLY', recurrenceDurationMonths: 12 as RecurrenceDurationOption, recurrenceAutoRenew: true, recurrenceRenewMonths: 12 as RecurrenceDurationOption, slots: [] as EventSlotForm[] };
+  protected eventForm: EventFormState = { title: '', locationValue: '', teamId: null, startsAt: null, endsAt: null, isRecurring: false, recurrenceFrequency: 'WEEKLY', recurrenceDurationMonths: 12, recurrenceAutoRenew: true, recurrenceRenewMonths: 12, slots: [] };
   protected replacementReason = '';
-  protected availabilityForm: AvailabilityForm = { userId: null, teamId: null, startsAt: null, endsAt: null, reason: '' };
   protected readonly replacementAssigneeId = signal<string | null>(null);
   protected readonly draggedVolunteerId = signal<string | null>(null);
   protected readonly dragHoverSlotId = signal<string | null>(null);
-  protected readonly applyScopeOptions: ScheduleApplyOption[] = [
-    { label: 'Evento', value: 'event' },
-    { label: 'Mese', value: 'month' },
-    { label: 'Ciclo', value: 'cycle' },
-    { label: 'Anno', value: 'year' },
-    { label: 'Tutto', value: 'all' },
-  ];
   protected readonly teamOptions = computed(() => this.teams().map((team) => ({ label: team.name, value: team.id })));
   protected readonly locationOptions = computed(() => this.preferenceCatalog().filter((item) => item.type === 'location').map((item) => ({ label: item.label, value: item.value })));
   protected readonly selectableUsers = computed(() =>
@@ -283,23 +238,11 @@ export class EventsPageComponent {
       ).values()
     ).sort((left, right) => left.label.localeCompare(right.label, 'it'))
   );
-  protected readonly eventTypeFilterOptions = [
-    { label: 'Tutti (Eventi e Riunioni)', value: 'all' },
-    { label: 'Eventi', value: 'event' },
-    { label: 'Riunioni', value: 'meeting' },
-  ];
   protected readonly eventLocationFilterOptions = computed(() => [
     { label: 'Tutti i luoghi', value: 'all' },
     { label: 'Senza luogo specificato', value: 'none' },
     ...this.locationOptions()
   ]);
-  
-  protected setEventTypeFilter(value: unknown): void {
-    const str = String(value);
-    if (str === 'event' || str === 'meeting' || str === 'all') {
-      this.eventTypeFilter.set(str);
-    }
-  }
 
   protected readonly filteredEvents = computed(() => {
     const userId = this.selectedUserFilter();
@@ -307,7 +250,8 @@ export class EventsPageComponent {
 
     return this.events().filter((event) => {
       const scopedTeamId = this.teamScope.teamId();
-      const teamMatch = !scopedTeamId || (event.slots ?? []).some((slot) => slot.teamId === scopedTeamId);
+      const directTeamId = (event as CalendarEvent & { teamId?: string | null }).teamId;
+      const teamMatch = !scopedTeamId || directTeamId === scopedTeamId || (event.slots ?? []).some((slot) => slot.teamId === scopedTeamId);
       const userMatch = !userId || this.eventAssigneeIds(event).includes(userId);
       const seriesMatch = !seriesId || (event.seriesId ?? event.id) === seriesId;
       const occurrenceMatch = this.occurrenceView() === 'all'
@@ -316,13 +260,6 @@ export class EventsPageComponent {
           ? !event.isOccurrence
           : Boolean(event.isOccurrence);
       
-      const typeFilter = this.eventTypeFilter();
-      const typeMatch = typeFilter === 'all'
-        ? true
-        : typeFilter === 'meeting'
-          ? event.type === 'MEETING'
-          : event.type !== 'MEETING';
-
       const locationFilter = this.eventLocationFilter();
       const locationMatch = locationFilter === 'all'
         ? true
@@ -330,10 +267,23 @@ export class EventsPageComponent {
           ? !event.locationValue
           : event.locationValue === locationFilter;
 
-      return teamMatch && userMatch && seriesMatch && occurrenceMatch && typeMatch && locationMatch;
+      return teamMatch && userMatch && seriesMatch && occurrenceMatch && locationMatch;
     });
   });
   protected readonly selectedEventSlots = computed(() => this.selectedEvent()?.slots ?? []);
+  protected readonly availableEventDuties = computed(() => {
+    const teamId = this.eventForm.teamId;
+    if (!teamId) {
+      return [] as Array<{ id: string; name: string; required: boolean }>;
+    }
+
+    const duties = this.teams().find((team) => team.id === teamId)?.duties ?? [];
+    return duties.map((duty) => ({
+      id: duty.id,
+      name: duty.name,
+      required: this.eventForm.slots.some((slot) => slot.dutyId === duty.id && slot.required),
+    }));
+  });
   protected readonly canManageEvents = computed(() => this.session.hasAnyRole('administrator', 'service_leader'));
   protected readonly canManageReplacements = computed(() => this.session.hasAnyRole('administrator', 'service_leader'));
 
@@ -341,40 +291,8 @@ export class EventsPageComponent {
     this.selectedUserFilter.set('');
     this.selectedSeriesFilter.set('');
     this.occurrenceView.set('all');
-    this.eventTypeFilter.set('all');
     this.eventLocationFilter.set('all');
   }
-  protected readonly canManageSelectedAssignments = computed(() => Boolean(this.selectedEvent()?.canManageAssignments));
-  protected readonly activePlanningSuggestions = computed(() =>
-    this.previewSuggestions().filter((suggestion) => {
-      const selected = this.selectedEvent();
-      return !selected || suggestion.eventId === selected.id || suggestion.eventId === (selected.seriesId ?? selected.id);
-    })
-  );
-  protected readonly assignablePeople = computed(() =>
-    Array.from(
-      new Map(
-        this.teams()
-          .flatMap((team) => team.members ?? [])
-          .map((member) => [member.id, { label: member.fullName, value: member.id }])
-      ).values()
-    )
-  );
-  protected readonly filteredPlanningHistory = computed(() => {
-    const filter = this.planningHistoryFilter();
-    return this.planningHistory().filter((plan) => {
-      if (filter === 'invalidated') {
-        return Boolean(plan.invalidatedAt);
-      }
-      if (filter === 'applied') {
-        return Boolean(plan.applyScope) && !plan.invalidatedAt;
-      }
-      if (filter === 'preview') {
-        return !plan.applyScope && !plan.invalidatedAt;
-      }
-      return true;
-    });
-  });
   protected readonly eventReport = computed<ReportDocument | null>(() => {
     const event = this.selectedEvent();
     if (!event) {
@@ -447,48 +365,6 @@ export class EventsPageComponent {
       ],
     };
   });
-  protected planningCandidateOptions(item: ScheduleSuggestionItem): Array<{ label: string; value: string }> {
-    return (item.candidates ?? []).map((candidate) => ({ label: candidate.fullName, value: candidate.id }));
-  }
-
-  protected loadPlan(planId: string): void {
-    this.scheduling.set(true);
-    this.api.schedulingPlan(planId).subscribe({
-      next: (result) => {
-        this.currentPlanId.set(result.planId ?? planId);
-        this.previewSuggestions.set(result.suggestions ?? []);
-        this.planningSummary.set(result.summary ?? null);
-        this.previewVisible = true;
-        this.scheduling.set(false);
-        this.loadPlanningHistory(result.anchorEventId || undefined);
-        this.feedback.success('Piano caricato');
-      },
-      error: (error) => {
-        this.scheduling.set(false);
-        this.feedback.error('Piano non disponibile', this.apiError.message(error, 'Impossibile caricare il piano selezionato.'));
-      }
-    });
-  }
-
-  protected updateApplyScope(value: unknown): void {
-    const normalized = this.castNullable(value);
-    if (normalized === 'month' || normalized === 'cycle' || normalized === 'year' || normalized === 'all') {
-      this.selectedApplyScope.set(normalized);
-      return;
-    }
-
-    this.selectedApplyScope.set('event');
-  }
-
-  protected updatePlanningHistoryFilter(value: unknown): void {
-    const normalized = this.castNullable(value);
-    if (normalized === 'preview' || normalized === 'applied' || normalized === 'invalidated') {
-      this.planningHistoryFilter.set(normalized);
-      return;
-    }
-
-    this.planningHistoryFilter.set('all');
-  }
   protected readonly recurrenceOptions = [
     { label: 'Settimanale', value: 'WEEKLY' },
     { label: 'Mensile', value: 'MONTHLY' },
@@ -505,60 +381,6 @@ export class EventsPageComponent {
     { label: 'Serie', value: 'series' },
     { label: 'Occorrenze', value: 'occurrences' },
   ];
-  protected reasonTone(reason: string): 'success' | 'warn' | 'neutral' {
-    return reason.includes(':+') ? 'success' : reason.includes(':-') ? 'warn' : 'neutral';
-  }
-
-  protected planningCoverageTone(status: ScheduleSuggestionItem['coverageStatus']): 'success' | 'warn' | 'info' | 'neutral' {
-    if (status === 'covered') {
-      return 'success';
-    }
-    if (status === 'manual') {
-      return 'info';
-    }
-    if (status === 'suggested') {
-      return 'info';
-    }
-    return 'warn';
-  }
-
-  protected planningCoverageLabel(status: ScheduleSuggestionItem['coverageStatus']): string {
-    if (status === 'covered') {
-      return 'Coperto';
-    }
-    if (status === 'manual') {
-      return 'Scelta manuale';
-    }
-    if (status === 'suggested') {
-      return 'Proposto';
-    }
-    return 'Scoperto';
-  }
-
-  protected cycleSummaryLabel(item: ScheduleSuggestionItem): string {
-    return `Ciclo ${item.cycleNumber} · passo ${item.cycleIndex}/${item.cycleLength}`;
-  }
-
-  protected planDriftTone(item: ScheduleSuggestionItem): 'success' | 'warn' | 'info' {
-    if (item.drift?.status === 'changed') {
-      return 'warn';
-    }
-    if (item.drift?.status === 'missing') {
-      return 'info';
-    }
-    return 'success';
-  }
-
-  protected planDriftLabel(item: ScheduleSuggestionItem): string {
-    if (item.drift?.status === 'changed') {
-      return `Reale: ${item.drift.currentAssigneeName || 'assegnazione diversa'}`;
-    }
-    if (item.drift?.status === 'missing') {
-      return 'Non ancora applicato nel reale';
-    }
-    return 'Allineato al reale';
-  }
-
   protected slotDutyOptions(teamId: string | null): Array<{ label: string; value: string }> {
     if (!teamId) {
       return [];
@@ -567,28 +389,17 @@ export class EventsPageComponent {
     return (this.teams().find((team) => team.id === teamId)?.duties ?? []).map((duty) => ({ label: duty.name, value: duty.id }));
   }
 
-  protected addEventSlot(): void {
-    this.eventForm.slots = [...this.eventForm.slots, this.createEmptySlot(this.eventForm.startsAt, this.eventForm.endsAt)];
+  protected updateEventTeam(teamId: string): void {
+    this.eventForm = {
+      ...this.eventForm,
+      teamId,
+      slots: this.createSlotsForTeam(teamId, this.eventForm.startsAt, this.eventForm.endsAt),
+    };
   }
 
-  protected removeEventSlot(index: number): void {
-    this.eventForm.slots = this.eventForm.slots.filter((_, slotIndex) => slotIndex !== index);
-  }
-
-  protected updateSlotTeam(index: number, teamId: string): void {
-    const defaultDutyId = this.slotDutyOptions(teamId)[0]?.value ?? '';
-    this.eventForm.slots = this.eventForm.slots.map((slot, slotIndex) =>
-      slotIndex === index
-        ? { ...slot, teamId, dutyId: defaultDutyId }
-        : slot
-    );
-  }
-
-  protected updateSlotDuty(index: number, dutyId: string): void {
-    this.eventForm.slots = this.eventForm.slots.map((slot, slotIndex) =>
-      slotIndex === index
-        ? { ...slot, dutyId }
-        : slot
+  protected toggleDutyRequired(dutyId: string, required: boolean): void {
+    this.eventForm.slots = this.eventForm.slots.map((slot) =>
+      slot.dutyId === dutyId ? { ...slot, required } : slot
     );
   }
 
@@ -605,8 +416,23 @@ export class EventsPageComponent {
     };
   }
 
+  private createSlotsForTeam(teamId: string | null, startsAt: Date | null, endsAt: Date | null): EventSlotForm[] {
+    const duties = this.slotDutyOptions(teamId);
+    if (!duties.length) {
+      return [this.createEmptySlot(startsAt, endsAt)];
+    }
+
+    return duties.map((duty) => ({
+      teamId,
+      dutyId: duty.value,
+      startsAt,
+      endsAt,
+      required: true,
+    }));
+  }
+
   protected readonly sortedEvents = computed(() =>
-    [...this.filteredEvents()].sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime())
+    [...this.filteredEvents()].sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())
   );
 
   protected membersForTeam(teamId: string): Array<{ id: string; fullName: string; email: string; role: string }> {
@@ -690,7 +516,6 @@ export class EventsPageComponent {
   }
 
   constructor() {
-    this.destroyRef.onDestroy(() => this.schedulingDelivery.stopTracking(this.pendingPlanningJobId()));
     this.live.connect();
     this.api.userPreferenceCatalog().subscribe({ next: (items) => this.preferenceCatalog.set(items) });
     this.loadData();
@@ -710,22 +535,17 @@ export class EventsPageComponent {
   }
 
   isEventFormValid(): boolean {
+    const requiredSlots = this.eventForm.slots.filter((slot) => slot.required);
     return Boolean(
       this.eventForm.title.trim() &&
+      this.eventForm.teamId &&
       this.eventForm.startsAt &&
       this.eventForm.endsAt &&
       this.eventForm.startsAt < this.eventForm.endsAt &&
-      this.eventForm.slots.length &&
-      this.eventForm.slots.every((slot) =>
+      requiredSlots.length &&
+      requiredSlots.every((slot) =>
         slot.teamId &&
-        slot.dutyId.trim() &&
-        slot.startsAt &&
-        slot.endsAt &&
-        slot.startsAt < slot.endsAt &&
-        this.eventForm.startsAt &&
-        this.eventForm.endsAt &&
-        slot.startsAt >= this.eventForm.startsAt &&
-        slot.endsAt <= this.eventForm.endsAt
+        slot.dutyId.trim()
       )
     );
   }
@@ -739,6 +559,7 @@ export class EventsPageComponent {
     this.eventForm = {
       title: '',
       locationValue: '',
+      teamId: this.teams()[0]?.id ?? null,
       startsAt: now,
       endsAt: end,
       isRecurring: false,
@@ -746,7 +567,7 @@ export class EventsPageComponent {
       recurrenceDurationMonths: 12,
       recurrenceAutoRenew: true,
       recurrenceRenewMonths: 12,
-      slots: [this.createEmptySlot(now, end)],
+      slots: this.createSlotsForTeam(this.teams()[0]?.id ?? null, now, end),
     };
     this.editingEventId.set(null);
     this.editingEventScope.set('single');
@@ -760,12 +581,15 @@ export class EventsPageComponent {
     }
     const source = scope === 'series' && event.seriesTemplate ? event.seriesTemplate : event;
     const sourceSlots = scope === 'series' && event.seriesTemplate?.slots ? event.seriesTemplate.slots : (event.slots ?? []);
+    const teamId = sourceSlots[0]?.teamId ?? null;
+    const baseSlots = this.createSlotsForTeam(teamId, new Date(source.startsAt), new Date(source.endsAt));
     this.editingEventId.set(scope === 'series' && event.seriesId ? event.seriesId : event.id);
     this.editingEventScope.set(scope);
     this.editingOccurrenceStart.set(scope === 'single' ? event.occurrenceStart ?? event.startsAt : null);
     this.eventForm = {
       title: source.title,
       locationValue: (source as any).locationValue ?? '',
+      teamId,
       startsAt: new Date(source.startsAt),
       endsAt: new Date(source.endsAt),
       isRecurring: scope === 'series' ? true : event.type === 'recurring',
@@ -773,16 +597,13 @@ export class EventsPageComponent {
       recurrenceDurationMonths: this.normalizeRecurrenceMonths(source.recurrenceDurationMonths ?? event.recurrenceDurationMonths),
       recurrenceAutoRenew: (source.recurrenceAutoRenew ?? event.recurrenceAutoRenew ?? true) !== false,
       recurrenceRenewMonths: this.normalizeRecurrenceMonths(source.recurrenceRenewMonths ?? event.recurrenceRenewMonths ?? source.recurrenceDurationMonths ?? event.recurrenceDurationMonths),
-      slots: sourceSlots.map((slot: any) => ({
-        teamId: slot.teamId,
-        dutyId: slot.dutyId ?? '',
-        startsAt: new Date(slot.startsAt ?? source.startsAt),
-        endsAt: new Date(slot.endsAt ?? source.endsAt),
-        required: true,
+      slots: baseSlots.map((slot) => ({
+        ...slot,
+        required: sourceSlots.some((sourceSlot: any) => sourceSlot.dutyId === slot.dutyId),
       })),
     };
-    if (!this.eventForm.slots.length) {
-      this.eventForm.slots = [this.createEmptySlot(this.eventForm.startsAt, this.eventForm.endsAt)];
+    if (!this.eventForm.slots.length && teamId) {
+      this.eventForm.slots = this.createSlotsForTeam(this.eventForm.teamId, this.eventForm.startsAt, this.eventForm.endsAt);
     }
     this.eventDialogVisible = true;
   }
@@ -809,11 +630,13 @@ export class EventsPageComponent {
       recurrenceDurationMonths: this.eventForm.isRecurring ? this.eventForm.recurrenceDurationMonths : undefined,
       recurrenceAutoRenew: this.eventForm.isRecurring ? this.eventForm.recurrenceAutoRenew : undefined,
       recurrenceRenewMonths: this.eventForm.isRecurring ? this.eventForm.recurrenceRenewMonths : undefined,
-      slots: this.eventForm.slots.map((slot) => ({
+      slots: this.eventForm.slots
+        .filter((slot) => slot.required)
+        .map((slot) => ({
         teamId: slot.teamId!,
         dutyId: slot.dutyId.trim(),
-        startsAt: toIsoDateTime(slot.startsAt),
-        endsAt: toIsoDateTime(slot.endsAt),
+        startsAt: toIsoDateTime(this.eventForm.startsAt),
+        endsAt: toIsoDateTime(this.eventForm.endsAt),
         required: slot.required,
       })),
     };
@@ -917,20 +740,11 @@ export class EventsPageComponent {
   }
 
   openAssignmentBoard(): void {
-    if (!this.canManageEvents()) {
-      return;
-    }
     const selected = this.selectedEvent() ?? this.events()[0] ?? null;
     if (!selected) {
       return;
     }
-    this.materializeEventIfNeeded(selected).subscribe({
-      next: (event) => {
-        this.selectedEvent.set(event);
-        this.assignmentBoardVisible = true;
-      },
-      error: (error) => this.feedback.error('Materializzazione non riuscita', this.apiError.message(error, 'Impossibile preparare l\'occorrenza selezionata.'))
-    });
+    this.selectEvent(selected);
   }
 
   startDragging(volunteerId: string): void {
@@ -1044,102 +858,7 @@ export class EventsPageComponent {
       return;
     }
 
-    this.scheduling.set(true);
-    this.runPlanningPreview(this.createPlanningRequest(selected), 'Proposta di planning generata');
-  }
-
-  protected updatePlanningSelection(slotId: string, value: unknown): void {
-    const assigneeId = this.castNullable(value);
-    this.selectedManualAssignments.update((current) => {
-      const next = { ...current };
-      if (assigneeId) {
-        next[slotId] = assigneeId;
-      } else {
-        delete next[slotId];
-      }
-      return next;
-    });
-  }
-
-  protected rerunPlanning(): void {
-    const selected = this.selectedEvent();
-    if (!selected) {
-      return;
-    }
-
-    this.scheduling.set(true);
-    this.runPlanningPreview(this.createPlanningRequest(selected), 'Planning ricalcolato con le scelte manuali');
-  }
-
-  protected applyPlanning(): void {
-    const selected = this.selectedEvent();
-    if (!selected) {
-      return;
-    }
-
-    this.scheduling.set(true);
-    this.api.applySchedulePlan({
-      ...this.createPlanningRequest(selected),
-      planId: this.currentPlanId() ?? undefined,
-      applyScope: this.selectedApplyScope(),
-    }).subscribe({
-      next: (result) => {
-        this.currentPlanId.set(result.planId ?? this.currentPlanId());
-        this.previewSuggestions.set(result.suggestions ?? []);
-        this.planningSummary.set(result.summary ?? null);
-        this.previewVisible = true;
-        this.scheduling.set(false);
-        this.selectedManualAssignments.set({});
-        this.loadData();
-        this.feedback.success('Planning applicato', `Applicazione completata su scope ${this.selectedApplyScope()}.`);
-      },
-      error: (error) => {
-        this.scheduling.set(false);
-        this.feedback.error('Applicazione non riuscita', this.apiError.message(error, 'Impossibile applicare il piano.'));
-      }
-    });
-  }
-
-  protected openAvailabilityDialog(): void {
-    const selected = this.selectedEvent();
-    const firstSlot = selected?.slots?.[0] ?? null;
-    this.availabilityForm = {
-      userId: null,
-      teamId: firstSlot?.teamId ?? null,
-      startsAt: selected ? new Date(selected.startsAt) : new Date(),
-      endsAt: selected ? new Date(selected.endsAt) : new Date(Date.now() + 2 * 60 * 60 * 1000),
-      reason: '',
-    };
-    this.availabilityDialogVisible = true;
-  }
-
-  protected saveAvailability(): void {
-    if (!this.availabilityForm.userId || !this.availabilityForm.startsAt || !this.availabilityForm.endsAt || this.availabilityForm.startsAt >= this.availabilityForm.endsAt) {
-      this.feedback.error('Assenza non valida', 'Seleziona persona e intervallo valido.');
-      return;
-    }
-
-    this.savingAvailability.set(true);
-    const payload: CreateAvailabilityDto = {
-      teamId: this.availabilityForm.teamId ?? undefined,
-      type: 'UNAVAILABLE',
-      startsAt: toIsoDateTime(this.availabilityForm.startsAt),
-      endsAt: toIsoDateTime(this.availabilityForm.endsAt),
-      reason: this.availabilityForm.reason.trim() || undefined,
-    };
-
-    this.api.createAvailability(payload, this.availabilityForm.userId).subscribe({
-      next: () => {
-        this.savingAvailability.set(false);
-        this.availabilityDialogVisible = false;
-        this.loadOperationalAvailability();
-        this.feedback.success('Assenza registrata', 'La nuova indisponibilita sara considerata nei prossimi calcoli.');
-      },
-      error: (error) => {
-        this.savingAvailability.set(false);
-        this.feedback.error('Assenza non salvata', this.apiError.message(error, 'Impossibile salvare l assenza.'));
-      }
-    });
+    this.router.navigate(['/events', selected.id, 'planning']);
   }
 
   requestReplacement(assignmentId: string): void {
@@ -1377,10 +1096,6 @@ export class EventsPageComponent {
     return 'info';
   }
 
-  protected selectedPlanningAssignee(slotId: string): string {
-    return this.selectedManualAssignments()[slotId] ?? '';
-  }
-
   protected openEventReport(): void {
     if (!this.selectedEvent()) {
       return;
@@ -1391,39 +1106,29 @@ export class EventsPageComponent {
 
   private loadData(): void {
     this.loading.set(true);
-    forkJoin({
-      events: this.api.events(),
-      meetings: this.api.meetings()
-    }).pipe(
-      map(({ events, meetings }) => {
-        const mappedMeetings = meetings.map((m: any) => ({
-          ...m,
-          type: 'MEETING'
-        }));
-        return [...events, ...mappedMeetings] as CalendarEvent[];
-      })
-    ).subscribe({
-      next: (combined) => {
-        this.events.set(combined);
-        this.applyRouteContext(combined);
+    this.api.events().subscribe({
+      next: (events) => {
+        this.events.set(events as CalendarEvent[]);
+        this.applyRouteContext(events as CalendarEvent[]);
         if (this.selectedEvent()) {
-          const fresh = combined.find((event) => event.id === this.selectedEvent()?.id);
+          const fresh = (events as CalendarEvent[]).find((event) => event.id === this.selectedEvent()?.id);
           this.selectedEvent.set(fresh ?? null);
         }
       },
-      error: (error) => this.feedback.error('Eventi non caricati', this.apiError.message(error, 'Impossibile recuperare eventi e riunioni.'))
+      error: (error) => this.feedback.error('Eventi non caricati', this.apiError.message(error, 'Impossibile recuperare gli eventi.'))
     });
     this.api.teams().subscribe({
       next: (teams) => {
         this.teams.set(teams as unknown as TeamOption[]);
         if (!this.eventForm.slots.length) {
-          this.eventForm.slots = [this.createEmptySlot(this.eventForm.startsAt, this.eventForm.endsAt)];
+          this.eventForm.slots = this.createSlotsForTeam(this.eventForm.teamId, this.eventForm.startsAt, this.eventForm.endsAt);
           return;
         }
 
         const defaultTeamId = teams[0]?.id ?? null;
+        const normalizedTeamId = this.eventForm.teamId ?? this.eventForm.slots[0]?.teamId ?? defaultTeamId;
+        this.eventForm.teamId = normalizedTeamId;
         this.eventForm.slots = this.eventForm.slots.map((slot) => {
-          const normalizedTeamId = slot.teamId ?? defaultTeamId;
           const availableDuties = (teams.find((team) => team.id === normalizedTeamId)?.duties ?? []);
           const normalizedDutyId = availableDuties.some((duty) => duty.id === slot.dutyId)
             ? slot.dutyId
@@ -1447,79 +1152,6 @@ export class EventsPageComponent {
         this.loading.set(false);
         this.feedback.error('Sostituzioni non caricate', this.apiError.message(error, 'Impossibile recuperare le sostituzioni.'));
       }
-    });
-    this.loadOperationalAvailability();
-    this.loadPlanningHistory(this.selectedEvent()?.seriesId ?? this.selectedEvent()?.id ?? undefined);
-  }
-
-  private createPlanningRequest(event: CalendarEvent): SchedulePreviewRequest {
-    return {
-      from: event.startsAt,
-      to: this.resolvePlanningWindowEnd(event),
-      eventId: event.seriesId ?? event.id,
-      occurrenceStart: event.isOccurrence ? (event.occurrenceStart ?? event.startsAt) : undefined,
-      scope: event.isOccurrence ? 'single' : event.type === 'recurring' ? 'series' : 'single',
-      includeExistingAssignments: true,
-      manualSelections: Object.entries(this.selectedManualAssignments()).map(([slotId, assigneeId]) => ({ slotId, assigneeId })),
-    };
-  }
-
-  private resolvePlanningWindowEnd(event: CalendarEvent): string {
-    const end = new Date(event.startsAt);
-    end.setFullYear(end.getFullYear() + 1);
-    return end.toISOString();
-  }
-
-  private runPlanningPreview(payload: SchedulePreviewRequest, successMessage: string): void {
-    this.api.generateSchedulePreview(payload).subscribe({
-      next: (result) => {
-        this.scheduling.set(false);
-        if (result.status === 'queued' && result.jobId) {
-          this.pendingPlanningJobId.set(result.jobId);
-          this.feedback.success('Scheduling avviato', 'Calcolo pesante inviato in background. Aggiorno la preview appena pronta.');
-          this.schedulingDelivery.trackJob({
-            jobId: result.jobId,
-            onCompleted: (jobResult) => this.applyPlanningResult(jobResult, payload.eventId, successMessage),
-            onFailed: (message) => {
-              this.pendingPlanningJobId.set(null);
-              this.feedback.error('Scheduling non riuscito', message);
-            },
-          });
-          return;
-        }
-
-        this.applyPlanningResult(result, payload.eventId, successMessage);
-      },
-      error: (error) => {
-        this.scheduling.set(false);
-        this.feedback.error('Scheduling non riuscito', this.apiError.message(error, 'Impossibile generare il piano automatico.'));
-      }
-    });
-  }
-
-  private applyPlanningResult(result: SchedulePlanResponse, eventId: string | undefined, successMessage: string): void {
-    this.pendingPlanningJobId.set(null);
-    this.schedulingDelivery.stopTracking(result.jobId ?? null);
-    this.currentPlanId.set(result.planId ?? null);
-    this.previewSuggestions.set(result.suggestions ?? []);
-    this.planningSummary.set(result.summary ?? null);
-    this.previewVisible = true;
-    this.loadPlanningHistory(eventId);
-    this.feedback.success(successMessage, `Generate ${result.summary?.slots ?? result.suggestions?.length ?? 0} proposte operative.`);
-  }
-
-
-  private loadOperationalAvailability(): void {
-    this.api.availability().subscribe({
-      next: (items) => this.operationalAvailability.set(items),
-      error: () => this.operationalAvailability.set([]),
-    });
-  }
-
-  private loadPlanningHistory(eventId?: string): void {
-    this.api.schedulingPlans(eventId).subscribe({
-      next: (plans) => this.planningHistory.set(plans),
-      error: () => this.planningHistory.set([]),
     });
   }
 
@@ -1717,24 +1349,15 @@ export class EventsPageComponent {
       return of(event);
     }
 
-    const updateObs = event.type === 'MEETING'
-      ? this.api.updateMeeting(event.seriesId, { editMode: 'single', occurrenceStart: event.occurrenceStart } as any)
-      : this.api.updateEvent(event.seriesId, { editMode: 'single', occurrenceStart: event.occurrenceStart });
+    const updateObs = this.api.updateEvent(event.seriesId, { editMode: 'single', occurrenceStart: event.occurrenceStart });
 
     return updateObs.pipe(
-      switchMap(() => forkJoin({
-        events: this.api.events(),
-        meetings: this.api.meetings()
-      })),
-      map(({ events, meetings }) => {
-        const mappedMeetings = meetings.map((m: any) => ({ ...m, type: 'MEETING' }));
-        return [...events, ...mappedMeetings] as CalendarEvent[];
+      switchMap(() => this.api.events()),
+      tap((events) => {
+        this.events.set(events as CalendarEvent[]);
+        this.applyRouteContext(events as CalendarEvent[]);
       }),
-      tap((combined) => {
-        this.events.set(combined);
-        this.applyRouteContext(combined);
-      }),
-      map((combined) => combined.find((item: CalendarEvent) => item.seriesId === event.seriesId && item.occurrenceStart === event.occurrenceStart && !item.isVirtualOccurrence && item.type === event.type) ?? event)
+      map((events) => (events as CalendarEvent[]).find((item: CalendarEvent) => item.seriesId === event.seriesId && item.occurrenceStart === event.occurrenceStart && !item.isVirtualOccurrence && item.type === event.type) ?? event)
     );
   }
 
