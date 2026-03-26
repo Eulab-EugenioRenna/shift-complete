@@ -18,7 +18,7 @@ type SeedTeam = {
   name: string;
   description: string;
   requiredCompetencies?: string[];
-  duties: Array<{ name: string; description: string; requiredCompetencies?: string[] }>;
+  duties: Array<{ name: string; description: string; requiredCompetencies?: string[]; recommendedEventVolunteers?: number }>;
   leader: SeedUser;
   volunteers: SeedUser[];
 };
@@ -29,8 +29,8 @@ const teamSeeds: SeedTeam[] = [
     description: 'Setup, accoglienza materiali e presidio operativo.',
     requiredCompetencies: ['logistics', 'security'],
     duties: [
-      { name: 'Capo squadra', description: 'Coordina il setup e i check finali.', requiredCompetencies: ['logistics', 'security'] },
-      { name: 'Runner palco', description: 'Supporta palco, sedie e flussi rapidi.', requiredCompetencies: ['logistics'] },
+      { name: 'Capo squadra', description: 'Coordina il setup e i check finali.', requiredCompetencies: ['logistics', 'security'], recommendedEventVolunteers: 1 },
+      { name: 'Runner palco', description: 'Supporta palco, sedie e flussi rapidi.', requiredCompetencies: ['logistics'], recommendedEventVolunteers: 2 },
     ],
     leader: { email: 'leader.logistica@shift.local', fullName: 'Luca Bianchi', role: Role.service_leader, competencies: ['logistics', 'security'], preferredShifts: ['morning'], preferredLocationValues: ['sede_a'] },
     volunteers: [
@@ -44,8 +44,8 @@ const teamSeeds: SeedTeam[] = [
     description: 'Presidio sanitario, triage e gestione presidi.',
     requiredCompetencies: ['medical'],
     duties: [
-      { name: 'Referente sanitario', description: 'Coordina il punto medico.', requiredCompetencies: ['medical'] },
-      { name: 'Supporto triage', description: 'Accoglienza e filtro persone.', requiredCompetencies: ['medical', 'welcome'] },
+      { name: 'Referente sanitario', description: 'Coordina il punto medico.', requiredCompetencies: ['medical'], recommendedEventVolunteers: 1 },
+      { name: 'Supporto triage', description: 'Accoglienza e filtro persone.', requiredCompetencies: ['medical', 'welcome'], recommendedEventVolunteers: 2 },
     ],
     leader: { email: 'leader.sanita@shift.local', fullName: 'Giulia Ferri', role: Role.service_leader, competencies: ['medical'], preferredShifts: ['morning'], preferredLocationValues: ['sede_a'] },
     volunteers: [
@@ -59,8 +59,8 @@ const teamSeeds: SeedTeam[] = [
     description: 'Front desk, accessi, info point e flussi ospiti.',
     requiredCompetencies: ['welcome'],
     duties: [
-      { name: 'Desk ingresso', description: 'Gestisce accessi e accrediti.', requiredCompetencies: ['welcome', 'security'] },
-      { name: 'Info point', description: 'Supporta ospiti e orientamento.', requiredCompetencies: ['welcome'] },
+      { name: 'Desk ingresso', description: 'Gestisce accessi e accrediti.', requiredCompetencies: ['welcome', 'security'], recommendedEventVolunteers: 2 },
+      { name: 'Info point', description: 'Supporta ospiti e orientamento.', requiredCompetencies: ['welcome'], recommendedEventVolunteers: 2 },
     ],
     leader: { email: 'leader.accoglienza@shift.local', fullName: 'Sara Moretti', role: Role.service_leader, competencies: ['welcome', 'security'], preferredShifts: ['afternoon'], preferredLocationValues: ['sede_b'] },
     volunteers: [
@@ -74,8 +74,8 @@ const teamSeeds: SeedTeam[] = [
     description: 'Regia, audio/video, streaming e contenuti live.',
     requiredCompetencies: ['audio', 'lights'],
     duties: [
-      { name: 'Regia streaming', description: 'Supervisiona messa in onda e scaletta.', requiredCompetencies: ['audio', 'lights'] },
-      { name: 'Camera mobile', description: 'Gestisce riprese in movimento.', requiredCompetencies: ['audio'] },
+      { name: 'Regia streaming', description: 'Supervisiona messa in onda e scaletta.', requiredCompetencies: ['audio', 'lights'], recommendedEventVolunteers: 1 },
+      { name: 'Camera mobile', description: 'Gestisce riprese in movimento.', requiredCompetencies: ['audio'], recommendedEventVolunteers: 2 },
     ],
     leader: { email: 'leader.media@shift.local', fullName: 'Andrea Leone', role: Role.service_leader, competencies: ['audio', 'lights'], preferredShifts: ['evening'], preferredLocationValues: ['sede_a'] },
     volunteers: [
@@ -286,13 +286,13 @@ async function main() {
       if (existingDuty) {
         duties.push(await prisma.duty.update({
           where: { id: existingDuty.id },
-          data: { description: dutySeed.description, requiredCompetencies: dutySeed.requiredCompetencies ?? [] } as any,
+          data: { description: dutySeed.description, requiredCompetencies: dutySeed.requiredCompetencies ?? [], recommendedEventVolunteers: dutySeed.recommendedEventVolunteers ?? 1 } as any,
         }));
         continue;
       }
 
       duties.push(await prisma.duty.create({
-        data: { teamId: team.id, name: dutySeed.name, description: dutySeed.description, requiredCompetencies: dutySeed.requiredCompetencies ?? [] } as any,
+        data: { teamId: team.id, name: dutySeed.name, description: dutySeed.description, requiredCompetencies: dutySeed.requiredCompetencies ?? [], recommendedEventVolunteers: dutySeed.recommendedEventVolunteers ?? 1 } as any,
       } as any));
     }
 
@@ -468,8 +468,9 @@ async function main() {
         startsAt: atHour(baseDate, 4, 9, 15),
         endsAt: atHour(baseDate, 4, 12, 30),
         required: true,
-      },
-    }));
+        requiredVolunteers: primaryDuty.recommendedEventVolunteers ?? 1,
+      } as any,
+    } as any));
     seededSlots.push(await prisma.eventSlot.create({
       data: {
         eventId: briefing.id,
@@ -478,8 +479,9 @@ async function main() {
         startsAt: atHour(baseDate, 2, 19, 0),
         endsAt: atHour(baseDate, 2, 20, 0),
         required: true,
-      },
-    }));
+        requiredVolunteers: secondaryDuty.recommendedEventVolunteers ?? 1,
+      } as any,
+    } as any));
   }
 
   const trainingSlots = [
@@ -491,8 +493,9 @@ async function main() {
         startsAt: atHour(baseDate, 7, 18, 30),
         endsAt: atHour(baseDate, 7, 20, 0),
         required: true,
-      },
-    }),
+        requiredVolunteers: teams[0].duties[0].recommendedEventVolunteers ?? 1,
+      } as any,
+    } as any),
     await prisma.eventSlot.create({
       data: {
         eventId: training.id,
@@ -501,8 +504,9 @@ async function main() {
         startsAt: atHour(baseDate, 7, 19, 0),
         endsAt: atHour(baseDate, 7, 21, 0),
         required: true,
-      },
-    }),
+        requiredVolunteers: teams[2].duties[1].recommendedEventVolunteers ?? 1,
+      } as any,
+    } as any),
   ];
 
   await prisma.assignment.deleteMany({ where: { slotId: { in: [...seededSlots, ...trainingSlots].map((slot) => slot.id) } } });

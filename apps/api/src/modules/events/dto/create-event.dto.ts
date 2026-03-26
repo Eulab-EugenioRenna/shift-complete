@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsDateString, IsEnum, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsBoolean, IsDateString, IsEnum, IsInt, IsOptional, IsString, Max, Min, ValidateNested } from 'class-validator';
 import { EventType } from '@prisma/client';
 
 class CreateEventSlotDto {
@@ -7,7 +7,7 @@ class CreateEventSlotDto {
   teamId!: string;
 
   @IsString()
-  roleName!: string;
+  dutyId!: string;
 
   @IsDateString()
   startsAt!: string;
@@ -18,6 +18,12 @@ class CreateEventSlotDto {
   @IsOptional()
   @IsBoolean()
   required?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(99)
+  requiredVolunteers?: number;
 }
 
 export class CreateEventDto {

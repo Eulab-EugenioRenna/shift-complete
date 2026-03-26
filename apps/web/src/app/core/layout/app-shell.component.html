@@ -1,49 +1,65 @@
 <div class="min-screen bg-transparent text-[color:var(--text-1)] transition-colors">
   <header class="sticky top-0 z-40 border-b border-[color:var(--border-soft)] bg-[color:var(--surface-overlay)] shadow-sm backdrop-blur">
-    <div class="grid min-h-20 grid-cols-[auto_1fr_auto] items-center gap-4 px-4 sm:px-6 lg:px-10 xl:px-12">
-      <div class="flex items-center gap-8 justify-self-start">
-        <button type="button" class="flex items-center gap-3 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-3 py-2 text-left transition hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface-1)]" (click)="goToHome()">
-          <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#3156b3,#4979e6)] text-white shadow-sm">
+    <div class="grid min-h-20 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 sm:gap-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:px-10 xl:px-12">
+      <div class="flex min-w-0 items-center justify-self-start">
+        <button type="button" class="flex min-w-0 items-center gap-2 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] px-2.5 py-2 text-left transition hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface-1)] sm:gap-3 sm:px-3" (click)="goToHome()">
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#3156b3,#4979e6)] text-white shadow-sm">
             <i class="pi pi-briefcase text-base"></i>
           </span>
-          <span>
+          <span class="hidden min-w-0 lg:block">
             <span class="block text-sm font-semibold tracking-tight text-[color:var(--text-1)]">Shift Complete</span>
             <span class="block text-[11px] uppercase tracking-[0.22em] text-[color:var(--text-3)]">Control Surface</span>
           </span>
         </button>
       </div>
 
-      <nav class="hidden items-center justify-center gap-1 md:flex" *ngIf="hasCenteredNavigation()">
-        <a
-          *ngFor="let item of navigationItems()"
-          [routerLink]="item.path"
-          routerLinkActive="bg-[color:var(--accent-1)] text-white font-medium shadow-sm dark:text-[color:var(--text-inverse)]"
-          class="rounded-xl px-3 py-2 text-sm text-[color:var(--text-2)] transition hover:bg-[color:var(--surface-3)] hover:text-[color:var(--text-1)]"
-        >
-          {{ item.label }}
-        </a>
-      </nav>
+      <div class="hidden justify-center lg:flex" *ngIf="hasCenteredNavigation()">
+        <div class="group relative flex flex-col items-center">
+          <div class="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--border-soft)] bg-[color:color-mix(in_srgb,var(--surface-1)_82%,transparent)] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-3)] transition duration-200 hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface-1)] hover:text-[color:var(--text-1)]">
+            <i class="pi pi-bars text-[9px]"></i>
+            Menu
+          </div>
+          <div class="absolute top-full overflow-hidden pt-2 transition-all duration-200 ease-out group-hover:max-h-24 group-hover:opacity-100 group-hover:pointer-events-auto max-h-0 opacity-0 pointer-events-none">
+            <nav class="flex translate-y-[-0.35rem] gap-2 rounded-2xl border border-[color:var(--border-soft)] bg-[color:color-mix(in_srgb,var(--surface-overlay)_94%,transparent)] px-3 py-2 shadow-[var(--shadow-soft)] backdrop-blur transition duration-200 ease-out group-hover:translate-y-0">
+              <a
+                *ngFor="let item of navigationItems()"
+                [routerLink]="item.path"
+                routerLinkActive="bg-[color:var(--accent-1)] font-medium text-white dark:text-[color:var(--text-inverse)]"
+                class="whitespace-nowrap rounded-xl px-3 py-1.5 text-sm text-[color:var(--text-2)] transition hover:bg-[color:var(--surface-3)] hover:text-[color:var(--text-1)]"
+              >
+                {{ item.label }}
+              </a>
+            </nav>
+          </div>
+        </div>
+      </div>
 
-      <div class="flex items-center justify-self-end gap-3">
-        <button type="button" class="hidden items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-2 text-sm text-[color:var(--text-2)] transition hover:border-[color:var(--border-strong)] hover:text-[color:var(--text-1)] md:inline-flex" (click)="openSpotlight()">
+      <div class="flex items-center justify-self-end gap-2 sm:gap-3">
+        <button type="button" class="hidden h-10 w-10 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] text-[color:var(--text-2)] transition hover:border-[color:var(--border-strong)] hover:text-[color:var(--text-1)] md:inline-flex xl:hidden" (click)="openSpotlight()" aria-label="Apri ricerca">
+          <i class="pi pi-search text-sm"></i>
+        </button>
+        <button type="button" class="hidden items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-2 text-sm text-[color:var(--text-2)] transition hover:border-[color:var(--border-strong)] hover:text-[color:var(--text-1)] xl:inline-flex" (click)="openSpotlight()">
           <i class="pi pi-search text-xs"></i>
           Cerca
           <span class="rounded-md border border-[color:var(--border-soft)] px-1.5 py-0.5 text-[10px] text-[color:var(--text-3)]">cmd K</span>
         </button>
-        <button type="button" class="hidden items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-2 text-sm text-[color:var(--text-2)] transition hover:border-[color:var(--border-strong)] hover:text-[color:var(--text-1)] md:inline-flex" (click)="setTheme(theme.preference() === 'light' ? 'dark' : theme.preference() === 'dark' ? 'system' : 'light')">
+        <button type="button" class="hidden h-10 w-10 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] text-[color:var(--text-2)] transition hover:border-[color:var(--border-strong)] hover:text-[color:var(--text-1)] md:inline-flex xl:hidden" (click)="setTheme(theme.preference() === 'light' ? 'dark' : theme.preference() === 'dark' ? 'system' : 'light')" aria-label="Cambia tema">
+          <i class="pi" [class.pi-sun]="theme.resolvedTheme() === 'light'" [class.pi-moon]="theme.resolvedTheme() === 'dark'"></i>
+        </button>
+        <button type="button" class="hidden items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-2 text-sm text-[color:var(--text-2)] transition hover:border-[color:var(--border-strong)] hover:text-[color:var(--text-1)] xl:inline-flex" (click)="setTheme(theme.preference() === 'light' ? 'dark' : theme.preference() === 'dark' ? 'system' : 'light')">
           <i class="pi" [class.pi-sun]="theme.resolvedTheme() === 'light'" [class.pi-moon]="theme.resolvedTheme() === 'dark'"></i>
           {{ themeLabel() }}
         </button>
-        <ui-label tone="warn" class="hidden md:inline-flex" *ngIf="needsOnboarding()">
+        <ui-label tone="warn" class="hidden xl:inline-flex" *ngIf="needsOnboarding()">
           <i class="pi pi-compass text-[10px]"></i>
           Onboarding da completare
         </ui-label>
-        <button type="button" class="hidden rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-1.5 text-xs font-medium text-[color:var(--text-2)] transition hover:border-[color:var(--border-strong)] hover:text-[color:var(--text-1)] md:inline-flex" (click)="goToOnboarding()" *ngIf="currentUser()?.role === 'volunteer'">
+        <button type="button" class="hidden rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-1.5 text-xs font-medium text-[color:var(--text-2)] transition hover:border-[color:var(--border-strong)] hover:text-[color:var(--text-1)] xl:inline-flex" (click)="goToOnboarding()" *ngIf="currentUser()?.role === 'volunteer'">
           Profilo operativo
         </button>
-        <button type="button" class="flex items-center gap-3 rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-2 py-2 transition hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface-2)]" (click)="goToUserPage()" *ngIf="currentUser() as user">
-          <span class="flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#3156b3,#4979e6)] text-sm font-semibold text-white">{{ initials(user.fullName) }}</span>
-          <span class="hidden text-right md:block">
+        <button type="button" class="flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-1.5 py-1.5 transition hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface-2)] sm:gap-3 sm:px-2 sm:py-2" (click)="goToUserPage()" *ngIf="currentUser() as user">
+          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#3156b3,#4979e6)] text-sm font-semibold text-white sm:h-10 sm:w-10">{{ initials(user.fullName) }}</span>
+          <span class="hidden text-right xl:block">
             <span class="block text-sm font-medium leading-none text-[color:var(--text-1)]">{{ user.fullName }}</span>
             <span class="mt-1 block text-xs text-[color:var(--text-2)]">{{ roleLabel(user.role) }}</span>
           </span>
@@ -51,26 +67,36 @@
         <button type="button" class="flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] text-[color:var(--text-2)] transition hover:border-[color:var(--border-strong)] hover:text-[color:var(--text-1)]" (click)="signOut()" title="Esci">
           <i class="pi pi-sign-out text-sm"></i>
         </button>
+        <button type="button" class="flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] text-[color:var(--text-2)] transition duration-200 hover:-translate-y-0.5 hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface-2)] hover:text-[color:var(--text-1)] md:hidden" (click)="toggleMobileMenu()" [attr.aria-expanded]="mobileMenuOpen()" aria-label="Apri menu principale">
+          <i class="pi" [class.pi-bars]="!mobileMenuOpen()" [class.pi-times]="mobileMenuOpen()"></i>
+        </button>
       </div>
     </div>
 
-    <div class="border-t border-[color:var(--border-soft)] px-4 py-2 md:hidden">
-      <div class="mb-2">
-        <button type="button" class="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-2 text-sm text-[color:var(--text-2)]" (click)="openSpotlight()">
-          <i class="pi pi-search text-xs"></i>
-          Cerca
-        </button>
+    <div class="overflow-hidden border-t border-[color:var(--border-soft)] px-4 transition-all duration-200 ease-out md:hidden" [ngClass]="mobileMenuOpen() ? 'max-h-[32rem] py-3 opacity-100' : 'pointer-events-none max-h-0 py-0 opacity-0'">
+      <div class="grid gap-3 transition duration-200" [ngClass]="mobileMenuOpen() ? 'translate-y-0 scale-100' : '-translate-y-2 scale-[0.98]'">
+        <div class="flex items-center gap-2">
+          <button type="button" class="inline-flex min-w-0 flex-1 items-center justify-center gap-2 rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-3 py-2 text-sm text-[color:var(--text-2)] transition duration-200 hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface-2)] hover:text-[color:var(--text-1)]" (click)="openSpotlight()">
+            <i class="pi pi-search text-xs"></i>
+            Cerca
+          </button>
+          <button type="button" class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] text-[color:var(--text-2)] transition hover:border-[color:var(--border-strong)] hover:text-[color:var(--text-1)]" (click)="setTheme(theme.preference() === 'light' ? 'dark' : theme.preference() === 'dark' ? 'system' : 'light')" aria-label="Cambia tema">
+            <i class="pi" [class.pi-sun]="theme.resolvedTheme() === 'light'" [class.pi-moon]="theme.resolvedTheme() === 'dark'"></i>
+          </button>
+        </div>
+
+        <nav class="grid gap-2" *ngIf="hasCenteredNavigation()">
+          <a
+            *ngFor="let item of navigationItems()"
+            [routerLink]="item.path"
+            (click)="closeMobileMenu()"
+            routerLinkActive="bg-[color:var(--accent-1)] font-medium text-white dark:text-[color:var(--text-inverse)]"
+            class="rounded-2xl px-3 py-2 text-sm text-[color:var(--text-2)] transition duration-200 hover:translate-x-1 hover:bg-[color:var(--surface-3)] hover:text-[color:var(--text-1)]"
+          >
+            {{ item.label }}
+          </a>
+        </nav>
       </div>
-      <nav class="flex gap-2 overflow-x-auto">
-        <a
-          *ngFor="let item of navigationItems()"
-          [routerLink]="item.path"
-          routerLinkActive="bg-[color:var(--accent-1)] font-medium text-white dark:text-[color:var(--text-inverse)]"
-          class="whitespace-nowrap rounded-xl px-3 py-1.5 text-sm text-[color:var(--text-2)] transition"
-        >
-          {{ item.label }}
-        </a>
-      </nav>
     </div>
   </header>
 

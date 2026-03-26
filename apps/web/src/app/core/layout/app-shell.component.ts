@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { UiLabelComponent } from '@shift-complete/ui-kit';
 import type { Role } from '@shift-complete/shared-types';
@@ -25,6 +25,7 @@ export class AppShellComponent {
   private readonly router = inject(Router);
   private readonly spotlight = inject(SpotlightSearchService);
   protected readonly theme = inject(ThemeService);
+  protected readonly mobileMenuOpen = signal(false);
 
   protected readonly currentUser = computed(() => this.session.getCurrentUser());
   protected readonly needsOnboarding = computed(() => {
@@ -62,18 +63,22 @@ export class AppShellComponent {
   }
 
   protected goToOnboarding(): void {
+    this.closeMobileMenu();
     void this.router.navigateByUrl('/onboarding');
   }
 
   protected goToHome(): void {
+    this.closeMobileMenu();
     void this.router.navigateByUrl('/dashboard');
   }
 
   protected goToUserPage(): void {
+    this.closeMobileMenu();
     void this.router.navigateByUrl('/user');
   }
 
   protected openSpotlight(): void {
+    this.closeMobileMenu();
     this.spotlight.openSpotlight();
   }
 
@@ -84,6 +89,14 @@ export class AppShellComponent {
 
   protected setTheme(preference: ThemePreference): void {
     this.theme.setPreference(preference);
+  }
+
+  protected toggleMobileMenu(): void {
+    this.mobileMenuOpen.update((open) => !open);
+  }
+
+  protected closeMobileMenu(): void {
+    this.mobileMenuOpen.set(false);
   }
 
   protected initials(fullName: string): string {

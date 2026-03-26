@@ -28,7 +28,7 @@
             </div>
             <div class="flex flex-wrap gap-2">
               <ui-label [tone]="eventDisplayTone(event)">{{ eventDisplayLabel(event) }}</ui-label>
-              <ui-label [tone]="(event.assignments?.length || 0) > 0 ? 'success' : 'warn'">{{ (event.assignments?.length || 0) > 0 ? 'copertura avviata' : 'da coprire' }}</ui-label>
+              <ui-label [tone]="(event.assignments?.length || 0) >= totalRequiredVolunteers(event) ? 'success' : (event.assignments?.length || 0) > 0 ? 'info' : 'warn'">{{ event.assignments?.length || 0 }}/{{ totalRequiredVolunteers(event) }} volontari</ui-label>
               <ui-label tone="info">{{ selectedEventSlots().length }} mansioni</ui-label>
             </div>
           </div>
@@ -49,8 +49,8 @@
           </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-5">
-          <div class="grid gap-4">
+        <div class="flex min-h-0 flex-1 flex-col overflow-y-auto p-5">
+          <div class="grid flex-1 auto-rows-fr gap-4">
             <div *ngFor="let slot of selectedEventSlots()" class="relative flex h-full flex-col rounded-[24px] border border-[color:var(--border-soft)] bg-[color:var(--surface-1)] p-4 shadow-[var(--shadow-soft)] transition" [class.ring-2]="isTargetSlot(slot) || dragHoverSlotId() === slot.id" [class.ring-amber-300]="isTargetSlot(slot) || dragHoverSlotId() === slot.id" [ngClass]="dragHoverSlotId() === slot.id ? 'border-[#4979e6] bg-[color:var(--surface-2)]' : ''" (dragover)="allowDrop($event, slot.id)" (dragenter)="setDragHoverSlot(slot.id)" (dragleave)="clearDragHoverSlot(slot.id)" (drop)="dropVolunteer(slot.id)">
               <div *ngIf="dragHoverSlotId() === slot.id" class="pointer-events-none absolute inset-3 rounded-2xl border-2 border-dashed border-[#4979e6] bg-blue-50/80"></div>
               <div class="flex items-start justify-between gap-3 border-b border-[color:var(--border-soft)] pb-4">
@@ -58,11 +58,11 @@
                   <p class="font-medium text-[color:var(--text-1)]">{{ slot.roleName }}</p>
                   <p class="text-sm text-[color:var(--text-2)]">{{ slot.teamName }}</p>
                 </div>
-                <ui-label [tone]="slot.assignments?.length ? 'success' : 'warn'">{{ slot.assignments?.length ? 'coperto' : 'vacante' }}</ui-label>
+                <ui-label [tone]="slotCoverageTone(slot)">{{ slotCoverage(slot) }} · {{ slotCoverageLabel(slot) }}</ui-label>
               </div>
 
-              <div class="mt-4 grid flex-1 gap-4 lg:grid-cols-2">
-                <ui-board-column title="Persone del team" [count]="membersForTeam(slot.teamId).length">
+              <div class="mt-4 grid flex-1 gap-4 lg:grid-cols-2 lg:items-stretch">
+                <ui-board-column title="Persone del team" [count]="membersForTeam(slot.teamId).length" columnClass="h-full">
                   <ui-board-tile *ngFor="let member of membersForTeam(slot.teamId)" draggable="true" (dragstart)="startDragging(member.id)" (dragend)="finishDragging()" [tileClass]="'cursor-grab transition hover:border-[color:var(--border-strong)] hover:shadow ' + (draggedVolunteerId() === member.id ? 'border-[#4979e6] bg-[color:var(--surface-2)] shadow-lg scale-[1.01]' : '')">
                     <div class="flex items-start justify-between gap-2">
                       <div class="min-w-0">
@@ -77,8 +77,8 @@
                   </div>
                 </ui-board-column>
 
-                <ui-board-column title="Assegnazioni slot" [count]="slot.assignments?.length || 0">
-                  <div class="rounded-xl border border-dashed px-3 py-3 text-sm transition" [ngClass]="dragHoverSlotId() === slot.id ? 'border-[#4979e6] bg-blue-50 text-[#3156b3]' : 'border-orange-200 bg-orange-50 text-orange-700'" *ngIf="!slot.assignments?.length">{{ dragHoverSlotId() === slot.id ? 'Rilascia qui per assegnare il volontario.' : 'Trascina qui un volontario per assegnarlo.' }}</div>
+                <ui-board-column title="Assegnazioni slot" [count]="slotCoverage(slot)" columnClass="h-full">
+                  <div class="rounded-xl border border-dashed px-3 py-3 text-sm transition" [ngClass]="dragHoverSlotId() === slot.id ? 'border-[#4979e6] bg-blue-50 text-[#3156b3]' : 'border-orange-200 bg-orange-50 text-orange-700'" *ngIf="canAssignMoreVolunteers(slot)">{{ dragHoverSlotId() === slot.id ? 'Rilascia qui per assegnare il volontario.' : 'Trascina qui un volontario per assegnarlo.' }}</div>
                   <ui-board-tile *ngFor="let assignment of slot.assignments">
                     <div class="flex items-start justify-between gap-2">
                       <div class="min-w-0">
@@ -133,12 +133,21 @@
           [showReset]="selectedUserFilter() || selectedSeriesFilter() || occurrenceView() !== 'all' || eventLocationFilter() !== 'all'"
           [reset]="resetFilters.bind(this)"
           [compact]="true"
-          fieldsClass="md:grid-cols-2 xl:grid-cols-4"
+          fieldsLayout="wrap"
+          fieldsClass="items-end"
         >
-          <ui-select label="Lavoratore" [options]="selectableUsers()" [value]="selectedUserFilter()" (valueChange)="selectedUserFilter.set(castNullable($event) || '')"></ui-select>
-          <ui-select label="Serie" [options]="seriesOptions()" [value]="selectedSeriesFilter()" (valueChange)="setSeriesFilter($event)"></ui-select>
-          <ui-select label="Ricorrenze" [options]="occurrenceViewOptions" [value]="occurrenceView()" (valueChange)="setOccurrenceView($event)"></ui-select>
-          <ui-select label="Luogo" [options]="eventLocationFilterOptions()" [value]="eventLocationFilter()" (valueChange)="eventLocationFilter.set(castString($event))"></ui-select>
+          <div class="min-w-[13rem] flex-1">
+            <ui-select label="Lavoratore" [options]="selectableUsers()" [value]="selectedUserFilter()" (valueChange)="selectedUserFilter.set(castNullable($event) || '')"></ui-select>
+          </div>
+          <div class="min-w-[13rem] flex-1">
+            <ui-select label="Serie" [options]="seriesOptions()" [value]="selectedSeriesFilter()" (valueChange)="setSeriesFilter($event)"></ui-select>
+          </div>
+          <div class="min-w-[13rem] flex-1">
+            <ui-select label="Ricorrenze" [options]="occurrenceViewOptions" [value]="occurrenceView()" (valueChange)="setOccurrenceView($event)"></ui-select>
+          </div>
+          <div class="min-w-[13rem] flex-1">
+            <ui-select label="Luogo" [options]="eventLocationFilterOptions()" [value]="eventLocationFilter()" (valueChange)="eventLocationFilter.set(castString($event))"></ui-select>
+          </div>
         </ui-filter-bar>
       </div>
 
@@ -168,7 +177,7 @@
                 </div>
                 <div class="flex flex-wrap gap-1.5">
                   <ui-label [tone]="eventDisplayTone(event)">{{ eventDisplayLabel(event) }}</ui-label>
-                  <ui-label [tone]="(event.assignments?.length || 0) > 0 ? 'success' : 'warn'">{{ (event.assignments?.length || 0) > 0 ? 'coperto' : 'da coprire' }}</ui-label>
+                  <ui-label [tone]="(event.assignments?.length || 0) >= totalRequiredVolunteers(event) ? 'success' : (event.assignments?.length || 0) > 0 ? 'info' : 'warn'">{{ event.assignments?.length || 0 }}/{{ totalRequiredVolunteers(event) }} coperti</ui-label>
                   <ui-label tone="info">{{ event.slots?.length || 0 }} slot</ui-label>
                 </div>
               </div>
@@ -226,8 +235,14 @@
                 <p class="text-sm font-medium text-[color:var(--text-1)]">{{ duty.name }}</p>
                 <p class="mt-1 text-xs text-[color:var(--text-2)]">Usa l'intervallo globale dell'evento.</p>
               </div>
-              <ui-toggle label="Richiesta" [value]="duty.required" (valueChange)="toggleDutyRequired(duty.id, $event)"></ui-toggle>
+              <div class="flex items-center gap-3">
+                <div class="w-24">
+                  <ui-input type="number" [value]="'' + duty.requiredVolunteers" (valueChange)="updateDutyRequiredVolunteers(duty.id, $event)" placeholder="1"></ui-input>
+                </div>
+                <ui-toggle label="Richiesta" [value]="duty.required" (valueChange)="toggleDutyRequired(duty.id, $event)"></ui-toggle>
+              </div>
             </div>
+            <p class="mt-3 text-xs text-[color:var(--text-2)]">Volontari richiesti per evento: {{ duty.requiredVolunteers }}<span *ngIf="duty.recommendedEventVolunteers !== duty.requiredVolunteers"> · default team {{ duty.recommendedEventVolunteers }}</span></p>
           </div>
           <div *ngIf="!availableEventDuties().length" class="rounded-2xl border border-dashed border-[color:var(--border-soft)] bg-[color:var(--surface-1)] px-4 py-4 text-sm text-[color:var(--text-3)]">
             Seleziona un team con mansioni disponibili per comporre l'evento.

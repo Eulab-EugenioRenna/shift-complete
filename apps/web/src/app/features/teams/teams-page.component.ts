@@ -211,7 +211,7 @@ export class TeamsPageComponent {
   protected dutyDialogVisible = false;
   protected availabilityDialogVisible = false;
   protected teamForm = { name: '', description: '', leaderId: null as string | null };
-  protected dutyForm = { teamId: '', name: '', description: '', color: '', icon: '', requiredCompetencies: [] as string[] };
+  protected dutyForm = { teamId: '', name: '', description: '', color: '', icon: '', requiredCompetencies: [] as string[], recommendedEventVolunteers: 1 };
   protected availabilityForm: AvailabilityForm = { userId: null, teamId: null, startsAt: null, endsAt: null, reason: '' };
   protected replacementAssigneeSelection: Record<string, string> = {};
   protected readonly locallyReservedSuggestionIds = signal<string[]>([]);
@@ -420,6 +420,7 @@ export class TeamsPageComponent {
       color: '',
       icon: '',
       requiredCompetencies: [],
+      recommendedEventVolunteers: 1,
     };
     this.dutyDialogVisible = true;
   }
@@ -580,6 +581,7 @@ export class TeamsPageComponent {
       color: duty.color ?? '',
       icon: duty.icon ?? '',
       requiredCompetencies: duty.requiredCompetencies ?? [],
+      recommendedEventVolunteers: duty.recommendedEventVolunteers ?? 1,
     };
     this.dutyDialogVisible = true;
   }
@@ -595,6 +597,7 @@ export class TeamsPageComponent {
       color: this.dutyForm.color.trim() || undefined,
       icon: this.dutyForm.icon.trim() || undefined,
       requiredCompetencies: this.dutyForm.requiredCompetencies,
+      recommendedEventVolunteers: Math.max(1, this.dutyForm.recommendedEventVolunteers || 1),
     };
 
     const request = this.editingDutyId()
@@ -604,6 +607,7 @@ export class TeamsPageComponent {
           color: payload.color,
           icon: payload.icon,
           requiredCompetencies: payload.requiredCompetencies,
+          recommendedEventVolunteers: payload.recommendedEventVolunteers,
         })
       : this.api.createDuty(payload);
 

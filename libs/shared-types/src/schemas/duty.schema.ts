@@ -7,6 +7,7 @@ export const CreateDutySchema = z.object({
   color: z.string().optional(),
   icon: z.string().optional(),
   requiredCompetencies: z.array(z.string()).optional(),
+  recommendedEventVolunteers: z.number().int().min(1).max(99).optional(),
 });
 export type CreateDutyDto = z.infer<typeof CreateDutySchema>;
 

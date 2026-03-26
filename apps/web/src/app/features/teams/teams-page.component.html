@@ -269,6 +269,7 @@
                     <tr>
                       <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-[color:var(--text-2)]">Nome</th>
                       <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-[color:var(--text-2)]">Colore</th>
+                      <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-[color:var(--text-2)]">Per evento</th>
                       <th *ngIf="canManageTeams()" class="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wider text-[color:var(--text-2)]">Azioni</th>
                     </tr>
                   </thead>
@@ -279,13 +280,14 @@
                         <span *ngIf="duty.color" class="inline-block h-3 w-3 rounded-full border border-[color:var(--border-soft)]" [style.background]="duty.color || '#e2e8f0'"></span>
                         <span *ngIf="!duty.color" class="text-[color:var(--text-3)] text-xs">—</span>
                       </td>
+                      <td class="px-3 py-2 text-[color:var(--text-2)]">{{ duty.recommendedEventVolunteers || 1 }} volontari</td>
                       <td class="px-3 py-2 text-right" *ngIf="canManageTeams()">
                         <button type="button" class="text-xs text-[#4979e6] hover:underline mr-2" (click)="editDuty(team, duty)">Modifica</button>
                         <button type="button" class="text-xs text-red-600 hover:underline" (click)="deleteDuty(duty.id)">Elimina</button>
                       </td>
                     </tr>
                     <tr *ngIf="!(team.duties || []).length">
-                      <td [attr.colspan]="canManageTeams() ? 3 : 2" class="px-3 py-5 text-center text-xs text-[color:var(--text-3)]">Nessuna mansione ancora collegata.</td>
+                      <td [attr.colspan]="canManageTeams() ? 4 : 3" class="px-3 py-5 text-center text-xs text-[color:var(--text-3)]">Nessuna mansione ancora collegata.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -547,6 +549,9 @@
               <ui-input [value]="dutyForm.icon" (valueChange)="dutyForm.icon = $event" placeholder="pi pi-volume-up"></ui-input>
             </ui-field>
           </div>
+          <ui-field label="Volontari suggeriti per evento">
+            <ui-input type="number" [value]="'' + dutyForm.recommendedEventVolunteers" (valueChange)="dutyForm.recommendedEventVolunteers = +$event > 0 ? +$event : 1" placeholder="1"></ui-input>
+          </ui-field>
           <ui-multi-select label="Competenze richieste" [options]="competencyOptions()" [value]="dutyForm.requiredCompetencies" placeholder="Seleziona competenze" (valueChange)="dutyForm.requiredCompetencies = $any($event)"></ui-multi-select>
         </div>
         <div dialog-footer class="flex justify-end gap-2">

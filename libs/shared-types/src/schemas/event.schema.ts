@@ -7,6 +7,7 @@ export const CreateEventSlotSchema = z.object({
   startsAt: z.string().datetime(),
   endsAt: z.string().datetime(),
   required: z.boolean().optional().default(true),
+  requiredVolunteers: z.number().int().min(1).max(99).optional().default(1),
 });
 export type CreateEventSlotDto = z.infer<typeof CreateEventSlotSchema>;
 

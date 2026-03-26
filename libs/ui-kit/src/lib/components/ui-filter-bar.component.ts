@@ -19,7 +19,7 @@ import { UiButtonComponent } from './ui-button.component';
             <ui-button *ngIf="showReset" tone="neutral" variant="outlined" size="sm" icon="pi pi-filter-slash" (buttonClick)="onResetClick()">{{ resetLabel }}</ui-button>
           </div>
         </div>
-        <div class="grid gap-3" [ngClass]="fieldsClass">
+        <div [ngClass]="[fieldsLayout === 'wrap' ? 'flex flex-wrap gap-3' : 'grid gap-3', fieldsClass]">
           <ng-content></ng-content>
         </div>
       </div>
@@ -35,6 +35,7 @@ export class UiFilterBarComponent {
   @Input() compact = false;
   @Input() surfaceClass = '';
   @Input() contentClass = '';
+  @Input() fieldsLayout: 'grid' | 'wrap' = 'grid';
   @Input() fieldsClass = 'md:grid-cols-2 xl:grid-cols-5';
   @Input() reset?: () => void;
 

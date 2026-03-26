@@ -38,9 +38,9 @@ export class TeamGroupsService {
               },
             },
             duties: {
-              select: { id: true, name: true, color: true, icon: true },
+              select: { id: true, name: true, color: true, icon: true, recommendedEventVolunteers: true } as any,
               orderBy: { name: 'asc' },
-            },
+            } as any,
           },
           orderBy: { name: 'asc' },
         },

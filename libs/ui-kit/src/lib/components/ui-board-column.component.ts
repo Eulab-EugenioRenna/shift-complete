@@ -6,12 +6,14 @@ import { Component, Input } from '@angular/core';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <section class="grid content-start gap-2 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-3" [ngClass]="columnClass">
+    <section class="flex h-full min-h-0 flex-col gap-2 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--surface-2)] p-3" [ngClass]="columnClass">
       <div class="flex items-center justify-between gap-2">
         <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--text-3)]">{{ title }}</p>
         <span *ngIf="count !== undefined" class="text-xs text-[color:var(--text-3)]">{{ count }}</span>
       </div>
-      <ng-content></ng-content>
+      <div class="flex min-h-0 flex-1 flex-col gap-2">
+        <ng-content></ng-content>
+      </div>
     </section>
   `
 })

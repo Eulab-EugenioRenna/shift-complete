@@ -89,6 +89,7 @@ export interface TeamListItem {
     color?: string | null;
     icon?: string | null;
     requiredCompetencies?: string[] | null;
+    recommendedEventVolunteers?: number | null;
   }>;
 }
 
@@ -256,6 +257,7 @@ export type ScheduleApplyScope = 'event' | 'month' | 'cycle' | 'year' | 'all';
 
 export interface ScheduleManualSelection {
   slotId: string;
+  slotDemandKey?: string;
   assigneeId: string;
 }
 
@@ -268,6 +270,8 @@ export interface ScheduleCandidate {
 
 export interface ScheduleSuggestionItem {
   slotId: string;
+  slotDemandKey: string;
+  slotDemandIndex: number;
   eventId: string;
   eventTitle: string;
   teamId: string;

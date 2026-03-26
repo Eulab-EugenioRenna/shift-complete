@@ -61,7 +61,8 @@ export class TeamsService {
                     id: true,
                     name: true,
                     color: true,
-                    icon: true
+                    icon: true,
+                    recommendedEventVolunteers: true,
                   }
                 }
               }
@@ -75,6 +76,7 @@ export class TeamsService {
             color: true,
             icon: true,
             requiredCompetencies: true,
+            recommendedEventVolunteers: true,
           },
           orderBy: {
             name: 'asc'

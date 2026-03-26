@@ -46,18 +46,19 @@ export class DutiesService {
 
     const duty = await this.prisma.duty.create({
       data: {
-        name: payload.name,
-        description: payload.description,
-        color: payload.color,
-        icon: payload.icon,
-        requiredCompetencies: payload.requiredCompetencies,
-        team: {
-          connect: {
-            id: payload.teamId
+          name: payload.name,
+          description: payload.description,
+          color: payload.color,
+          icon: payload.icon,
+          requiredCompetencies: payload.requiredCompetencies,
+          recommendedEventVolunteers: payload.recommendedEventVolunteers ?? 1,
+          team: {
+            connect: {
+              id: payload.teamId
+            }
           }
-        }
-      }
-    });
+      } as any
+    } as any);
 
     await this.prisma.auditLog.create({
       data: {

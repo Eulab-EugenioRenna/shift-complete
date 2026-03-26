@@ -51,6 +51,7 @@ export interface DutyListItem {
   description?: string | null;
   color?: string | null;
   icon?: string | null;
+  recommendedEventVolunteers?: number | null;
 }
 
 @Injectable({ providedIn: 'root' })

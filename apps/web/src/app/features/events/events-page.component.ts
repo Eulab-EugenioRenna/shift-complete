@@ -66,7 +66,8 @@ type CalendarEvent = {
     recurrenceDurationMonths?: number | null;
     recurrenceAutoRenew?: boolean | null;
     recurrenceRenewMonths?: number | null;
-    slots?: Array<{ teamId: string; dutyId: string; startsAt: string; endsAt: string; required?: boolean }>;
+    requiredVolunteers?: number;
+    slots?: Array<{ teamId: string; dutyId: string; startsAt: string; endsAt: string; required?: boolean; requiredVolunteers?: number }>;
   } | null;
   slots?: Array<{
     id: string;
@@ -76,7 +77,8 @@ type CalendarEvent = {
     teamName?: string;
     startsAt?: string;
     endsAt?: string;
-    assignments?: Array<{ id: string; assigneeId?: string | null; status: string; replacementApproved?: boolean; assignee?: { id?: string; fullName?: string | null } | null }>;
+    requiredVolunteers?: number;
+    assignments?: Array<{ id: string; assigneeId?: string | null; status: string; replacementApproved?: boolean; assignee?: { id?: string; fullName?: string | null } | null }>; 
   }>;
   assignments?: Array<{ id: string; eventId: string; slotId: string; roleName?: string; team?: string; assignee?: string | null; status: string }>;
 };
@@ -89,6 +91,7 @@ type EventSlotForm = {
   startsAt: Date | null;
   endsAt: Date | null;
   required: boolean;
+  requiredVolunteers: number;
 };
 
 type RecurrenceDurationOption = 3 | 6 | 12 | 24;
@@ -120,6 +123,7 @@ type TeamOption = {
     name: string;
     color?: string | null;
     icon?: string | null;
+    recommendedEventVolunteers?: number | null;
   }>;
 };
 
@@ -274,7 +278,7 @@ export class EventsPageComponent {
   protected readonly availableEventDuties = computed(() => {
     const teamId = this.eventForm.teamId;
     if (!teamId) {
-      return [] as Array<{ id: string; name: string; required: boolean }>;
+      return [] as Array<{ id: string; name: string; required: boolean; requiredVolunteers: number; recommendedEventVolunteers: number }>;
     }
 
     const duties = this.teams().find((team) => team.id === teamId)?.duties ?? [];
@@ -282,6 +286,8 @@ export class EventsPageComponent {
       id: duty.id,
       name: duty.name,
       required: this.eventForm.slots.some((slot) => slot.dutyId === duty.id && slot.required),
+      requiredVolunteers: this.eventForm.slots.find((slot) => slot.dutyId === duty.id)?.requiredVolunteers ?? duty.recommendedEventVolunteers ?? 1,
+      recommendedEventVolunteers: duty.recommendedEventVolunteers ?? 1,
     }));
   });
   protected readonly canManageEvents = computed(() => this.session.hasAnyRole('administrator', 'service_leader'));
@@ -301,10 +307,11 @@ export class EventsPageComponent {
 
     const slots = event.slots ?? [];
     const assignments = slots.flatMap((slot) => slot.assignments ?? []);
-    const coveredSlots = slots.filter((slot) => (slot.assignments?.length ?? 0) > 0).length;
+    const coveredSlots = slots.filter((slot) => (slot.assignments?.length ?? 0) >= (slot.requiredVolunteers ?? 1)).length;
     const openSlots = slots.length - coveredSlots;
     const location = this.catalogLabel('location', (event as { locationValue?: string | null }).locationValue) || 'Non assegnata';
     const uniqueVolunteers = this.eventAssigneeIds(event).length;
+    const requiredVolunteers = slots.reduce((total, slot) => total + (slot.requiredVolunteers ?? 1), 0);
     const pendingReplacements = assignments.filter((assignment) => this.replacementForAssignment(assignment.id)?.status === 'PENDING').length;
 
     return {
@@ -319,7 +326,7 @@ export class EventsPageComponent {
           metrics: [
             { label: 'Slot', value: String(slots.length) },
             { label: 'Slot coperti', value: String(coveredSlots) },
-            { label: 'Volontari coinvolti', value: String(uniqueVolunteers) },
+            { label: 'Volontari coinvolti', value: `${uniqueVolunteers}/${requiredVolunteers}` },
             { label: 'Sostituzioni aperte', value: String(pendingReplacements) },
           ],
           facts: [
@@ -340,8 +347,8 @@ export class EventsPageComponent {
               slot.roleName || 'Mansione',
               `${this.formatTime(slot.startsAt || event.startsAt)} - ${this.formatTime(slot.endsAt || event.endsAt)}`,
               (slot.assignments ?? []).map((assignment) => assignment.assignee?.fullName || 'Aperto').join('\n') || 'Nessuna assegnazione',
-              (slot.assignments?.length ?? 0) > 0 ? 'Coperto' : 'Vacante',
-            ]),
+               `${slot.assignments?.length ?? 0}/${slot.requiredVolunteers ?? 1}`,
+             ]),
           },
         },
         {
@@ -403,6 +410,44 @@ export class EventsPageComponent {
     );
   }
 
+  protected updateDutyRequiredVolunteers(dutyId: string, value: string): void {
+    const parsed = Number(value);
+    const requiredVolunteers = Number.isFinite(parsed) ? Math.max(1, Math.min(99, Math.floor(parsed))) : 1;
+    this.eventForm.slots = this.eventForm.slots.map((slot) =>
+      slot.dutyId === dutyId ? { ...slot, requiredVolunteers } : slot
+    );
+  }
+
+  protected slotCoverage(slot: { assignments?: Array<unknown>; requiredVolunteers?: number }): string {
+    return `${slot.assignments?.length || 0}/${slot.requiredVolunteers ?? 1}`;
+  }
+
+  protected slotCoverageTone(slot: { assignments?: Array<unknown>; requiredVolunteers?: number }): 'success' | 'warn' | 'info' {
+    const assigned = slot.assignments?.length || 0;
+    const required = slot.requiredVolunteers ?? 1;
+    if (assigned >= required) {
+      return 'success';
+    }
+    return assigned > 0 ? 'info' : 'warn';
+  }
+
+  protected slotCoverageLabel(slot: { assignments?: Array<unknown>; requiredVolunteers?: number }): string {
+    const assigned = slot.assignments?.length || 0;
+    const required = slot.requiredVolunteers ?? 1;
+    if (assigned >= required) {
+      return 'coperto';
+    }
+    return assigned > 0 ? 'parziale' : 'vacante';
+  }
+
+  protected canAssignMoreVolunteers(slot: { assignments?: Array<unknown>; requiredVolunteers?: number }): boolean {
+    return (slot.assignments?.length || 0) < (slot.requiredVolunteers ?? 1);
+  }
+
+  protected totalRequiredVolunteers(event: CalendarEvent | null | undefined): number {
+    return event?.slots?.reduce((total, slot) => total + (slot.requiredVolunteers ?? 1), 0) ?? 0;
+  }
+
   private createEmptySlot(startsAt: Date | null, endsAt: Date | null): EventSlotForm {
     const defaultTeamId = this.teams()[0]?.id ?? null;
     const defaultDutyId = this.slotDutyOptions(defaultTeamId)[0]?.value ?? '';
@@ -413,6 +458,7 @@ export class EventsPageComponent {
       startsAt,
       endsAt,
       required: true,
+      requiredVolunteers: 1,
     };
   }
 
@@ -428,6 +474,7 @@ export class EventsPageComponent {
       startsAt,
       endsAt,
       required: true,
+      requiredVolunteers: this.teams().find((team) => team.id === teamId)?.duties?.find((teamDuty) => teamDuty.id === duty.value)?.recommendedEventVolunteers ?? 1,
     }));
   }
 
@@ -545,7 +592,8 @@ export class EventsPageComponent {
       requiredSlots.length &&
       requiredSlots.every((slot) =>
         slot.teamId &&
-        slot.dutyId.trim()
+        slot.dutyId.trim() &&
+        slot.requiredVolunteers > 0
       )
     );
   }
@@ -600,6 +648,7 @@ export class EventsPageComponent {
       slots: baseSlots.map((slot) => ({
         ...slot,
         required: sourceSlots.some((sourceSlot: any) => sourceSlot.dutyId === slot.dutyId),
+        requiredVolunteers: sourceSlots.find((sourceSlot: any) => sourceSlot.dutyId === slot.dutyId)?.requiredVolunteers ?? slot.requiredVolunteers,
       })),
     };
     if (!this.eventForm.slots.length && teamId) {
@@ -638,6 +687,7 @@ export class EventsPageComponent {
         startsAt: toIsoDateTime(this.eventForm.startsAt),
         endsAt: toIsoDateTime(this.eventForm.endsAt),
         required: slot.required,
+        requiredVolunteers: slot.requiredVolunteers,
       })),
     };
 
@@ -796,12 +846,17 @@ export class EventsPageComponent {
     this.materializeEventIfNeeded(selected).subscribe({
       next: (event) => {
         this.selectedEvent.set(event);
-        const slot = (event.slots ?? []).find((item) => item.id === slotId)
-          ?? (event.slots ?? []).find((item) => item.teamId === previousSlot?.teamId && item.dutyId === previousSlot?.dutyId);
+        const slot = this.resolveMaterializedSlot(event, slotId, previousSlot);
         const assignee = slot ? this.membersForTeam(slot.teamId).find((member) => member.id === assigneeId) ?? null : null;
         if (!slot) {
           this.finishDragging();
           this.feedback.error('Slot non disponibile', 'Impossibile trovare lo slot materializzato per questa occorrenza.');
+          return;
+        }
+
+        if (!this.canAssignMoreVolunteers(slot)) {
+          this.finishDragging();
+          this.feedback.error('Slot completo', 'La mansione ha gia raggiunto il numero richiesto di volontari.');
           return;
         }
 
@@ -897,8 +952,7 @@ export class EventsPageComponent {
     this.materializeEventIfNeeded(selected).subscribe({
       next: (event) => {
         this.selectedEvent.set(event);
-        const slot = (event.slots ?? []).find((item) => item.id === slotId)
-          ?? (event.slots ?? []).find((item) => item.teamId === previousSlot?.teamId && item.dutyId === previousSlot?.dutyId);
+        const slot = this.resolveMaterializedSlot(event, slotId, previousSlot);
         const assignee = slot ? this.membersForTeam(slot.teamId).find((member) => member.id === assigneeId) ?? null : null;
         if (!slot) {
           this.feedback.error('Slot non disponibile', 'Impossibile trovare lo slot materializzato per il sostituto.');
@@ -1138,6 +1192,7 @@ export class EventsPageComponent {
             ...slot,
             teamId: normalizedTeamId,
             dutyId: normalizedDutyId,
+            requiredVolunteers: Math.max(1, slot.requiredVolunteers ?? 1),
           };
         });
       },
@@ -1359,6 +1414,30 @@ export class EventsPageComponent {
       }),
       map((events) => (events as CalendarEvent[]).find((item: CalendarEvent) => item.seriesId === event.seriesId && item.occurrenceStart === event.occurrenceStart && !item.isVirtualOccurrence && item.type === event.type) ?? event)
     );
+  }
+
+  private resolveMaterializedSlot(
+    event: CalendarEvent,
+    slotId: string,
+    previousSlot?: NonNullable<CalendarEvent['slots']>[number],
+  ) {
+    const slots = event.slots ?? [];
+    return slots.find((item) => item.id === slotId)
+      ?? slots.find((item) =>
+        item.teamId === previousSlot?.teamId
+        && item.dutyId === previousSlot?.dutyId
+        && item.startsAt === previousSlot?.startsAt
+        && item.endsAt === previousSlot?.endsAt
+      )
+      ?? slots.find((item) =>
+        item.teamId === previousSlot?.teamId
+        && item.dutyId === previousSlot?.dutyId
+      )
+      ?? slots.find((item) =>
+        item.teamName === previousSlot?.teamName
+        && item.roleName === previousSlot?.roleName
+      )
+      ?? null;
   }
 
   protected recurrenceDurationLabel(event: CalendarEvent): string {

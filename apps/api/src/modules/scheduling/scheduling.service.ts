@@ -19,6 +19,7 @@ type SchedulingSlot = {
   teamId: string;
   startsAt: Date;
   endsAt: Date;
+  requiredVolunteers: number;
   assignments: Array<{ id?: string; assigneeId: string | null; status?: string }>;
   duty: { id: string; name: string };
   team: { name: string };
@@ -34,6 +35,8 @@ type Candidate = {
 
 type Suggestion = {
   slotId: string;
+  slotDemandKey: string;
+  slotDemandIndex: number;
   eventId: string;
   eventTitle: string;
   teamId: string;
@@ -76,10 +79,12 @@ type PlanRecord = {
   anchorEventTitle: string;
   invalidatedAt: Date | null;
   invalidationReason: string | null;
-  items: Array<{
-    id: string;
-    slotId: string;
-    eventId: string;
+    items: Array<{
+      id: string;
+      slotId: string;
+      slotDemandKey: string;
+      slotDemandIndex: number;
+      eventId: string;
     eventTitle: string;
     teamId: string;
     teamName: string;
@@ -465,71 +470,82 @@ export class SchedulingService {
       const cycleLength = Math.max(cycleState.order.length, 1);
 
       for (const slot of sortedSlots) {
-        const existingAssignment = slot.assignments.find((assignment) => Boolean(assignment.assigneeId)) ?? null;
-        const candidatePool = await this.rankCandidates(slot, cycleState, manualSelections.get(slot.id) ?? null);
-        const manualAssigneeId = manualSelections.get(slot.id) ?? null;
-        const chosenCandidate = manualAssigneeId
-          ? candidatePool.find((candidate) => candidate.id === manualAssigneeId) ?? null
-          : candidatePool[0] ?? null;
+        const existingAssignments = slot.assignments.filter((assignment) => Boolean(assignment.assigneeId));
+        const reservedAssigneeIds = new Set(existingAssignments.map((assignment) => assignment.assigneeId).filter((value): value is string => Boolean(value)));
+        const requiredVolunteers = Math.max(slot.requiredVolunteers ?? 1, existingAssignments.length, 1);
 
-        let coverageStatus: Suggestion['coverageStatus'] = 'open';
-        let selectionSource: Suggestion['selectionSource'] = 'open';
-        let assigneeId: string | null = null;
-        let assigneeName: string | null = null;
-        let score: number | null = null;
-        let reasons: string[] = [];
-        let strategy = 'no-candidate';
+        for (let demandIndex = 0; demandIndex < requiredVolunteers; demandIndex += 1) {
+          const slotDemandKey = `${slot.id}:${demandIndex + 1}`;
+          const existingAssignment = existingAssignments[demandIndex] ?? null;
+          const manualAssigneeId = manualSelections.get(slotDemandKey) ?? manualSelections.get(slot.id) ?? null;
+          const rankedCandidates = await this.rankCandidates(slot, cycleState, manualAssigneeId);
+          const candidatePool = rankedCandidates.filter((candidate) => !reservedAssigneeIds.has(candidate.id) || candidate.id === manualAssigneeId);
+          const chosenCandidate = manualAssigneeId
+            ? candidatePool.find((candidate) => candidate.id === manualAssigneeId) ?? null
+            : candidatePool[0] ?? null;
 
-        if (existingAssignment && includeExistingAssignments && !manualAssigneeId) {
-          coverageStatus = 'covered';
-          selectionSource = 'existing';
-          assigneeId = existingAssignment.assigneeId ?? null;
-          assigneeName = await this.lookupUserName(existingAssignment.assigneeId ?? null);
-          strategy = 'keep-existing';
-          reasons = ['existing-assignment'];
-          this.advanceCycle(cycleState, assigneeId);
-        } else if (chosenCandidate) {
-          coverageStatus = manualAssigneeId ? 'manual' : 'suggested';
-          selectionSource = manualAssigneeId ? 'manual' : 'suggested';
-          assigneeId = chosenCandidate.id;
-          assigneeName = chosenCandidate.fullName;
-          score = chosenCandidate.score;
-          reasons = chosenCandidate.reasons;
-          strategy = manualAssigneeId ? 'manual-override' : `cycle-score:${chosenCandidate.score}`;
-          this.advanceCycle(cycleState, assigneeId);
+          let coverageStatus: Suggestion['coverageStatus'] = 'open';
+          let selectionSource: Suggestion['selectionSource'] = 'open';
+          let assigneeId: string | null = null;
+          let assigneeName: string | null = null;
+          let score: number | null = null;
+          let reasons: string[] = [];
+          let strategy = 'no-candidate';
+
+          if (existingAssignment && includeExistingAssignments && !manualAssigneeId) {
+            coverageStatus = 'covered';
+            selectionSource = 'existing';
+            assigneeId = existingAssignment.assigneeId ?? null;
+            assigneeName = await this.lookupUserName(existingAssignment.assigneeId ?? null);
+            strategy = 'keep-existing';
+            reasons = ['existing-assignment'];
+            this.advanceCycle(cycleState, assigneeId);
+          } else if (chosenCandidate) {
+            coverageStatus = manualAssigneeId ? 'manual' : 'suggested';
+            selectionSource = manualAssigneeId ? 'manual' : 'suggested';
+            assigneeId = chosenCandidate.id;
+            assigneeName = chosenCandidate.fullName;
+            score = chosenCandidate.score;
+            reasons = chosenCandidate.reasons;
+            strategy = manualAssigneeId ? 'manual-override' : `cycle-score:${chosenCandidate.score}`;
+            this.advanceCycle(cycleState, assigneeId);
+            reservedAssigneeIds.add(assigneeId);
+          }
+
+          suggestions.push({
+            slotId: slot.id,
+            slotDemandKey,
+            slotDemandIndex: demandIndex + 1,
+            eventId: slot.event.id,
+            eventTitle: slot.event.title,
+            teamId: slot.teamId,
+            teamName: slot.team.name,
+            dutyId: slot.duty.id,
+            roleName: slot.duty.name,
+            startsAt: slot.startsAt,
+            endsAt: slot.endsAt,
+            coverageStatus,
+            strategy,
+            assigneeId,
+            assigneeName,
+            score,
+            reasons,
+            candidates: candidatePool.slice(0, 3),
+            cycleKey,
+            cycleIndex: cycleState.pointer + 1,
+            cycleLength,
+            cycleNumber: cycleState.completedTurns + 1,
+            selectionSource,
+            existingAssignmentId: existingAssignment?.id ?? null,
+            existingAssigneeId: existingAssignment?.assigneeId ?? null,
+            existingAssigneeName: existingAssignment?.assigneeId ? await this.lookupUserName(existingAssignment.assigneeId) : null,
+            drift: {
+              status: !existingAssignment && !assigneeId ? 'match' : existingAssignment?.assigneeId === assigneeId ? 'match' : existingAssignment ? 'changed' : 'missing',
+              currentAssigneeId: existingAssignment?.assigneeId ?? null,
+              currentAssigneeName: existingAssignment?.assigneeId ? await this.lookupUserName(existingAssignment.assigneeId) : null,
+            },
+          });
         }
-
-        suggestions.push({
-          slotId: slot.id,
-          eventId: slot.event.id,
-          eventTitle: slot.event.title,
-          teamId: slot.teamId,
-          teamName: slot.team.name,
-          dutyId: slot.duty.id,
-          roleName: slot.duty.name,
-          startsAt: slot.startsAt,
-          endsAt: slot.endsAt,
-          coverageStatus,
-          strategy,
-          assigneeId,
-          assigneeName,
-          score,
-          reasons,
-          candidates: candidatePool.slice(0, 3),
-          cycleKey,
-          cycleIndex: cycleState.pointer + 1,
-          cycleLength,
-          cycleNumber: cycleState.completedTurns + 1,
-          selectionSource,
-          existingAssignmentId: existingAssignment?.id ?? null,
-          existingAssigneeId: existingAssignment?.assigneeId ?? null,
-          existingAssigneeName: existingAssignment?.assigneeId ? await this.lookupUserName(existingAssignment.assigneeId) : null,
-          drift: {
-            status: !existingAssignment && !assigneeId ? 'match' : existingAssignment?.assigneeId === assigneeId ? 'match' : existingAssignment ? 'changed' : 'missing',
-            currentAssigneeId: existingAssignment?.assigneeId ?? null,
-            currentAssigneeName: existingAssignment?.assigneeId ? await this.lookupUserName(existingAssignment.assigneeId) : null,
-          },
-        });
       }
     }
 
@@ -995,6 +1011,8 @@ export class SchedulingService {
   private toPersistedResponse(plan: PlanRecord, message: string) {
     const suggestions = plan.items.map((item) => ({
       slotId: item.slotId,
+      slotDemandKey: item.slotDemandKey,
+      slotDemandIndex: item.slotDemandIndex,
       eventId: item.eventId,
       eventTitle: item.eventTitle,
       teamId: item.teamId,
@@ -1085,6 +1103,8 @@ export class SchedulingService {
   private mapPlanItem(item: Suggestion) {
     return {
       slotId: item.slotId,
+      slotDemandKey: item.slotDemandKey,
+      slotDemandIndex: item.slotDemandIndex,
       eventId: item.eventId,
       eventTitle: item.eventTitle,
       teamId: item.teamId,
@@ -1141,7 +1161,7 @@ export class SchedulingService {
     return new Map(
       (selections ?? [])
         .filter((selection): selection is ManualSelection => Boolean(selection?.slotId && selection?.assigneeId))
-        .map((selection) => [selection.slotId, selection.assigneeId])
+        .map((selection) => [((selection as ManualSelection & { slotDemandKey?: string }).slotDemandKey ?? selection.slotId), selection.assigneeId])
     );
   }
 

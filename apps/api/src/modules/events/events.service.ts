@@ -156,10 +156,11 @@ export class EventsService {
             id: slot.id,
             dutyId: slot.dutyId,
             roleName: slot.duty?.name,
-          teamId: slot.teamId,
-          teamName: slot.team?.name,
-          startsAt: slot.startsAt,
-          endsAt: slot.endsAt,
+            teamId: slot.teamId,
+            teamName: slot.team?.name,
+            startsAt: slot.startsAt,
+            endsAt: slot.endsAt,
+            requiredVolunteers: slot.requiredVolunteers,
             assignments: slot.assignments.map((assignment) => ({
               id: assignment.id,
               assigneeId: assignment.assigneeId,
@@ -226,7 +227,8 @@ export class EventsService {
             },
             startsAt: new Date(slot.startsAt),
             endsAt: new Date(slot.endsAt),
-            required: slot.required ?? true
+            required: slot.required ?? true,
+            requiredVolunteers: slot.requiredVolunteers ?? 1,
           }))
         }
       } as any,
@@ -350,6 +352,12 @@ export class EventsService {
       }
     });
 
+    const requiredVolunteers = (slot as any).requiredVolunteers ?? 1;
+    const assignedVolunteerCount = slot.assignments.filter((assignment) => Boolean(assignment.assigneeId)).length;
+    if (payload.assigneeId && !existingAssignment && assignedVolunteerCount >= requiredVolunteers) {
+      throw new ForbiddenException(`La mansione richiede al massimo ${requiredVolunteers} volontari per questo evento`);
+    }
+
     const assignment = existingAssignment
       ? await this.prisma.assignment.update({
           where: { id: existingAssignment.id },
@@ -465,7 +473,8 @@ export class EventsService {
                 },
                 startsAt: new Date(slot.startsAt),
                 endsAt: new Date(slot.endsAt),
-                required: slot.required ?? true
+                required: slot.required ?? true,
+                requiredVolunteers: slot.requiredVolunteers ?? 1,
               }))
             }
           : undefined
@@ -715,6 +724,7 @@ export class EventsService {
               startsAt: slot.startsAt,
               endsAt: slot.endsAt,
               required: slot.required,
+              requiredVolunteers: slot.requiredVolunteers,
             })),
           }
         : null,
@@ -751,6 +761,7 @@ export class EventsService {
           startsAt: new Date(new Date(slot.startsAt).getTime() + delta),
           endsAt: new Date(new Date(slot.endsAt).getTime() + delta),
           required: slot.required,
+          requiredVolunteers: slot.requiredVolunteers,
         })),
       },
       slots: (event.slots ?? []).map((slot: any) => ({
@@ -948,6 +959,7 @@ export class EventsService {
           startsAt: new Date(slot.startsAt),
           endsAt: new Date(slot.endsAt),
           required: slot.required ?? true,
+          requiredVolunteers: slot.requiredVolunteers ?? 1,
         }))
       : this.buildOccurrenceSlotsFromSeries(series.slots, new Date(payload.occurrenceStart), occurrenceStart);
 
@@ -973,6 +985,7 @@ export class EventsService {
       startsAt: slot.startsAt,
       endsAt: slot.endsAt,
       required: slot.required,
+      requiredVolunteers: slot.requiredVolunteers,
     }));
 
     const updated = occurrenceChild
@@ -1258,6 +1271,7 @@ export class EventsService {
                 startsAt: new Date(new Date(slot.startsAt).getTime() + delta),
                 endsAt: new Date(new Date(slot.endsAt).getTime() + delta),
                 required: slot.required,
+                requiredVolunteers: slot.requiredVolunteers,
               })),
             },
           } as any,

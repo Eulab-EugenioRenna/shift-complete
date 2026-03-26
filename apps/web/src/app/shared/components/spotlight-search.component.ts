@@ -65,6 +65,19 @@ import { SpotlightSearchService } from '../../core/services/spotlight-search.ser
       transform-origin: center top;
     }
 
+    .spotlight-panel input {
+      background: transparent;
+      background-color: transparent;
+    }
+
+    .spotlight-panel input:-webkit-autofill,
+    .spotlight-panel input:-webkit-autofill:hover,
+    .spotlight-panel input:-webkit-autofill:focus {
+      -webkit-text-fill-color: var(--text-1);
+      -webkit-box-shadow: 0 0 0 1000px transparent inset;
+      transition: background-color 9999s ease-out 0s;
+    }
+
     @keyframes spotlightBackdropIn {
       from {
         opacity: 0;

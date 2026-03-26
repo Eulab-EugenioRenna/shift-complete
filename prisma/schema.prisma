@@ -257,6 +257,7 @@ model Duty {
   color                String?
   icon                 String?
   requiredCompetencies Json?
+  recommendedEventVolunteers Int @default(1)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
@@ -266,13 +267,14 @@ model Duty {
 }
 
 model EventSlot {
-  id       String   @id @default(cuid())
-  eventId  String
-  teamId   String
-  dutyId   String
-  startsAt DateTime
-  endsAt   DateTime
-  required Boolean  @default(true)
+  id                 String   @id @default(cuid())
+  eventId            String
+  teamId             String
+  dutyId             String
+  startsAt           DateTime
+  endsAt             DateTime
+  required           Boolean  @default(true)
+  requiredVolunteers Int      @default(1)
 
   event       Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
   team        Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -449,6 +451,8 @@ model SchedulingPlanItem {
   id                   String    @id @default(cuid())
   planId               String
   slotId               String
+  slotDemandKey        String
+  slotDemandIndex      Int       @default(1)
   eventId              String
   eventTitle           String
   teamId               String
